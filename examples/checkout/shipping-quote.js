@@ -1,0 +1,1 @@
+exports.shippingQuote = (quotes, currency) => { let best = null; for (const q of quotes) { if (q && typeof q.id === 'string' && q.id !== '' && q.available === true && q.currency === currency && Number.isSafeInteger(q.priceCents) && q.priceCents >= 0) { if (!best || q.priceCents < best.priceCents) { best = q; } } } return best ? best.id : null; };

@@ -1,0 +1,13 @@
+{
+  "name": "local-pit-crew-reference-core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "description": "Repair controller, Firebase browser planner and guarded local coder adapters.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test --test-timeout=10000 test/*.test.cjs"
+  }
+}

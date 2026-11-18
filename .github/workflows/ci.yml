@@ -1,0 +1,41 @@
+name: Verify workbench
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: local-pit-crew/web/package-lock.json
+      - run: npm ci --ignore-scripts --prefix local-pit-crew/web
+      - run: npm ci --ignore-scripts --prefix local-pit-crew/runner
+      - name: Audit web runtime dependencies
+        run: npm audit --omit=dev --prefix local-pit-crew/web
+      - name: Audit function runner dependencies
+        run: npm audit --omit=dev --prefix local-pit-crew/runner
+      - run: npm run build:firebase
+      - run: git diff --exit-code -- local-pit-crew/ui/public/firebase-planner.mjs local-pit-crew/ui/public/firebase-bundle.json
+      - run: npm test
+      - run: npm run build:web
+      - run: npm run test:web
+      - run: npm run test:runner
+      - run: npm run audit:public -- --tree-only
+  docker-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+      - run: npm run test:runner:admission
+        env:
+          PITCREW_DOCKER_SOCKET: /var/run/docker.sock

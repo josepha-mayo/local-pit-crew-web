@@ -1,0 +1,27 @@
+{
+  "name": "local-pit-crew",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local coding repair workbench with Firebase on-device diagnosis and evidence-bound patches.",
+  "license": "Apache-2.0",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node local-pit-crew/ui/server.cjs",
+    "start:firebase": "node local-pit-crew/ui/firebase-workbench.cjs",
+    "start:ollama": "node local-pit-crew/ui/ollama-workbench.cjs",
+    "start:coder": "node local-pit-crew/ui/coder-workbench.cjs",
+    "start:verified": "node local-pit-crew/ui/verified-workbench.cjs",
+    "test": "node --test --test-timeout=10000 local-pit-crew/test/*.test.cjs",
+    "build:firebase": "node local-pit-crew/scripts/build-firebase.cjs",
+    "build:web": "node local-pit-crew/scripts/build-web.cjs",
+    "test:web": "node --test --test-timeout=10000 local-pit-crew/web/test/*.test.mjs",
+    "preview:web": "node local-pit-crew/scripts/preview-web.cjs",
+    "audit:public": "node scripts/audit-public.cjs",
+    "smoke:ollama": "node scripts/smoke-ollama.cjs",
+    "test:runner": "node --test --test-timeout=15000 local-pit-crew/runner/test/*.test.cjs",
+    "test:runner:docker": "node --test --test-reporter=spec local-pit-crew/runner/docker/qualification.test.cjs",
+    "test:runner:admission": "node --test --test-reporter=spec local-pit-crew/runner/docker/admission.test.cjs",
+    "probe:local-patch": "node scripts/probe-local-patch.cjs",
+    "replay:function": "node scripts/replay-function.cjs"
+  }
+}

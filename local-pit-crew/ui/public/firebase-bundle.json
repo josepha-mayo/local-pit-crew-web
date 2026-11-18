@@ -1,0 +1,19 @@
+{
+  "schema": "local-pit-crew/firebase-bundle/v1",
+  "firebase": "13.3.0",
+  "ai": "3.1.0",
+  "sha256": "bf82a539e8cccbecebe4ed308ac9b42f313f47c4f192ac322d94d9fc6d7a2aa8",
+  "inputs": {
+    "web/firebase-planner.mjs": "902a8367bed380d7a2a4bc9536311b72819436413efd57235a89dff96f1261a7",
+    "web/firebase-planner-core.mjs": "1ec6a9d3d8155aa87492eab0a86ddf1bdd182bd9bf61dd461822f251438564e1",
+    "web/firebase-cloud-review-core.mjs": "47f5fe2b3cdfe4baed7bd637fa074dba8a531af1a5359f556414c52f72a91b49",
+    "web/firebase-cloud-session-core.mjs": "c3ea0934458205237a55daa54bac6cf958ab60a7527bfaa1cb1c1c44bf3e80d0",
+    "web/firebase-function-draft-core.mjs": "6ba8a2e60d8dfe2ce1ddc08930ec6ceddab3f0234def54e4b1dd7b98a974c83f",
+    "web/reference-crypto.mjs": "cb22d8c4c6bcfe63fc1fb9e2b68fd91f79e7896b68bde62882eac6c242285d39",
+    "runner/function-contract.cjs": "f6cee66c93917eafb9de856fef1b9f3f1bbc98e30f08d09474c001f73e55cf0e",
+    "src/firebase-local-client.cjs": "f6911f1df175159a39326e88a9ab1cf7b6c550cd1be724f0c9b61d6135f2e4be",
+    "web/package-lock.json": "473b886af1b88443646a7a32c99d4fb24fcee66c82ad1a219dff42401f3f8ff8",
+    "web/vite.config.mjs": "76588ec092e3af6bc685e0842ccad7f65207ab8d365e578daf5075fe06b28b91",
+    "scripts/build-firebase.cjs": "cf889bad902249bb38cdd61da1a0e6dc397683d4e02bc85cb3fc56aa2ef8e4c7"
+  }
+}

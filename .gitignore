@@ -1,0 +1,17 @@
+node_modules/
+dist/
+site-dist/
+.vite-cache-site/
+.firebase/
+.firebaserc
+.env
+.env.*
+!.env.example
+*.local.json
+*.local.md
+private/
+handoffs/
+coverage/
+test-results/
+playwright-report/
+*.log

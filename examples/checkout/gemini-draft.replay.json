@@ -1,0 +1,19 @@
+{
+  "schema": "local-pit-crew/function-replay/v2",
+  "context": {
+    "title": "Choose a shipping quote",
+    "instructions": "Return the id of the first quote with the lowest valid priceCents in the requested currency, or null. A valid quote is a non-null object with a nonempty string id, available exactly true, currency exactly equal to the requested string, and a nonnegative safe integer priceCents. Ignore other rows. Preserve both input arguments and the order of the quotes. On price ties keep the earlier input. The first argument is an array; the second argument is a currency string."
+  },
+  "files": [
+    {
+      "path": "src/function.js",
+      "sha256": "321de0a251c5b79891bde6cb98ac920dc0ab242163f3a374e5ffa773aa70acc3",
+      "content": "exports.shippingQuote = (quotes, currency) => { let best = null; for (const q of quotes) { if (q && typeof q.id === 'string' && q.id !== '' && q.available === true && q.currency === currency && Number.isInteger(q.priceCents) && q.priceCents >= 0) { if (!best || q.priceCents < best.priceCents) { best = q; } } } return best ? best.id : null; };"
+    },
+    {
+      "path": "contract.json",
+      "sha256": "ae71ce4c7536324acc1bc89cb11a471f7ebe33bfa6508e5769ffb4fc34e5b139",
+      "content": "{\"schema\":\"local-pit-crew/function-contract/v1\",\"exportName\":\"shippingQuote\",\"cases\":[{\"id\":\"case-01\",\"label\":\"Free delivery beats a paid quote\",\"args\":[[{\"available\":true,\"currency\":\"USD\",\"id\":\"paid\",\"priceCents\":799},{\"available\":true,\"currency\":\"USD\",\"id\":\"free\",\"priceCents\":0}],\"USD\"],\"expected\":\"free\"},{\"id\":\"case-02\",\"label\":\"Ignore unavailable rates\",\"args\":[[{\"available\":false,\"currency\":\"USD\",\"id\":\"disabled\",\"priceCents\":1},{\"available\":true,\"currency\":\"USD\",\"id\":\"live\",\"priceCents\":10}],\"USD\"],\"expected\":\"live\"},{\"id\":\"case-03\",\"label\":\"Keep the first equal-price quote\",\"args\":[[{\"available\":true,\"currency\":\"USD\",\"id\":\"first\",\"priceCents\":10},{\"available\":true,\"currency\":\"USD\",\"id\":\"later\",\"priceCents\":10}],\"USD\"],\"expected\":\"first\"},{\"id\":\"case-04\",\"label\":\"No supported currency\",\"args\":[[{\"available\":true,\"currency\":\"EUR\",\"id\":\"eur\",\"priceCents\":1}],\"USD\"],\"expected\":null},{\"id\":\"case-05\",\"label\":\"Reject unsafe integer\",\"args\":[[{\"available\":true,\"currency\":\"USD\",\"id\":\"too-high\",\"priceCents\":9007199254740992}],\"USD\"],\"expected\":null}]}"
+    }
+  ]
+}

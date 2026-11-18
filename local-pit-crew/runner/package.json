@@ -1,0 +1,9 @@
+{
+  "name": "pit-crew-confined-js-pilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "license": "Apache-2.0",
+  "engines": { "node": ">=24" },
+  "dependencies": { "quickjs-emscripten": "0.32.0" }
+}
