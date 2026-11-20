@@ -143,8 +143,11 @@ test('one-click function entry runs real failing checks, reads evidence, preserv
 });
 test('explicit browser readiness disables unavailable diagnosis and re-enables it after a successful check',async()=>{
  const cloud=cloudFixture();
- let nativeStatus='unavailable';
- const f=await setup({cloud,nativeStatus:async()=>nativeStatus});
+ let nativeStatus='unavailable',configFetches=0;
+ const f=await setup({cloud,nativeStatus:async()=>nativeStatus,async fetchFirebaseConfig(path){
+  assert.equal(path,'/firebase-config.json');configFetches++;
+  return{ok:true,json:async()=>({firebaseConfig:cloud.config})};
+ }});
  try{
   await f.el('try-function-example').click();
   assert.match(f.el('advisor-status').textContent,/needs a ready browser model/);
@@ -152,10 +155,15 @@ test('explicit browser readiness disables unavailable diagnosis and re-enables i
   await f.el('check-browser').click();assert.equal(f.el('diagnose').disabled,true);
   assert.match(f.el('advisor-status').textContent,/reports the on-device model is unavailable/);
   await f.el('diagnose').click();assert.equal(cloud.calls.factory,0);
+  assert.equal(configFetches,0);
   assert.equal(f.el('review-cloud').disabled,false);
   nativeStatus='available';
   await f.el('check-browser').click();assert.equal(f.el('diagnose').disabled,false);
-  assert.match(f.el('advisor-status').textContent,/browser reports the model is available/);
+  assert.match(f.el('browser-status').textContent,/Firebase is loaded.*offline diagnosis/);
+  assert.match(f.el('advisor-status').textContent,/Firebase is loaded for this tab/);
+  assert.equal(configFetches,1);
+  await f.el('check-browser').click();
+  assert.equal(configFetches,1);
   assert.equal(f.el('pass-count').textContent,'3/5');assert.equal(cloud.calls.native,0);
  }finally{await f.close();}
 });

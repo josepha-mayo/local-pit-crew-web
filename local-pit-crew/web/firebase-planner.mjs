@@ -21,7 +21,7 @@ export function createFirebaseCloudReviewer(config){
 }
 export function createFirebasePlanner(config){
  return createFirebasePlannerCore({
-  sdk:{initializeApp,deleteApp,getApps,SDK_VERSION,initializeAppCheck,ReCaptchaEnterpriseProvider,
+  sdk:{initializeApp,deleteApp,getApps,SDK_VERSION,
    getAI,GoogleAIBackend,getGenerativeModel,InferenceMode,InferenceSource},
   localClientModule,config,environment:globalThis
  });

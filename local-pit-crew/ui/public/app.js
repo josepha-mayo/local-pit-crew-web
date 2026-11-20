@@ -366,8 +366,8 @@ module.exports = { uniqueTags };`;
    const existing=plannerCapability?.firebaseConfig??liveCapability?.firebaseConfig;
    if(existing)return existing;
    if(!hosted||!plannerCapability?.available)throw Error('firebase-configuration-unavailable');
-   // Firebase web identifiers are public. The bench does not need this request
-   // until the user chooses a cloud preview or on-device diagnosis.
+   // Firebase web identifiers are public. Load them when the user opens a
+   // Firebase feature or explicitly checks on-device setup.
    const response=await global.fetch('/firebase-config.json',{
     credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000)
    });
@@ -600,7 +600,8 @@ module.exports = { uniqueTags };`;
       'Nano repair planning runs automatically after an applied patch fails public checks. The app binds its selected source line to this revision.'):
      !plannerCapability?.available?'Launch with your Firebase configuration to connect Nano. Reference drills work now.':
      nanoSetupMessage()??(!repairSnapshot(state)?'Run a failing baseline, then read a file. Nano needs current evidence.':
-       browserReadiness==='available'?'The browser reports the model is available. Firebase setup may contact Google.':
+       browserReadiness==='available'?(liveClient?'Chrome reports an available model and Firebase is loaded for this tab.':
+        'Chrome reports an available model. Open model setup to prepare this tab for offline diagnosis.'):
         'On-device diagnosis needs a ready browser model. Check model setup or ask Nano to try.');
    }
    el('advisor-result').replaceChildren();
@@ -990,6 +991,15 @@ module.exports = { uniqueTags };`;
    el('runtime-setup').open=true;
    el('check-browser').focus?.();
   });
+  async function prepareDiagnosisTab(){
+   if(!liveClient){
+    if(global.navigator?.onLine===false)return 'Chrome has the model. Connect to load Firebase for offline diagnosis in this tab.';
+    el('browser-status').textContent='Chrome has the model. Loading Firebase for this tab…';
+    try{await loadFirebaseClients();}
+    catch{return 'Chrome has the model. The Firebase client could not load. Check your connection and try again.';}
+   }
+   return 'Chrome reports an available model and Firebase is loaded. You can try an offline diagnosis in this tab.';
+  }
   el('check-browser').addEventListener('click',async()=>{
    const mine=++browserProbeEpoch;el('check-browser').disabled=true;
    el('browser-status').textContent='Checking browser model readiness. No repair prompt is being sent…';
@@ -1006,7 +1016,10 @@ module.exports = { uniqueTags };`;
     'unknown-availability':'The browser returned an unrecognized availability result.',
     'availability-check-failed':'The availability check failed or timed out. No inference was requested.'
    };
-   el('browser-status').textContent=messages[result.status];el('check-browser').disabled=false;
+   const message=result.status==='available'&&hosted&&plannerCapability?.available?
+    await prepareDiagnosisTab():messages[result.status];
+   if(mine!==browserProbeEpoch)return;
+   el('browser-status').textContent=message;el('check-browser').disabled=false;
    el('download-browser-model').hidden=!['downloadable','downloading'].includes(result.status);
    if(current)render(current);
   });
@@ -1022,9 +1035,12 @@ module.exports = { uniqueTags };`;
    global.clearTimeout(timer);if(mine!==browserProbeEpoch||browserDownload!==owner)return;
    browserDownload=null;el('download-browser-model').textContent='Download on-device model';el('check-browser').disabled=false;
    el('download-browser-model').hidden=true;
-   el('browser-status').textContent=result.status==='available'?'The native model is available. Firebase inference and Nano identity still need verification.':
+   const message=result.status==='available'?(hosted&&plannerCapability?.available?
+    await prepareDiagnosisTab():'The native model is available. Firebase inference and Nano identity still need verification.'):
     result.status==='aborted'?'Stopped waiting. The browser may continue downloading; check availability before retrying.':
     'Model setup did not finish: '+result.status+'. No inference was requested.';
+   if(mine!==browserProbeEpoch)return;
+   el('browser-status').textContent=message;
    if(result.status==='available'){browserReadiness='available';if(current)render(current);}
   });
   el('stop-diagnosis').addEventListener('click',()=>{
@@ -1038,6 +1054,10 @@ module.exports = { uniqueTags };`;
   el('diagnose').addEventListener('click',async()=>{
    const snapshot=repairSnapshot(current);if(busy||inspection||nanoSetupMessage()||!snapshot||!firebaseAvailable(liveClient)||!['authored-reference','function-contract'].includes(current.mode))return;
    if(!liveClient){
+    if(hosted&&global.navigator?.onLine===false){
+     el('advisor-status').textContent='Connect once and use model setup to load Firebase for offline diagnosis in this tab.';
+     return;
+    }
     const session=current.sessionId,requestEpoch=advisorEpoch;
     el('advisor-status').textContent='Loading Firebase AI Logic…';
     try{await loadFirebaseClients();}catch{

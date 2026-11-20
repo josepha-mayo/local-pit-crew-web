@@ -258,14 +258,14 @@ var x = () => b().__FIREBASE_DEFAULTS__, S = () => {
 	}
 	let t = e && g(e[1]);
 	return t && JSON.parse(t);
-}, C = () => {
+}, te = () => {
 	try {
 		return l() || x() || S() || ee();
 	} catch (e) {
 		console.info(`Unable to get __FIREBASE_DEFAULTS__ due to: ${e}`);
 		return;
 	}
-}, te = () => C()?.config, w = class {
+}, ne = () => te()?.config, C = class {
 	constructor() {
 		/**
 		* @license
@@ -325,14 +325,14 @@ var x = () => b().__FIREBASE_DEFAULTS__, S = () => {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function ne() {
+function re() {
 	try {
 		return typeof indexedDB == "object";
 	} catch {
 		return !1;
 	}
 }
-function re() {
+function ie() {
 	return new Promise((e, t) => {
 		try {
 			let n = !0, r = "validate-browser-context-for-indexeddb-analytics-module", i = self.indexedDB.open(r);
@@ -364,20 +364,20 @@ function re() {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var ie = "FirebaseError", ae = class e extends Error {
+var ae = "FirebaseError", oe = class e extends Error {
 	constructor(t, n, r) {
-		super(n), this.code = t, this.customData = r, this.name = ie, Object.setPrototypeOf(this, e.prototype), Error.captureStackTrace && Error.captureStackTrace(this, oe.prototype.create);
+		super(n), this.code = t, this.customData = r, this.name = ae, Object.setPrototypeOf(this, e.prototype), Error.captureStackTrace && Error.captureStackTrace(this, se.prototype.create);
 	}
-}, oe = class {
+}, se = class {
 	constructor(e, t, n) {
 		this.service = e, this.serviceName = t, this.errors = n;
 	}
 	create(e, ...t) {
-		let n = t[0] || {}, r = `${this.service}/${e}`, i = this.errors[e], a = i ? se(i, n) : "Error";
-		return new ae(r, `${this.serviceName}: ${a} (${r}).`, n);
+		let n = t[0] || {}, r = `${this.service}/${e}`, i = this.errors[e], a = i ? ce(i, n) : "Error";
+		return new oe(r, `${this.serviceName}: ${a} (${r}).`, n);
 	}
 };
-function se(e, t) {
+function ce(e, t) {
 	try {
 		let n = 0, r = "";
 		for (; n < e.length;) {
@@ -447,20 +447,20 @@ function se(e, t) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function ce(e, t) {
+function le(e, t) {
 	if (e === t) return !0;
 	let n = Object.keys(e), r = Object.keys(t);
 	for (let i of n) {
 		if (!r.includes(i)) return !1;
 		let n = e[i], a = t[i];
-		if (le(n) && le(a)) {
-			if (!ce(n, a)) return !1;
+		if (ue(n) && ue(a)) {
+			if (!le(n, a)) return !1;
 		} else if (n !== a) return !1;
 	}
 	for (let e of r) if (!n.includes(e)) return !1;
 	return !0;
 }
-function le(e) {
+function ue(e) {
 	return typeof e == "object" && !!e;
 }
 /**
@@ -559,10 +559,10 @@ function le(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var ue = 1e3, de = 2, fe = 144e5, pe = .5;
-function me(e, t = ue, n = de) {
-	let r = t * n ** +e, i = Math.round(pe * r * (Math.random() - .5) * 2);
-	return Math.min(fe, r + i);
+var de = 1e3, fe = 2, pe = 144e5, me = .5;
+function he(e, t = de, n = fe) {
+	let r = t * n ** +e, i = Math.round(me * r * (Math.random() - .5) * 2);
+	return Math.min(pe, r + i);
 }
 /**
 * @license
@@ -596,7 +596,7 @@ function me(e, t = ue, n = de) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function he(e) {
+function ge(e) {
 	return e && e._delegate ? e._delegate : e;
 }
 /**
@@ -632,7 +632,7 @@ function he(e) {
 * limitations under the License.
 */
 // node_modules/@firebase/component/dist/esm/index.esm.js
-var T = class {
+var w = class {
 	constructor(e, t, n) {
 		this.name = e, this.instanceFactory = t, this.type = n, this.multipleInstances = !1, this.serviceProps = {}, this.instantiationMode = "LAZY", this.onInstanceCreated = null;
 	}
@@ -648,7 +648,7 @@ var T = class {
 	setInstanceCreatedCallback(e) {
 		return this.onInstanceCreated = e, this;
 	}
-}, E = "[DEFAULT]", ge = class {
+}, T = "[DEFAULT]", _e = class {
 	constructor(e, t) {
 		/**
 		* @license
@@ -687,7 +687,7 @@ var T = class {
 	get(e) {
 		let t = this.normalizeInstanceIdentifier(e);
 		if (!this.instancesDeferred.has(t)) {
-			let e = new w();
+			let e = new C();
 			if (this.instancesDeferred.set(t, e), this.isInitialized(t) || this.shouldAutoInitialize()) try {
 				let n = this.getOrInitializeService({ instanceIdentifier: t });
 				n && e.resolve(n);
@@ -713,8 +713,8 @@ var T = class {
 		if (e.name !== this.name) throw Error(`Mismatching Component ${e.name} for Provider ${this.name}.`);
 		if (this.component) throw Error(`Component for ${this.name} has already been provided`);
 		if (this.component = e, this.shouldAutoInitialize()) {
-			if (ve(e)) try {
-				this.getOrInitializeService({ instanceIdentifier: E });
+			if (ye(e)) try {
+				this.getOrInitializeService({ instanceIdentifier: T });
 			} catch {}
 			for (let [e, t] of this.instancesDeferred.entries()) {
 				let n = this.normalizeInstanceIdentifier(e);
@@ -725,7 +725,7 @@ var T = class {
 			}
 		}
 	}
-	clearInstance(e = E) {
+	clearInstance(e = T) {
 		this.instancesDeferred.delete(e), this.instancesOptions.delete(e), this.instances.delete(e);
 	}
 	async delete() {
@@ -735,10 +735,10 @@ var T = class {
 	isComponentSet() {
 		return this.component != null;
 	}
-	isInitialized(e = E) {
+	isInitialized(e = T) {
 		return this.instances.has(e);
 	}
-	getOptions(e = E) {
+	getOptions(e = T) {
 		return this.instancesOptions.get(e) || {};
 	}
 	initialize(e = {}) {
@@ -769,24 +769,24 @@ var T = class {
 	getOrInitializeService({ instanceIdentifier: e, options: t = {} }) {
 		let n = this.instances.get(e);
 		if (!n && this.component && (n = this.component.instanceFactory(this.container, {
-			instanceIdentifier: _e(e),
+			instanceIdentifier: ve(e),
 			options: t
 		}), this.instances.set(e, n), this.instancesOptions.set(e, t), this.invokeOnInitCallbacks(n, e), this.component.onInstanceCreated)) try {
 			this.component.onInstanceCreated(this.container, e, n);
 		} catch {}
 		return n || null;
 	}
-	normalizeInstanceIdentifier(e = E) {
-		return this.component ? this.component.multipleInstances ? e : E : e;
+	normalizeInstanceIdentifier(e = T) {
+		return this.component ? this.component.multipleInstances ? e : T : e;
 	}
 	shouldAutoInitialize() {
 		return !!this.component && this.component.instantiationMode !== "EXPLICIT";
 	}
 };
-function _e(e) {
-	return e === E ? void 0 : e;
-}
 function ve(e) {
+	return e === T ? void 0 : e;
+}
+function ye(e) {
 	return e.instantiationMode === "EAGER";
 }
 /**
@@ -805,7 +805,7 @@ function ve(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var ye = class {
+var be = class {
 	constructor(e) {
 		this.name = e, this.providers = /* @__PURE__ */ new Map();
 	}
@@ -819,13 +819,13 @@ var ye = class {
 	}
 	getProvider(e) {
 		if (this.providers.has(e)) return this.providers.get(e);
-		let t = new ge(e, this);
+		let t = new _e(e, this);
 		return this.providers.set(e, t), t;
 	}
 	getProviders() {
 		return Array.from(this.providers.values());
 	}
-}, be = [], D;
+}, xe = [], E;
 /**
 * @license
 * Copyright 2017 Google LLC
@@ -844,38 +844,38 @@ var ye = class {
 */
 (function(e) {
 	e[e.DEBUG = 0] = "DEBUG", e[e.VERBOSE = 1] = "VERBOSE", e[e.INFO = 2] = "INFO", e[e.WARN = 3] = "WARN", e[e.ERROR = 4] = "ERROR", e[e.SILENT = 5] = "SILENT";
-})(D ||= {});
-var xe = {
-	debug: D.DEBUG,
-	verbose: D.VERBOSE,
-	info: D.INFO,
-	warn: D.WARN,
-	error: D.ERROR,
-	silent: D.SILENT
-}, Se = D.INFO, Ce = {
-	[D.DEBUG]: "log",
-	[D.VERBOSE]: "log",
-	[D.INFO]: "info",
-	[D.WARN]: "warn",
-	[D.ERROR]: "error"
-}, we = (e, t, ...n) => {
+})(E ||= {});
+var Se = {
+	debug: E.DEBUG,
+	verbose: E.VERBOSE,
+	info: E.INFO,
+	warn: E.WARN,
+	error: E.ERROR,
+	silent: E.SILENT
+}, Ce = E.INFO, we = {
+	[E.DEBUG]: "log",
+	[E.VERBOSE]: "log",
+	[E.INFO]: "info",
+	[E.WARN]: "warn",
+	[E.ERROR]: "error"
+}, Te = (e, t, ...n) => {
 	if (t < e.logLevel) return;
-	let r = (/* @__PURE__ */ new Date()).toISOString(), i = Ce[t];
+	let r = (/* @__PURE__ */ new Date()).toISOString(), i = we[t];
 	if (i) console[i](`[${r}]  ${e.name}:`, ...n);
 	else throw Error(`Attempted to log a message with an invalid logType (value: ${t})`);
-}, Te = class {
+}, Ee = class {
 	constructor(e) {
-		this.name = e, this._logLevel = Se, this._logHandler = we, this._userLogHandler = null, be.push(this);
+		this.name = e, this._logLevel = Ce, this._logHandler = Te, this._userLogHandler = null, xe.push(this);
 	}
 	get logLevel() {
 		return this._logLevel;
 	}
 	set logLevel(e) {
-		if (!(e in D)) throw TypeError(`Invalid value "${e}" assigned to \`logLevel\``);
+		if (!(e in E)) throw TypeError(`Invalid value "${e}" assigned to \`logLevel\``);
 		this._logLevel = e;
 	}
 	setLogLevel(e) {
-		this._logLevel = typeof e == "string" ? xe[e] : e;
+		this._logLevel = typeof e == "string" ? Se[e] : e;
 	}
 	get logHandler() {
 		return this._logHandler;
@@ -891,23 +891,23 @@ var xe = {
 		this._userLogHandler = e;
 	}
 	debug(...e) {
-		this._userLogHandler && this._userLogHandler(this, D.DEBUG, ...e), this._logHandler(this, D.DEBUG, ...e);
+		this._userLogHandler && this._userLogHandler(this, E.DEBUG, ...e), this._logHandler(this, E.DEBUG, ...e);
 	}
 	log(...e) {
-		this._userLogHandler && this._userLogHandler(this, D.VERBOSE, ...e), this._logHandler(this, D.VERBOSE, ...e);
+		this._userLogHandler && this._userLogHandler(this, E.VERBOSE, ...e), this._logHandler(this, E.VERBOSE, ...e);
 	}
 	info(...e) {
-		this._userLogHandler && this._userLogHandler(this, D.INFO, ...e), this._logHandler(this, D.INFO, ...e);
+		this._userLogHandler && this._userLogHandler(this, E.INFO, ...e), this._logHandler(this, E.INFO, ...e);
 	}
 	warn(...e) {
-		this._userLogHandler && this._userLogHandler(this, D.WARN, ...e), this._logHandler(this, D.WARN, ...e);
+		this._userLogHandler && this._userLogHandler(this, E.WARN, ...e), this._logHandler(this, E.WARN, ...e);
 	}
 	error(...e) {
-		this._userLogHandler && this._userLogHandler(this, D.ERROR, ...e), this._logHandler(this, D.ERROR, ...e);
+		this._userLogHandler && this._userLogHandler(this, E.ERROR, ...e), this._logHandler(this, E.ERROR, ...e);
 	}
-}, Ee = (e, t) => t.some((t) => e instanceof t), De, Oe;
-function ke() {
-	return De ||= [
+}, De = (e, t) => t.some((t) => e instanceof t), Oe, ke;
+function Ae() {
+	return Oe ||= [
 		IDBDatabase,
 		IDBObjectStore,
 		IDBIndex,
@@ -915,31 +915,31 @@ function ke() {
 		IDBTransaction
 	];
 }
-function Ae() {
-	return Oe ||= [
+function je() {
+	return ke ||= [
 		IDBCursor.prototype.advance,
 		IDBCursor.prototype.continue,
 		IDBCursor.prototype.continuePrimaryKey
 	];
 }
-var je = /* @__PURE__ */ new WeakMap(), Me = /* @__PURE__ */ new WeakMap(), Ne = /* @__PURE__ */ new WeakMap(), Pe = /* @__PURE__ */ new WeakMap(), Fe = /* @__PURE__ */ new WeakMap();
-function Ie(e) {
+var Me = /* @__PURE__ */ new WeakMap(), Ne = /* @__PURE__ */ new WeakMap(), Pe = /* @__PURE__ */ new WeakMap(), Fe = /* @__PURE__ */ new WeakMap(), Ie = /* @__PURE__ */ new WeakMap();
+function Le(e) {
 	let t = new Promise((t, n) => {
 		let r = () => {
 			e.removeEventListener("success", i), e.removeEventListener("error", a);
 		}, i = () => {
-			t(O(e.result)), r();
+			t(D(e.result)), r();
 		}, a = () => {
 			n(e.error), r();
 		};
 		e.addEventListener("success", i), e.addEventListener("error", a);
 	});
 	return t.then((t) => {
-		t instanceof IDBCursor && je.set(t, e);
-	}).catch(() => {}), Fe.set(t, e), t;
+		t instanceof IDBCursor && Me.set(t, e);
+	}).catch(() => {}), Ie.set(t, e), t;
 }
-function Le(e) {
-	if (Me.has(e)) return;
+function Re(e) {
+	if (Ne.has(e)) return;
 	let t = new Promise((t, n) => {
 		let r = () => {
 			e.removeEventListener("complete", i), e.removeEventListener("error", a), e.removeEventListener("abort", a);
@@ -950,16 +950,16 @@ function Le(e) {
 		};
 		e.addEventListener("complete", i), e.addEventListener("error", a), e.addEventListener("abort", a);
 	});
-	Me.set(e, t);
+	Ne.set(e, t);
 }
-var Re = {
+var ze = {
 	get(e, t, n) {
 		if (e instanceof IDBTransaction) {
-			if (t === "done") return Me.get(e);
-			if (t === "objectStoreNames") return e.objectStoreNames || Ne.get(e);
+			if (t === "done") return Ne.get(e);
+			if (t === "objectStoreNames") return e.objectStoreNames || Pe.get(e);
 			if (t === "store") return n.objectStoreNames[1] ? void 0 : n.objectStore(n.objectStoreNames[0]);
 		}
-		return O(e[t]);
+		return D(e[t]);
 	},
 	set(e, t, n) {
 		return e[t] = n, !0;
@@ -968,65 +968,65 @@ var Re = {
 		return e instanceof IDBTransaction && (t === "done" || t === "store") || t in e;
 	}
 };
-function ze(e) {
-	Re = e(Re);
-}
 function Be(e) {
-	return e === IDBDatabase.prototype.transaction && !("objectStoreNames" in IDBTransaction.prototype) ? function(t, ...n) {
-		let r = e.call(He(this), t, ...n);
-		return Ne.set(r, t.sort ? t.sort() : [t]), O(r);
-	} : Ae().includes(e) ? function(...t) {
-		return e.apply(He(this), t), O(je.get(this));
-	} : function(...t) {
-		return O(e.apply(He(this), t));
-	};
+	ze = e(ze);
 }
 function Ve(e) {
-	return typeof e == "function" ? Be(e) : (e instanceof IDBTransaction && Le(e), Ee(e, ke()) ? new Proxy(e, Re) : e);
+	return e === IDBDatabase.prototype.transaction && !("objectStoreNames" in IDBTransaction.prototype) ? function(t, ...n) {
+		let r = e.call(Ue(this), t, ...n);
+		return Pe.set(r, t.sort ? t.sort() : [t]), D(r);
+	} : je().includes(e) ? function(...t) {
+		return e.apply(Ue(this), t), D(Me.get(this));
+	} : function(...t) {
+		return D(e.apply(Ue(this), t));
+	};
 }
-function O(e) {
-	if (e instanceof IDBRequest) return Ie(e);
-	if (Pe.has(e)) return Pe.get(e);
-	let t = Ve(e);
-	return t !== e && (Pe.set(e, t), Fe.set(t, e)), t;
+function He(e) {
+	return typeof e == "function" ? Ve(e) : (e instanceof IDBTransaction && Re(e), De(e, Ae()) ? new Proxy(e, ze) : e);
 }
-var He = (e) => Fe.get(e);
+function D(e) {
+	if (e instanceof IDBRequest) return Le(e);
+	if (Fe.has(e)) return Fe.get(e);
+	let t = He(e);
+	return t !== e && (Fe.set(e, t), Ie.set(t, e)), t;
+}
+var Ue = (e) => Ie.get(e);
 // node_modules/idb/build/index.js
-function Ue(e, t, { blocked: n, upgrade: r, blocking: i, terminated: a } = {}) {
-	let o = indexedDB.open(e, t), s = O(o);
+function We(e, t, { blocked: n, upgrade: r, blocking: i, terminated: a } = {}) {
+	let o = indexedDB.open(e, t), s = D(o);
 	return r && o.addEventListener("upgradeneeded", (e) => {
-		r(O(o.result), e.oldVersion, e.newVersion, O(o.transaction), e);
+		r(D(o.result), e.oldVersion, e.newVersion, D(o.transaction), e);
 	}), n && o.addEventListener("blocked", (e) => n(e.oldVersion, e.newVersion, e)), s.then((e) => {
 		a && e.addEventListener("close", () => a()), i && e.addEventListener("versionchange", (e) => i(e.oldVersion, e.newVersion, e));
 	}).catch(() => {}), s;
 }
-var We = [
+var Ge = [
 	"get",
 	"getKey",
 	"getAll",
 	"getAllKeys",
 	"count"
-], Ge = [
+], Ke = [
 	"put",
 	"add",
 	"delete",
 	"clear"
-], Ke = /* @__PURE__ */ new Map();
-function qe(e, t) {
+], qe = /* @__PURE__ */ new Map();
+function Je(e, t) {
 	if (!(e instanceof IDBDatabase && !(t in e) && typeof t == "string")) return;
-	if (Ke.get(t)) return Ke.get(t);
-	let n = t.replace(/FromIndex$/, ""), r = t !== n, i = Ge.includes(n);
-	if (!(n in (r ? IDBIndex : IDBObjectStore).prototype) || !(i || We.includes(n))) return;
+	if (qe.get(t)) return qe.get(t);
+	let n = t.replace(/FromIndex$/, ""), r = t !== n, i = Ke.includes(n);
+	if (!(n in (r ? IDBIndex : IDBObjectStore).prototype) || !(i || Ge.includes(n))) return;
 	let a = async function(e, ...t) {
 		let a = this.transaction(e, i ? "readwrite" : "readonly"), o = a.store;
 		return r && (o = o.index(t.shift())), (await Promise.all([o[n](...t), i && a.done]))[0];
 	};
-	return Ke.set(t, a), a;
+	return qe.set(t, a), a;
 }
-ze((e) => ({
+Be((e) => ({
 	...e,
-	get: (t, n, r) => qe(t, n) || e.get(t, n, r),
-	has: (t, n) => !!qe(t, n) || e.has(t, n)
+	get: (t, n, r) => Je(t, n) || e.get(t, n, r),
+	has: (t, n) => !!Je(t, n) || e.has(t, n)
 }));
 // node_modules/@firebase/app/dist/esm/index.esm.js
 /**
@@ -1045,13 +1045,13 @@ ze((e) => ({
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Je = class {
+var Ye = class {
 	constructor(e) {
 		this.container = e;
 	}
 	getPlatformInfoString() {
 		return this.container.getProviders().map((e) => {
-			if (Ye(e)) {
+			if (Xe(e)) {
 				let t = e.getImmediate();
 				return `${t.library}/${t.version}`;
 			}
@@ -1059,40 +1059,40 @@ var Je = class {
 		}).filter((e) => e).join(" ");
 	}
 };
-function Ye(e) {
+function Xe(e) {
 	return e.getComponent()?.type === "VERSION";
 }
-var Xe = "@firebase/app", Ze = "0.16.6", k = new Te("@firebase/app"), Qe = "@firebase/app-compat", $e = "@firebase/analytics-compat", et = "@firebase/analytics", tt = "@firebase/app-check-compat", nt = "@firebase/app-check", rt = "@firebase/auth", it = "@firebase/auth-compat", at = "@firebase/crashlytics", ot = "@firebase/database", st = "@firebase/data-connect", ct = "@firebase/database-compat", lt = "@firebase/functions", ut = "@firebase/functions-compat", dt = "@firebase/installations", ft = "@firebase/installations-compat", pt = "@firebase/messaging", mt = "@firebase/messaging-compat", ht = "@firebase/performance", gt = "@firebase/performance-compat", _t = "@firebase/remote-config", vt = "@firebase/remote-config-compat", yt = "@firebase/storage", bt = "@firebase/storage-compat", xt = "@firebase/firestore", St = "@firebase/ai", Ct = "@firebase/firestore-compat", wt = "firebase", Tt = "13.3.0", Et = "[DEFAULT]", Dt = {
-	[Xe]: "fire-core",
-	[Qe]: "fire-core-compat",
-	[et]: "fire-analytics",
-	[$e]: "fire-analytics-compat",
-	[nt]: "fire-app-check",
-	[tt]: "fire-app-check-compat",
-	[rt]: "fire-auth",
-	[it]: "fire-auth-compat",
-	[at]: "fire-cls",
-	[ot]: "fire-rtdb",
-	[st]: "fire-data-connect",
-	[ct]: "fire-rtdb-compat",
-	[lt]: "fire-fn",
-	[ut]: "fire-fn-compat",
-	[dt]: "fire-iid",
-	[ft]: "fire-iid-compat",
-	[pt]: "fire-fcm",
-	[mt]: "fire-fcm-compat",
-	[ht]: "fire-perf",
-	[gt]: "fire-perf-compat",
-	[_t]: "fire-rc",
-	[vt]: "fire-rc-compat",
-	[yt]: "fire-gcs",
-	[bt]: "fire-gcs-compat",
-	[xt]: "fire-fst",
-	[Ct]: "fire-fst-compat",
-	[St]: "fire-vertex",
+var Ze = "@firebase/app", Qe = "0.16.6", O = new Ee("@firebase/app"), $e = "@firebase/app-compat", et = "@firebase/analytics-compat", tt = "@firebase/analytics", nt = "@firebase/app-check-compat", rt = "@firebase/app-check", it = "@firebase/auth", at = "@firebase/auth-compat", ot = "@firebase/crashlytics", st = "@firebase/database", ct = "@firebase/data-connect", lt = "@firebase/database-compat", ut = "@firebase/functions", dt = "@firebase/functions-compat", ft = "@firebase/installations", pt = "@firebase/installations-compat", mt = "@firebase/messaging", ht = "@firebase/messaging-compat", gt = "@firebase/performance", _t = "@firebase/performance-compat", vt = "@firebase/remote-config", yt = "@firebase/remote-config-compat", bt = "@firebase/storage", xt = "@firebase/storage-compat", St = "@firebase/firestore", Ct = "@firebase/ai", wt = "@firebase/firestore-compat", Tt = "firebase", Et = "13.3.0", Dt = "[DEFAULT]", Ot = {
+	[Ze]: "fire-core",
+	[$e]: "fire-core-compat",
+	[tt]: "fire-analytics",
+	[et]: "fire-analytics-compat",
+	[rt]: "fire-app-check",
+	[nt]: "fire-app-check-compat",
+	[it]: "fire-auth",
+	[at]: "fire-auth-compat",
+	[ot]: "fire-cls",
+	[st]: "fire-rtdb",
+	[ct]: "fire-data-connect",
+	[lt]: "fire-rtdb-compat",
+	[ut]: "fire-fn",
+	[dt]: "fire-fn-compat",
+	[ft]: "fire-iid",
+	[pt]: "fire-iid-compat",
+	[mt]: "fire-fcm",
+	[ht]: "fire-fcm-compat",
+	[gt]: "fire-perf",
+	[_t]: "fire-perf-compat",
+	[vt]: "fire-rc",
+	[yt]: "fire-rc-compat",
+	[bt]: "fire-gcs",
+	[xt]: "fire-gcs-compat",
+	[St]: "fire-fst",
+	[wt]: "fire-fst-compat",
+	[Ct]: "fire-vertex",
 	"fire-js": "fire-js",
-	[wt]: "fire-js-all"
-}, A = /* @__PURE__ */ new Map(), Ot = /* @__PURE__ */ new Map(), kt = /* @__PURE__ */ new Map();
+	[Tt]: "fire-js-all"
+}, k = /* @__PURE__ */ new Map(), kt = /* @__PURE__ */ new Map(), At = /* @__PURE__ */ new Map();
 /**
 * @license
 * Copyright 2019 Google LLC
@@ -1141,26 +1141,26 @@ var Xe = "@firebase/app", Ze = "0.16.6", k = new Te("@firebase/app"), Qe = "@fir
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function At(e, t) {
+function jt(e, t) {
 	try {
 		e.container.addComponent(t);
 	} catch (n) {
-		k.debug(`Component ${t.name} failed to register with FirebaseApp ${e.name}`, n);
+		O.debug(`Component ${t.name} failed to register with FirebaseApp ${e.name}`, n);
 	}
 }
-function j(e) {
+function A(e) {
 	let t = e.name;
-	if (kt.has(t)) return k.debug(`There were multiple attempts to register component ${t}.`), !1;
-	kt.set(t, e);
-	for (let t of A.values()) At(t, e);
-	for (let t of Ot.values()) At(t, e);
+	if (At.has(t)) return O.debug(`There were multiple attempts to register component ${t}.`), !1;
+	At.set(t, e);
+	for (let t of k.values()) jt(t, e);
+	for (let t of kt.values()) jt(t, e);
 	return !0;
 }
-function jt(e, t) {
+function Mt(e, t) {
 	let n = e.container.getProvider("heartbeat").getImmediate({ optional: !0 });
 	return n && n.triggerHeartbeat(), e.container.getProvider(t);
 }
-function Mt(e) {
+function Nt(e) {
 	return e != null && e.settings !== void 0;
 }
 /**
@@ -1179,7 +1179,7 @@ function Mt(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var M = new oe("app", "Firebase", {
+var j = new se("app", "Firebase", {
 	"no-app": "No Firebase App '{$appName}' has been created - call initializeApp() first",
 	"bad-app-name": "Illegal App name: '{$appName}'",
 	"duplicate-app": "Firebase App named '{$appName}' already exists with different {$mismatchedParam}. Existing: '{$oldValue}'. New: '{$newValue}'.",
@@ -1194,7 +1194,7 @@ var M = new oe("app", "Firebase", {
 	"idb-delete": "Error thrown when deleting from IndexedDB. Original error: {$originalErrorMessage}.",
 	"finalization-registry-not-supported": "FirebaseServerApp deleteOnDeref field defined but the JS runtime does not support FinalizationRegistry.",
 	"invalid-server-app-environment": "FirebaseServerApp is not for use in browser environments."
-}), Nt = class {
+}), Pt = class {
 	constructor(e, t, n) {
 		/**
 		* @license
@@ -1212,7 +1212,7 @@ var M = new oe("app", "Firebase", {
 		* See the License for the specific language governing permissions and
 		* limitations under the License.
 		*/
-		this._isDeleted = !1, this._options = { ...e }, this._config = { ...t }, this._name = t.name, this._automaticDataCollectionEnabled = t.automaticDataCollectionEnabled, this._container = n, this.container.addComponent(new T("app", () => this, "PUBLIC"));
+		this._isDeleted = !1, this._options = { ...e }, this._config = { ...t }, this._name = t.name, this._automaticDataCollectionEnabled = t.automaticDataCollectionEnabled, this._container = n, this.container.addComponent(new w("app", () => this, "PUBLIC"));
 	}
 	get automaticDataCollectionEnabled() {
 		return this.checkDestroyed(), this._automaticDataCollectionEnabled;
@@ -1239,9 +1239,9 @@ var M = new oe("app", "Firebase", {
 		this._isDeleted = e;
 	}
 	checkDestroyed() {
-		if (this.isDeleted) throw M.create("app-deleted", { appName: this._name });
+		if (this.isDeleted) throw j.create("app-deleted", { appName: this._name });
 	}
-}, Pt = Tt;
+}, Ft = Et;
 /**
 * @license
 * Copyright 2023 Google LLC
@@ -1274,58 +1274,58 @@ var M = new oe("app", "Firebase", {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function Ft(e, t = {}) {
+function It(e, t = {}) {
 	let n = e;
 	typeof t != "object" && (t = { name: t });
 	let r = {
-		name: Et,
+		name: Dt,
 		automaticDataCollectionEnabled: !0,
 		...t
 	}, i = r.name;
-	if (typeof i != "string" || !i) throw M.create("bad-app-name", { appName: String(i) });
-	if (n ||= te(), !n) throw M.create("no-options");
-	let a = A.get(i);
+	if (typeof i != "string" || !i) throw j.create("bad-app-name", { appName: String(i) });
+	if (n ||= ne(), !n) throw j.create("no-options");
+	let a = k.get(i);
 	if (a) {
-		if (!ce(n, a.options)) throw M.create("duplicate-app", {
+		if (!le(n, a.options)) throw j.create("duplicate-app", {
 			appName: i,
 			mismatchedParam: "options",
 			oldValue: JSON.stringify(a.options),
 			newValue: JSON.stringify(n)
 		});
-		if (ce(r, a.config)) return a;
-		throw M.create("duplicate-app", {
+		if (le(r, a.config)) return a;
+		throw j.create("duplicate-app", {
 			appName: i,
 			mismatchedParam: "config",
 			oldValue: JSON.stringify(a.config),
 			newValue: JSON.stringify(r)
 		});
 	}
-	let o = new ye(i);
-	for (let e of kt.values()) o.addComponent(e);
-	let s = new Nt(n, r, o);
-	return A.set(i, s), s;
+	let o = new be(i);
+	for (let e of At.values()) o.addComponent(e);
+	let s = new Pt(n, r, o);
+	return k.set(i, s), s;
 }
-function It(e = Et) {
-	let t = A.get(e);
-	if (!t && e === "[DEFAULT]" && te()) return Ft();
-	if (!t) throw M.create("no-app", { appName: e });
+function Lt(e = Dt) {
+	let t = k.get(e);
+	if (!t && e === "[DEFAULT]" && ne()) return It();
+	if (!t) throw j.create("no-app", { appName: e });
 	return t;
 }
-function Lt() {
-	return Array.from(A.values());
+function Rt() {
+	return Array.from(k.values());
 }
-async function Rt(e) {
+async function zt(e) {
 	let t = !1, n = e.name;
-	A.has(n) ? (t = !0, A.delete(n)) : Ot.has(n) && e.decRefCount() <= 0 && (Ot.delete(n), t = !0), t && (await Promise.all(e.container.getProviders().map((e) => e.delete())), e.isDeleted = !0);
+	k.has(n) ? (t = !0, k.delete(n)) : kt.has(n) && e.decRefCount() <= 0 && (kt.delete(n), t = !0), t && (await Promise.all(e.container.getProviders().map((e) => e.delete())), e.isDeleted = !0);
 }
-function N(e, t, n) {
-	let r = Dt[e] ?? e;
+function M(e, t, n) {
+	let r = Ot[e] ?? e;
 	n && (r += `-${n}`);
 	let i = r.match(/\s|\//), a = t.match(/\s|\//);
 	if (i || a) {
 		let e = [`Unable to register library "${r}" with version "${t}":`];
-		i && e.push(`library name "${r}" contains illegal characters (whitespace or "/")`), i && a && e.push("and"), a && e.push(`version name "${t}" contains illegal characters (whitespace or "/")`), k.warn(e.join(" "));
-	} else j(new T(`${r}-version`, () => ({
+		i && e.push(`library name "${r}" contains illegal characters (whitespace or "/")`), i && a && e.push("and"), a && e.push(`version name "${t}" contains illegal characters (whitespace or "/")`), O.warn(e.join(" "));
+	} else A(new w(`${r}-version`, () => ({
 		library: r,
 		version: t
 	}), "VERSION"));
@@ -1346,43 +1346,43 @@ function N(e, t, n) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var zt = "firebase-heartbeat-database", Bt = 1, Vt = "firebase-heartbeat-store", Ht = null;
-function Ut() {
-	return Ht ||= Ue(zt, Bt, { upgrade: (e, t) => {
+var Bt = "firebase-heartbeat-database", Vt = 1, Ht = "firebase-heartbeat-store", Ut = null;
+function Wt() {
+	return Ut ||= We(Bt, Vt, { upgrade: (e, t) => {
 		if (t === 0) try {
-			e.createObjectStore(Vt);
+			e.createObjectStore(Ht);
 		} catch (e) {
 			console.warn(e);
 		}
 	} }).catch((e) => {
-		throw M.create("idb-open", { originalErrorMessage: e.message });
-	}), Ht;
+		throw j.create("idb-open", { originalErrorMessage: e.message });
+	}), Ut;
 }
-async function Wt(e) {
+async function Gt(e) {
 	try {
-		let t = (await Ut()).transaction(Vt), n = await t.objectStore(Vt).get(Kt(e));
+		let t = (await Wt()).transaction(Ht), n = await t.objectStore(Ht).get(qt(e));
 		return await t.done, n;
 	} catch (e) {
-		if (e instanceof ae) k.warn(e.message);
+		if (e instanceof oe) O.warn(e.message);
 		else {
-			let t = M.create("idb-get", { originalErrorMessage: e?.message });
-			k.warn(t.message);
+			let t = j.create("idb-get", { originalErrorMessage: e?.message });
+			O.warn(t.message);
 		}
 	}
 }
-async function Gt(e, t) {
+async function Kt(e, t) {
 	try {
-		let n = (await Ut()).transaction(Vt, "readwrite");
-		await n.objectStore(Vt).put(t, Kt(e)), await n.done;
+		let n = (await Wt()).transaction(Ht, "readwrite");
+		await n.objectStore(Ht).put(t, qt(e)), await n.done;
 	} catch (e) {
-		if (e instanceof ae) k.warn(e.message);
+		if (e instanceof oe) O.warn(e.message);
 		else {
-			let t = M.create("idb-set", { originalErrorMessage: e?.message });
-			k.warn(t.message);
+			let t = j.create("idb-set", { originalErrorMessage: e?.message });
+			O.warn(t.message);
 		}
 	}
 }
-function Kt(e) {
+function qt(e) {
 	return `${e.name}!${e.options.appId}`;
 }
 /**
@@ -1401,45 +1401,45 @@ function Kt(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var qt = 1024, Jt = 30, Yt = class {
+var Jt = 1024, Yt = 30, Xt = class {
 	constructor(e) {
 		this.container = e, this._heartbeatsCache = null;
 		let t = this.container.getProvider("app").getImmediate();
-		this._storage = new Qt(t), this._heartbeatsCachePromise = this._storage.read().then((e) => (this._heartbeatsCache = e, e));
+		this._storage = new $t(t), this._heartbeatsCachePromise = this._storage.read().then((e) => (this._heartbeatsCache = e, e));
 	}
 	async triggerHeartbeat() {
 		try {
-			let e = this.container.getProvider("platform-logger").getImmediate().getPlatformInfoString(), t = Xt();
+			let e = this.container.getProvider("platform-logger").getImmediate().getPlatformInfoString(), t = Zt();
 			if (this._heartbeatsCache?.heartbeats == null && (this._heartbeatsCache = await this._heartbeatsCachePromise, this._heartbeatsCache?.heartbeats == null) || this._heartbeatsCache.lastSentHeartbeatDate === t || this._heartbeatsCache.heartbeats.some((e) => e.date === t)) return;
 			if (this._heartbeatsCache.heartbeats.push({
 				date: t,
 				agent: e
-			}), this._heartbeatsCache.heartbeats.length > Jt) {
-				let e = en(this._heartbeatsCache.heartbeats);
+			}), this._heartbeatsCache.heartbeats.length > Yt) {
+				let e = tn(this._heartbeatsCache.heartbeats);
 				this._heartbeatsCache.heartbeats.splice(e, 1);
 			}
 			return this._storage.overwrite(this._heartbeatsCache);
 		} catch (e) {
-			k.warn(e);
+			O.warn(e);
 		}
 	}
 	async getHeartbeatsHeader() {
 		try {
 			if (this._heartbeatsCache === null && await this._heartbeatsCachePromise, this._heartbeatsCache?.heartbeats == null || this._heartbeatsCache.heartbeats.length === 0) return "";
-			let e = Xt(), { heartbeatsToSend: t, unsentEntries: n } = Zt(this._heartbeatsCache.heartbeats), r = h(JSON.stringify({
+			let e = Zt(), { heartbeatsToSend: t, unsentEntries: n } = Qt(this._heartbeatsCache.heartbeats), r = h(JSON.stringify({
 				version: 2,
 				heartbeats: t
 			}));
 			return this._heartbeatsCache.lastSentHeartbeatDate = e, n.length > 0 ? (this._heartbeatsCache.heartbeats = n, await this._storage.overwrite(this._heartbeatsCache)) : (this._heartbeatsCache.heartbeats = [], this._storage.overwrite(this._heartbeatsCache)), r;
 		} catch (e) {
-			return k.warn(e), "";
+			return O.warn(e), "";
 		}
 	}
 };
-function Xt() {
+function Zt() {
 	return (/* @__PURE__ */ new Date()).toISOString().substring(0, 10);
 }
-function Zt(e, t = qt) {
+function Qt(e, t = Jt) {
 	let n = [], r = e.slice();
 	for (let i of e) {
 		let e = n.find((e) => e.agent === i.agent);
@@ -1447,11 +1447,11 @@ function Zt(e, t = qt) {
 			if (n.push({
 				agent: i.agent,
 				dates: [i.date]
-			}), $t(n) > t) {
+			}), en(n) > t) {
 				n.pop();
 				break;
 			}
-		} else if (e.dates.push(i.date), $t(n) > t) {
+		} else if (e.dates.push(i.date), en(n) > t) {
 			e.dates.pop();
 			break;
 		}
@@ -1462,16 +1462,16 @@ function Zt(e, t = qt) {
 		unsentEntries: r
 	};
 }
-var Qt = class {
+var $t = class {
 	constructor(e) {
 		this.app = e, this._canUseIndexedDBPromise = this.runIndexedDBEnvironmentCheck();
 	}
 	async runIndexedDBEnvironmentCheck() {
-		return ne() ? re().then(() => !0).catch(() => !1) : !1;
+		return re() ? ie().then(() => !0).catch(() => !1) : !1;
 	}
 	async read() {
 		if (await this._canUseIndexedDBPromise) {
-			let e = await Wt(this.app);
+			let e = await Gt(this.app);
 			return e?.heartbeats ? e : { heartbeats: [] };
 		}
 		return { heartbeats: [] };
@@ -1479,7 +1479,7 @@ var Qt = class {
 	async overwrite(e) {
 		if (await this._canUseIndexedDBPromise) {
 			let t = await this.read();
-			return Gt(this.app, {
+			return Kt(this.app, {
 				lastSentHeartbeatDate: e.lastSentHeartbeatDate ?? t.lastSentHeartbeatDate,
 				heartbeats: e.heartbeats
 			});
@@ -1488,20 +1488,20 @@ var Qt = class {
 	async add(e) {
 		if (await this._canUseIndexedDBPromise) {
 			let t = await this.read();
-			return Gt(this.app, {
+			return Kt(this.app, {
 				lastSentHeartbeatDate: e.lastSentHeartbeatDate ?? t.lastSentHeartbeatDate,
 				heartbeats: [...t.heartbeats, ...e.heartbeats]
 			});
 		}
 	}
 };
-function $t(e) {
+function en(e) {
 	return h(JSON.stringify({
 		version: 2,
 		heartbeats: e
 	})).length;
 }
-function en(e) {
+function tn(e) {
 	if (e.length === 0) return -1;
 	let t = 0, n = e[0].date;
 	for (let r = 1; r < e.length; r++) e[r].date < n && (n = e[r].date, t = r);
@@ -1523,8 +1523,8 @@ function en(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function tn(e) {
-	j(new T("platform-logger", (e) => new Je(e), "PRIVATE")), j(new T("heartbeat", (e) => new Yt(e), "PRIVATE")), N(Xe, Ze, e), N(Xe, Ze, "esm2020"), N("fire-js", "");
+function nn(e) {
+	A(new w("platform-logger", (e) => new Ye(e), "PRIVATE")), A(new w("heartbeat", (e) => new Xt(e), "PRIVATE")), M(Ze, Qe, e), M(Ze, Qe, "esm2020"), M("fire-js", "");
 }
 /**
 * @license
@@ -1559,7 +1559,7 @@ function tn(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-tn(""), N("firebase", "13.3.0", "app");
+nn(""), M("firebase", "13.3.0", "app");
 // node_modules/@firebase/app-check/dist/esm/index.esm.js
 /**
 * @license
@@ -1577,21 +1577,21 @@ tn(""), N("firebase", "13.3.0", "app");
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var nn = /* @__PURE__ */ new Map(), rn = {
+var rn = /* @__PURE__ */ new Map(), an = {
 	activated: !1,
 	tokenObservers: []
-}, an = {
+}, on = {
 	initialized: !1,
 	enabled: !1
 };
-function P(e) {
-	return nn.get(e) || { ...rn };
+function N(e) {
+	return rn.get(e) || { ...an };
 }
-function on(e, t) {
-	return nn.set(e, t), nn.get(e);
+function sn(e, t) {
+	return rn.set(e, t), rn.get(e);
 }
-function sn() {
-	return an;
+function cn() {
+	return on;
 }
 /**
 * @license
@@ -1609,10 +1609,10 @@ function sn() {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var cn = "https://content-firebaseappcheck.googleapis.com/v1", ln = "exchangeRecaptchaEnterpriseToken", un = "exchangeDebugToken", dn = {
+var ln = "https://content-firebaseappcheck.googleapis.com/v1", un = "exchangeRecaptchaEnterpriseToken", dn = "exchangeDebugToken", fn = {
 	RETRIAL_MIN_WAIT: 3e4,
 	RETRIAL_MAX_WAIT: 96e4
-}, fn = 864e5, pn = class {
+}, pn = 864e5, mn = class {
 	constructor(e, t, n, r, i) {
 		/**
 		* @license
@@ -1644,7 +1644,7 @@ var cn = "https://content-firebaseappcheck.googleapis.com/v1", ln = "exchangeRec
 	async process(e) {
 		this.stop();
 		try {
-			this.pending = new w(), this.pending.promise.catch((e) => {}), await mn(this.getNextRun(e)), this.pending.resolve(), await this.pending.promise, this.pending = new w(), this.pending.promise.catch((e) => {}), await this.operation(), this.pending.resolve(), await this.pending.promise, this.process(!0).catch(() => {});
+			this.pending = new C(), this.pending.promise.catch((e) => {}), await hn(this.getNextRun(e)), this.pending.resolve(), await this.pending.promise, this.pending = new C(), this.pending.promise.catch((e) => {}), await this.operation(), this.pending.resolve(), await this.pending.promise, this.process(!0).catch(() => {});
 		} catch (e) {
 			this.retryPolicy(e) ? this.process(!1).catch(() => {}) : this.stop();
 		}
@@ -1657,7 +1657,7 @@ var cn = "https://content-firebaseappcheck.googleapis.com/v1", ln = "exchangeRec
 		}
 	}
 };
-function mn(e) {
+function hn(e) {
 	return new Promise((t) => {
 		setTimeout(t, e);
 	});
@@ -1678,7 +1678,7 @@ function mn(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var F = new oe("appCheck", "AppCheck", {
+var P = new se("appCheck", "AppCheck", {
 	"already-initialized": "You have already called initializeAppCheck() for FirebaseApp {$appName} with different options. To avoid this error, call initializeAppCheck() with the same options as when it was originally called. This will return the already initialized instance.",
 	"use-before-activation": "App Check is being used before initializeAppCheck() is called for FirebaseApp {$appName}. Call initializeAppCheck() before instantiating other Firebase services.",
 	"fetch-network-error": "Fetch failed to connect to a network. Check Internet connection. Original error: {$originalErrorMessage}.",
@@ -1707,17 +1707,17 @@ var F = new oe("appCheck", "AppCheck", {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function hn(e = !1) {
+function gn(e = !1) {
 	return e ? self.grecaptcha?.enterprise : self.grecaptcha;
 }
-function gn(e) {
-	if (!P(e).activated) throw F.create("use-before-activation", { appName: e.name });
-}
 function _n(e) {
-	let t = Math.round(e / 1e3), n = Math.floor(t / 86400), r = Math.floor((t - n * 3600 * 24) / 3600), i = Math.floor((t - n * 3600 * 24 - r * 3600) / 60), a = t - n * 3600 * 24 - r * 3600 - i * 60, o = "";
-	return n && (o += vn(n) + "d:"), r && (o += vn(r) + "h:"), o += vn(i) + "m:" + vn(a) + "s", o;
+	if (!N(e).activated) throw P.create("use-before-activation", { appName: e.name });
 }
 function vn(e) {
+	let t = Math.round(e / 1e3), n = Math.floor(t / 86400), r = Math.floor((t - n * 3600 * 24) / 3600), i = Math.floor((t - n * 3600 * 24 - r * 3600) / 60), a = t - n * 3600 * 24 - r * 3600 - i * 60, o = "";
+	return n && (o += yn(n) + "d:"), r && (o += yn(r) + "h:"), o += yn(i) + "m:" + yn(a) + "s", o;
+}
+function yn(e) {
 	return e === 0 ? "00" : e >= 10 ? e.toString() : "0" + e;
 }
 /**
@@ -1736,7 +1736,7 @@ function vn(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-async function yn({ url: e, body: t }, n) {
+async function bn({ url: e, body: t }, n) {
 	let r = { "Content-Type": "application/json" }, i = n.getImmediate({ optional: !0 });
 	if (i) {
 		let e = await i.getHeartbeatsHeader();
@@ -1750,17 +1750,17 @@ async function yn({ url: e, body: t }, n) {
 	try {
 		o = await fetch(e, a);
 	} catch (e) {
-		throw F.create("fetch-network-error", { originalErrorMessage: e?.message });
+		throw P.create("fetch-network-error", { originalErrorMessage: e?.message });
 	}
-	if (o.status !== 200) throw F.create("fetch-status-error", { httpStatus: o.status });
+	if (o.status !== 200) throw P.create("fetch-status-error", { httpStatus: o.status });
 	let s;
 	try {
 		s = await o.json();
 	} catch (e) {
-		throw F.create("fetch-parse-error", { originalErrorMessage: e?.message });
+		throw P.create("fetch-parse-error", { originalErrorMessage: e?.message });
 	}
 	let c = s.ttl.match(/^([\d.]+)(s)$/);
-	if (!c || !c[2] || isNaN(Number(c[1]))) throw F.create("fetch-parse-error", { originalErrorMessage: `ttl field (timeToLive) is not in standard Protobuf Duration format: ${s.ttl}` });
+	if (!c || !c[2] || isNaN(Number(c[1]))) throw P.create("fetch-parse-error", { originalErrorMessage: `ttl field (timeToLive) is not in standard Protobuf Duration format: ${s.ttl}` });
 	let l = Number(c[1]) * 1e3, u = Date.now();
 	return {
 		token: s.token,
@@ -1768,17 +1768,17 @@ async function yn({ url: e, body: t }, n) {
 		issuedAtTimeMillis: u
 	};
 }
-function bn(e, t) {
-	let { projectId: n, appId: r, apiKey: i } = e.options;
-	return {
-		url: `${cn}/projects/${n}/apps/${r}:${ln}?key=${i}`,
-		body: { recaptcha_enterprise_token: t }
-	};
-}
 function xn(e, t) {
 	let { projectId: n, appId: r, apiKey: i } = e.options;
 	return {
-		url: `${cn}/projects/${n}/apps/${r}:${un}?key=${i}`,
+		url: `${ln}/projects/${n}/apps/${r}:${un}?key=${i}`,
+		body: { recaptcha_enterprise_token: t }
+	};
+}
+function Sn(e, t) {
+	let { projectId: n, appId: r, apiKey: i } = e.options;
+	return {
+		url: `${ln}/projects/${n}/apps/${r}:${dn}?key=${i}`,
 		body: { debug_token: t }
 	};
 }
@@ -1798,38 +1798,38 @@ function xn(e, t) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Sn = "firebase-app-check-database", Cn = 1, wn = "firebase-app-check-store", Tn = "debug-token", En = null;
-function Dn() {
-	return En || (En = new Promise((e, t) => {
+var Cn = "firebase-app-check-database", wn = 1, Tn = "firebase-app-check-store", En = "debug-token", Dn = null;
+function On() {
+	return Dn || (Dn = new Promise((e, t) => {
 		try {
-			let n = indexedDB.open(Sn, Cn);
+			let n = indexedDB.open(Cn, wn);
 			n.onsuccess = (t) => {
 				e(t.target.result);
 			}, n.onerror = (e) => {
-				t(F.create("storage-open", { originalErrorMessage: e.target.error?.message }));
+				t(P.create("storage-open", { originalErrorMessage: e.target.error?.message }));
 			}, n.onupgradeneeded = (e) => {
 				let t = e.target.result;
-				e.oldVersion === 0 && t.createObjectStore(wn, { keyPath: "compositeKey" });
+				e.oldVersion === 0 && t.createObjectStore(Tn, { keyPath: "compositeKey" });
 			};
 		} catch (e) {
-			t(F.create("storage-open", { originalErrorMessage: e?.message }));
+			t(P.create("storage-open", { originalErrorMessage: e?.message }));
 		}
-	}), En);
+	}), Dn);
 }
-function On(e) {
-	return Nn(Pn(e));
+function kn(e) {
+	return Pn(Fn(e));
 }
-function kn(e, t) {
-	return Mn(Pn(e), t);
+function An(e, t) {
+	return Nn(Fn(e), t);
 }
-function An(e) {
-	return Mn(Tn, e);
+function jn(e) {
+	return Nn(En, e);
 }
-function jn() {
-	return Nn(Tn);
+function Mn() {
+	return Pn(En);
 }
-async function Mn(e, t) {
-	let n = (await Dn()).transaction(wn, "readwrite"), r = n.objectStore(wn).put({
+async function Nn(e, t) {
+	let n = (await On()).transaction(Tn, "readwrite"), r = n.objectStore(Tn).put({
 		compositeKey: e,
 		value: t
 	});
@@ -1837,22 +1837,22 @@ async function Mn(e, t) {
 		r.onsuccess = (t) => {
 			e();
 		}, n.onerror = (e) => {
-			t(F.create("storage-set", { originalErrorMessage: e.target.error?.message }));
+			t(P.create("storage-set", { originalErrorMessage: e.target.error?.message }));
 		};
 	});
 }
-async function Nn(e) {
-	let t = (await Dn()).transaction(wn, "readonly"), n = t.objectStore(wn).get(e);
+async function Pn(e) {
+	let t = (await On()).transaction(Tn, "readonly"), n = t.objectStore(Tn).get(e);
 	return new Promise((e, r) => {
 		n.onsuccess = (t) => {
 			let n = t.target.result;
 			e(n ? n.value : void 0);
 		}, t.onerror = (e) => {
-			r(F.create("storage-get", { originalErrorMessage: e.target.error?.message }));
+			r(P.create("storage-get", { originalErrorMessage: e.target.error?.message }));
 		};
 	});
 }
-function Pn(e) {
+function Fn(e) {
 	return `${e.options.appId}-${e.name}`;
 }
 /**
@@ -1871,7 +1871,7 @@ function Pn(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var I = new Te("@firebase/app-check");
+var F = new Ee("@firebase/app-check");
 /**
 * @license
 * Copyright 2020 Google LLC
@@ -1888,31 +1888,31 @@ var I = new Te("@firebase/app-check");
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-async function Fn(e) {
-	if (ne()) {
+async function In(e) {
+	if (re()) {
 		let t;
 		try {
-			t = await On(e);
+			t = await kn(e);
 		} catch (e) {
-			I.warn(`Failed to read token from IndexedDB. Error: ${e}`);
+			F.warn(`Failed to read token from IndexedDB. Error: ${e}`);
 		}
 		return t;
 	}
 }
-function In(e, t) {
-	return ne() ? kn(e, t).catch((e) => {
-		I.warn(`Failed to write token to IndexedDB. Error: ${e}`);
+function Ln(e, t) {
+	return re() ? An(e, t).catch((e) => {
+		F.warn(`Failed to write token to IndexedDB. Error: ${e}`);
 	}) : Promise.resolve();
 }
-async function Ln(e) {
+async function Rn(e) {
 	let t;
 	try {
-		t = await jn();
+		t = await Mn();
 	} catch {}
 	if (t) return t;
 	{
 		let t = crypto.randomUUID(), n = `To use this token for app debugging, register it with your project.\n\nFirebase App Check debug token: ${t}\n\n`, r = e?.options.appId, i = e?.options.projectId;
-		return n += i && r ? `You can do so in the Firebase Console:\nhttps://console.firebase.google.com/project/${i}/appcheck/apps?selectedAppId=${r}\n\nOr using the Firebase CLI:\nfirebase appcheck:debugtokens:create ${t} --project ${i} --app ${r}\n\n` : "You will need to add it to your app's App Check settings in the Firebase Console for it to work.\n\n", n += "Note: To keep your project secure, please revoke and delete this token using the\nFirebase Console or the CLI (`firebase appcheck:debugtokens:delete`) when you finish debugging.\n\nWarning: This debug token is a secret and should not be shared or uploaded to source code.\n\nDebug Token Guide: https://firebase.google.com/docs/app-check/web/debug-provider\nFirebase CLI install instructions: https://firebase.google.com/docs/cli\n", console.log(n), An(t).catch((e) => I.warn(`Failed to persist debug token to IndexedDB. Error: ${e}`)), t;
+		return n += i && r ? `You can do so in the Firebase Console:\nhttps://console.firebase.google.com/project/${i}/appcheck/apps?selectedAppId=${r}\n\nOr using the Firebase CLI:\nfirebase appcheck:debugtokens:create ${t} --project ${i} --app ${r}\n\n` : "You will need to add it to your app's App Check settings in the Firebase Console for it to work.\n\n", n += "Note: To keep your project secure, please revoke and delete this token using the\nFirebase Console or the CLI (`firebase appcheck:debugtokens:delete`) when you finish debugging.\n\nWarning: This debug token is a secret and should not be shared or uploaded to source code.\n\nDebug Token Guide: https://firebase.google.com/docs/app-check/web/debug-provider\nFirebase CLI install instructions: https://firebase.google.com/docs/cli\n", console.log(n), jn(t).catch((e) => F.warn(`Failed to persist debug token to IndexedDB. Error: ${e}`)), t;
 	}
 }
 /**
@@ -1931,20 +1931,20 @@ async function Ln(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function Rn() {
-	return sn().enabled;
+function zn() {
+	return cn().enabled;
 }
-async function zn() {
-	let e = sn();
+async function Bn() {
+	let e = cn();
 	if (e.enabled && e.token) return e.token.promise;
 	throw Error("\n            Can't get debug token in production mode.\n        ");
 }
-function Bn(e) {
-	let t = b(), n = sn();
+function Vn(e) {
+	let t = b(), n = cn();
 	if (n.initialized = !0, typeof t.FIREBASE_APPCHECK_DEBUG_TOKEN != "string" && t.FIREBASE_APPCHECK_DEBUG_TOKEN !== !0) return;
 	n.enabled = !0;
-	let r = new w();
-	n.token = r, typeof t.FIREBASE_APPCHECK_DEBUG_TOKEN == "string" ? r.resolve(t.FIREBASE_APPCHECK_DEBUG_TOKEN) : r.resolve(Ln(e));
+	let r = new C();
+	n.token = r, typeof t.FIREBASE_APPCHECK_DEBUG_TOKEN == "string" ? r.resolve(t.FIREBASE_APPCHECK_DEBUG_TOKEN) : r.resolve(Rn(e));
 }
 /**
 * @license
@@ -1962,51 +1962,51 @@ function Bn(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Vn = { error: "UNKNOWN_ERROR" };
-function Hn(e) {
+var Hn = { error: "UNKNOWN_ERROR" };
+function Un(e) {
 	return f.encodeString(JSON.stringify(e), !1);
 }
-async function Un(e, t = !1, n = !1) {
+async function Wn(e, t = !1, n = !1) {
 	let r = e.app;
-	gn(r);
-	let i = P(r), a = i.token, o;
-	if (a && !L(a) && (i.token = void 0, a = void 0), !a) {
+	_n(r);
+	let i = N(r), a = i.token, o;
+	if (a && !I(a) && (i.token = void 0, a = void 0), !a) {
 		let e = await i.cachedTokenPromise;
-		e && (L(e) ? a = e : await In(r, void 0));
+		e && (I(e) ? a = e : await Ln(r, void 0));
 	}
-	if (!t && a && L(a)) return { token: a.token };
+	if (!t && a && I(a)) return { token: a.token };
 	let s = !1;
-	if (Rn()) try {
-		let t = await zn();
-		i.exchangeTokenPromise || (i.exchangeTokenPromise = yn(xn(r, t), e.heartbeatServiceProvider).finally(() => {
+	if (zn()) try {
+		let t = await Bn();
+		i.exchangeTokenPromise || (i.exchangeTokenPromise = bn(Sn(r, t), e.heartbeatServiceProvider).finally(() => {
 			i.exchangeTokenPromise = void 0;
 		}), s = !0);
 		let n = await i.exchangeTokenPromise;
-		return await In(r, n), i.token = n, { token: n.token };
+		return await Ln(r, n), i.token = n, { token: n.token };
 	} catch (e) {
-		return e.code === "appCheck/throttled" || e.code === "appCheck/initial-throttle" ? I.warn(e.message) : n && I.error(e), Xn(e);
+		return e.code === "appCheck/throttled" || e.code === "appCheck/initial-throttle" ? F.warn(e.message) : n && F.error(e), Zn(e);
 	}
 	try {
 		i.exchangeTokenPromise || (i.exchangeTokenPromise = i.provider.getToken().finally(() => {
 			i.exchangeTokenPromise = void 0;
-		}), s = !0), a = await P(r).exchangeTokenPromise;
+		}), s = !0), a = await N(r).exchangeTokenPromise;
 	} catch (e) {
-		e.code === "appCheck/throttled" || e.code === "appCheck/initial-throttle" ? I.warn(e.message) : n && I.error(e), o = e;
+		e.code === "appCheck/throttled" || e.code === "appCheck/initial-throttle" ? F.warn(e.message) : n && F.error(e), o = e;
 	}
 	let c;
-	return a ? o ? c = L(a) ? {
+	return a ? o ? c = I(a) ? {
 		token: a.token,
 		internalError: o
-	} : Xn(o) : (c = { token: a.token }, i.token = a, await In(r, a)) : c = Xn(o), s && Yn(r, c), c;
+	} : Zn(o) : (c = { token: a.token }, i.token = a, await Ln(r, a)) : c = Zn(o), s && Xn(r, c), c;
 }
-async function Wn(e) {
+async function Gn(e) {
 	let t = e.app;
-	gn(t);
-	let { provider: n } = P(t);
-	if (Rn()) {
-		let n = xn(t, await zn());
+	_n(t);
+	let { provider: n } = N(t);
+	if (zn()) {
+		let n = Sn(t, await Bn());
 		n.body.limited_use = !0;
-		let { token: r } = await yn(n, e.heartbeatServiceProvider);
+		let { token: r } = await bn(n, e.heartbeatServiceProvider);
 		return { token: r };
 	}
 	{
@@ -2014,55 +2014,55 @@ async function Wn(e) {
 		return { token: e };
 	}
 }
-function Gn(e, t, n, r) {
-	let { app: i } = e, a = P(i), o = {
+function Kn(e, t, n, r) {
+	let { app: i } = e, a = N(i), o = {
 		next: n,
 		error: r,
 		type: t
 	};
-	if (a.tokenObservers = [...a.tokenObservers, o], a.token && L(a.token)) {
+	if (a.tokenObservers = [...a.tokenObservers, o], a.token && I(a.token)) {
 		let t = a.token;
 		Promise.resolve().then(() => {
-			n({ token: t.token }), qn(e);
+			n({ token: t.token }), Jn(e);
 		}).catch(() => {});
 	}
-	a.cachedTokenPromise.then(() => qn(e));
+	a.cachedTokenPromise.then(() => Jn(e));
 }
-function Kn(e, t) {
-	let n = P(e), r = n.tokenObservers.filter((e) => e.next !== t);
+function qn(e, t) {
+	let n = N(e), r = n.tokenObservers.filter((e) => e.next !== t);
 	r.length === 0 && n.tokenRefresher && n.tokenRefresher.isRunning() && n.tokenRefresher.stop(), n.tokenObservers = r;
 }
-function qn(e) {
-	let { app: t } = e, n = P(t), r = n.tokenRefresher;
-	r || (r = Jn(e), n.tokenRefresher = r), !r.isRunning() && n.isTokenAutoRefreshEnabled && r.start();
-}
 function Jn(e) {
+	let { app: t } = e, n = N(t), r = n.tokenRefresher;
+	r || (r = Yn(e), n.tokenRefresher = r), !r.isRunning() && n.isTokenAutoRefreshEnabled && r.start();
+}
+function Yn(e) {
 	let { app: t } = e;
-	return new pn(async () => {
-		let n = P(t), r;
-		if (r = n.token ? await Un(e, !0) : await Un(e), r.error) throw r.error;
+	return new mn(async () => {
+		let n = N(t), r;
+		if (r = n.token ? await Wn(e, !0) : await Wn(e), r.error) throw r.error;
 		if (r.internalError) throw r.internalError;
 	}, () => !0, () => {
-		let e = P(t);
+		let e = N(t);
 		if (e.token) {
 			let t = e.token.issuedAtTimeMillis + (e.token.expireTimeMillis - e.token.issuedAtTimeMillis) * .5 + 3e5, n = e.token.expireTimeMillis - 3e5;
 			return t = Math.min(t, n), Math.max(0, t - Date.now());
 		}
 		return 0;
-	}, dn.RETRIAL_MIN_WAIT, dn.RETRIAL_MAX_WAIT);
+	}, fn.RETRIAL_MIN_WAIT, fn.RETRIAL_MAX_WAIT);
 }
-function Yn(e, t) {
-	let n = P(e).tokenObservers;
+function Xn(e, t) {
+	let n = N(e).tokenObservers;
 	for (let e of n) try {
 		e.type === "EXTERNAL" && t.error != null ? e.error(t.error) : e.next(t);
 	} catch {}
 }
-function L(e) {
+function I(e) {
 	return e.expireTimeMillis - Date.now() > 0;
 }
-function Xn(e) {
+function Zn(e) {
 	return {
-		token: Hn(Vn),
+		token: Un(Hn),
 		error: e
 	};
 }
@@ -2082,28 +2082,28 @@ function Xn(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Zn = class {
+var Qn = class {
 	constructor(e, t) {
 		this.app = e, this.heartbeatServiceProvider = t;
 	}
 	_delete() {
-		let { tokenObservers: e } = P(this.app);
-		for (let t of e) Kn(this.app, t.next);
+		let { tokenObservers: e } = N(this.app);
+		for (let t of e) qn(this.app, t.next);
 		return Promise.resolve();
 	}
 };
-function Qn(e, t) {
-	return new Zn(e, t);
+function $n(e, t) {
+	return new Qn(e, t);
 }
-function $n(e) {
+function er(e) {
 	return {
-		getToken: (t) => Un(e, t),
-		getLimitedUseToken: () => Wn(e),
-		addTokenListener: (t) => Gn(e, "INTERNAL", t),
-		removeTokenListener: (t) => Kn(e.app, t)
+		getToken: (t) => Wn(e, t),
+		getLimitedUseToken: () => Gn(e),
+		addTokenListener: (t) => Kn(e, "INTERNAL", t),
+		removeTokenListener: (t) => qn(e.app, t)
 	};
 }
-var er = "@firebase/app-check", tr = "0.13.1";
+var tr = "@firebase/app-check", nr = "0.13.1";
 /**
 * @license
 * Copyright 2020 Google LLC
@@ -2120,52 +2120,52 @@ var er = "@firebase/app-check", tr = "0.13.1";
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function nr(e, t) {
-	let n = new w(), r = P(e);
+function rr(e, t) {
+	let n = new C(), r = N(e);
 	r.reCAPTCHAState = { initialized: n };
-	let i = ir(e), a = hn(!0);
-	return a ? rr(e, t, a, i, n) : sr(() => {
-		let r = hn(!0);
+	let i = ar(e), a = gn(!0);
+	return a ? ir(e, t, a, i, n) : cr(() => {
+		let r = gn(!0);
 		if (!r) throw Error("no recaptcha");
-		rr(e, t, r, i, n);
+		ir(e, t, r, i, n);
 	}), n.promise;
 }
-function rr(e, t, n, r, i) {
+function ir(e, t, n, r, i) {
 	n.ready(() => {
-		or(e, t, n, r), i.resolve(n);
+		sr(e, t, n, r), i.resolve(n);
 	});
 }
-function ir(e) {
+function ar(e) {
 	let t = `fire_app_check_${e.name}`, n = document.createElement("div");
 	return n.id = t, n.style.display = "none", document.body.appendChild(n), t;
 }
-async function ar(e) {
-	gn(e);
-	let t = await P(e).reCAPTCHAState.initialized.promise;
+async function or(e) {
+	_n(e);
+	let t = await N(e).reCAPTCHAState.initialized.promise;
 	return new Promise((n, r) => {
-		let i = P(e).reCAPTCHAState;
+		let i = N(e).reCAPTCHAState;
 		t.ready(() => {
 			n(t.execute(i.widgetId, { action: "fire_app_check" }));
 		});
 	});
 }
-function or(e, t, n, r) {
+function sr(e, t, n, r) {
 	let i = n.render(r, {
 		sitekey: t,
 		size: "invisible",
 		callback: () => {
-			P(e).reCAPTCHAState.succeeded = !0;
+			N(e).reCAPTCHAState.succeeded = !0;
 		},
 		"error-callback": () => {
-			P(e).reCAPTCHAState.succeeded = !1;
+			N(e).reCAPTCHAState.succeeded = !1;
 		}
-	}), a = P(e);
+	}), a = N(e);
 	a.reCAPTCHAState = {
 		...a.reCAPTCHAState,
 		widgetId: i
 	};
 }
-function sr(e) {
+function cr(e) {
 	let t = document.createElement("script");
 	t.src = "https://www.google.com/recaptcha/enterprise.js?render=explicit", t.onload = e, document.head.appendChild(t);
 }
@@ -2185,43 +2185,43 @@ function sr(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var cr = class e {
+var lr = class e {
 	constructor(e) {
 		this._siteKey = e, this._throttleData = null;
 	}
 	async getToken(e = !1) {
-		ur(this._throttleData);
-		let t = await ar(this._app).catch((e) => {
-			throw F.create("recaptcha-error");
+		dr(this._throttleData);
+		let t = await or(this._app).catch((e) => {
+			throw P.create("recaptcha-error");
 		});
-		if (!P(this._app).reCAPTCHAState?.succeeded) throw F.create("recaptcha-error");
+		if (!N(this._app).reCAPTCHAState?.succeeded) throw P.create("recaptcha-error");
 		let n;
 		try {
-			let r = bn(this._app, t);
-			e && (r.body.limited_use = !0), n = await yn(r, this._heartbeatServiceProvider);
+			let r = xn(this._app, t);
+			e && (r.body.limited_use = !0), n = await bn(r, this._heartbeatServiceProvider);
 		} catch (e) {
-			throw e.code?.includes("fetch-status-error") ? (this._throttleData = lr(Number(e.customData?.httpStatus), this._throttleData), F.create("initial-throttle", {
-				time: _n(this._throttleData.allowRequestsAfter - Date.now()),
+			throw e.code?.includes("fetch-status-error") ? (this._throttleData = ur(Number(e.customData?.httpStatus), this._throttleData), P.create("initial-throttle", {
+				time: vn(this._throttleData.allowRequestsAfter - Date.now()),
 				httpStatus: this._throttleData.httpStatus
 			})) : e;
 		}
 		return this._throttleData = null, n;
 	}
 	initialize(e) {
-		this._app = e, this._heartbeatServiceProvider = jt(e, "heartbeat"), nr(e, this._siteKey).catch(() => {});
+		this._app = e, this._heartbeatServiceProvider = Mt(e, "heartbeat"), rr(e, this._siteKey).catch(() => {});
 	}
 	isEqual(t) {
 		return t instanceof e && this._siteKey === t._siteKey;
 	}
 };
-function lr(e, t) {
+function ur(e, t) {
 	if (e === 404 || e === 403) return {
 		backoffCount: 1,
-		allowRequestsAfter: Date.now() + fn,
+		allowRequestsAfter: Date.now() + pn,
 		httpStatus: e
 	};
 	{
-		let n = t ? t.backoffCount : 0, r = me(n, 1e3, 2);
+		let n = t ? t.backoffCount : 0, r = he(n, 1e3, 2);
 		return {
 			backoffCount: n + 1,
 			allowRequestsAfter: Date.now() + r,
@@ -2229,9 +2229,9 @@ function lr(e, t) {
 		};
 	}
 }
-function ur(e) {
-	if (e && Date.now() - e.allowRequestsAfter <= 0) throw F.create("throttled", {
-		time: _n(e.allowRequestsAfter - Date.now()),
+function dr(e) {
+	if (e && Date.now() - e.allowRequestsAfter <= 0) throw P.create("throttled", {
+		time: vn(e.allowRequestsAfter - Date.now()),
 		httpStatus: e.httpStatus
 	});
 }
@@ -2251,25 +2251,25 @@ function ur(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function dr(e = It(), t) {
-	e = he(e);
-	let n = jt(e, "app-check");
-	if (sn().initialized || Bn(e), Rn() && zn().then((e) => {
+function fr(e = Lt(), t) {
+	e = ge(e);
+	let n = Mt(e, "app-check");
+	if (cn().initialized || Vn(e), zn() && Bn().then((e) => {
 		console.log(`Firebase App Check debug token: ${e}`);
 	}), n.isInitialized()) {
 		let r = n.getImmediate(), i = n.getOptions();
 		if (i && !!i.isTokenAutoRefreshEnabled == !!t.isTokenAutoRefreshEnabled && i.provider?.isEqual(t.provider)) return r;
-		throw F.create("already-initialized", { appName: e.name });
+		throw P.create("already-initialized", { appName: e.name });
 	}
 	let r = n.initialize({ options: t });
-	return fr(e, t.provider, t.isTokenAutoRefreshEnabled), P(e).isTokenAutoRefreshEnabled && Gn(r, "INTERNAL", () => {}), r;
+	return pr(e, t.provider, t.isTokenAutoRefreshEnabled), N(e).isTokenAutoRefreshEnabled && Kn(r, "INTERNAL", () => {}), r;
 }
-function fr(e, t, n = !1) {
-	let r = on(e, { ...rn });
-	r.activated = !0, r.provider = t, r.cachedTokenPromise = Fn(e).then((t) => (t && L(t) && (r.token = t, Yn(e, { token: t.token })), t)), r.isTokenAutoRefreshEnabled = n && e.automaticDataCollectionEnabled, !e.automaticDataCollectionEnabled && n && I.warn("`isTokenAutoRefreshEnabled` is true but `automaticDataCollectionEnabled` was set to false during `initializeApp()`. This blocks automatic token refresh."), r.provider.initialize(e);
+function pr(e, t, n = !1) {
+	let r = sn(e, { ...an });
+	r.activated = !0, r.provider = t, r.cachedTokenPromise = In(e).then((t) => (t && I(t) && (r.token = t, Xn(e, { token: t.token })), t)), r.isTokenAutoRefreshEnabled = n && e.automaticDataCollectionEnabled, !e.automaticDataCollectionEnabled && n && F.warn("`isTokenAutoRefreshEnabled` is true but `automaticDataCollectionEnabled` was set to false during `initializeApp()`. This blocks automatic token refresh."), r.provider.initialize(e);
 }
-async function pr(e, t) {
-	let n = await Un(e, t);
+async function mr(e, t) {
+	let n = await Wn(e, t);
 	if (n.error) throw n.error;
 	if (n.internalError) throw n.internalError;
 	return { token: n.token };
@@ -2290,15 +2290,15 @@ async function pr(e, t) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var mr = "app-check", hr = "app-check-internal";
-function gr() {
-	j(new T(mr, (e) => Qn(e.getProvider("app").getImmediate(), e.getProvider("heartbeat")), "PUBLIC").setInstantiationMode("EXPLICIT").setInstanceCreatedCallback((e, t, n) => {
-		e.getProvider(hr).initialize();
-	})), j(new T(hr, (e) => $n(e.getProvider("app-check").getImmediate()), "PUBLIC").setInstantiationMode("EXPLICIT")), N(er, tr);
+var hr = "app-check", gr = "app-check-internal";
+function _r() {
+	A(new w(hr, (e) => $n(e.getProvider("app").getImmediate(), e.getProvider("heartbeat")), "PUBLIC").setInstantiationMode("EXPLICIT").setInstanceCreatedCallback((e, t, n) => {
+		e.getProvider(gr).initialize();
+	})), A(new w(gr, (e) => er(e.getProvider("app-check").getImmediate()), "PUBLIC").setInstantiationMode("EXPLICIT")), M(tr, nr);
 }
-gr();
+_r();
 // node_modules/@firebase/ai/dist/esm/index.esm.js
-var _r = "@firebase/ai", vr = "3.1.0", R = "AI", yr = "global", br = "firebasevertexai.googleapis.com", xr = "v1beta", Sr = vr, Cr = "gl-js", wr = "hybrid", Tr = 18e4, Er = "gemini-3.5-flash-lite", z = class e extends ae {
+var vr = "@firebase/ai", yr = "3.1.0", L = "AI", br = "global", xr = "firebasevertexai.googleapis.com", Sr = "v1beta", Cr = yr, wr = "gl-js", Tr = "hybrid", Er = 18e4, Dr = "gemini-3.5-flash-lite", R = class e extends oe {
 	constructor(t, n, r) {
 		/**
 		* @license
@@ -2332,21 +2332,21 @@ var _r = "@firebase/ai", vr = "3.1.0", R = "AI", yr = "global", br = "firebaseve
 		* See the License for the specific language governing permissions and
 		* limitations under the License.
 		*/
-		let i = R, a = `${i}: ${n} (${`${i}/${t}`})`;
+		let i = L, a = `${i}: ${n} (${`${i}/${t}`})`;
 		super(t, a), this.code = t, this.customErrorData = r, Error.captureStackTrace && Error.captureStackTrace(this, e), Object.setPrototypeOf(this, e.prototype), this.toString = () => a;
 	}
-}, Dr = [
+}, Or = [
 	"user",
 	"model",
 	"function",
 	"system"
-], Or = {
+], kr = {
 	HARM_SEVERITY_NEGLIGIBLE: "HARM_SEVERITY_NEGLIGIBLE",
 	HARM_SEVERITY_LOW: "HARM_SEVERITY_LOW",
 	HARM_SEVERITY_MEDIUM: "HARM_SEVERITY_MEDIUM",
 	HARM_SEVERITY_HIGH: "HARM_SEVERITY_HIGH",
 	HARM_SEVERITY_UNSUPPORTED: "HARM_SEVERITY_UNSUPPORTED"
-}, B = {
+}, z = {
 	STOP: "STOP",
 	MAX_TOKENS: "MAX_TOKENS",
 	SAFETY: "SAFETY",
@@ -2366,15 +2366,15 @@ var _r = "@firebase/ai", vr = "3.1.0", R = "AI", yr = "global", br = "firebaseve
 	TOO_MANY_TOOL_CALLS: "TOO_MANY_TOOL_CALLS",
 	MISSING_THOUGHT_SIGNATURE: "MISSING_THOUGHT_SIGNATURE",
 	MALFORMED_RESPONSE: "MALFORMED_RESPONSE"
-}, V = {
+}, B = {
 	PREFER_ON_DEVICE: "prefer_on_device",
 	ONLY_ON_DEVICE: "only_on_device",
 	ONLY_IN_CLOUD: "only_in_cloud",
 	PREFER_IN_CLOUD: "prefer_in_cloud"
-}, H = {
+}, V = {
 	ON_DEVICE: "on_device",
 	IN_CLOUD: "in_cloud"
-}, U = {
+}, H = {
 	ERROR: "error",
 	REQUEST_ERROR: "request-error",
 	RESPONSE_ERROR: "response-error",
@@ -2390,10 +2390,10 @@ var _r = "@firebase/ai", vr = "3.1.0", R = "AI", yr = "global", br = "firebaseve
 	NO_PROJECT_ID: "no-project-id",
 	PARSE_FAILED: "parse-failed",
 	UNSUPPORTED: "unsupported"
-}, W = {
+}, U = {
 	AGENT_PLATFORM: "AGENT_PLATFORM",
 	GOOGLE_AI: "GOOGLE_AI"
-}, kr = class {
+}, Ar = class {
 	constructor(e) {
 		/**
 		* @license
@@ -2493,25 +2493,25 @@ var _r = "@firebase/ai", vr = "3.1.0", R = "AI", yr = "global", br = "firebaseve
 		*/
 		this.backendType = e;
 	}
-}, G = class extends kr {
+}, W = class extends Ar {
 	constructor() {
-		super(W.GOOGLE_AI);
+		super(U.GOOGLE_AI);
 	}
 	_getModelPath(e, t) {
-		return `/${xr}/projects/${e}/${t}`;
+		return `/${Sr}/projects/${e}/${t}`;
 	}
 	_getTemplatePath(e, t) {
-		return `/${xr}/projects/${e}/templates/${t}`;
+		return `/${Sr}/projects/${e}/templates/${t}`;
 	}
-}, Ar = class extends kr {
+}, jr = class extends Ar {
 	constructor(e) {
-		super(W.AGENT_PLATFORM), this.location = yr, e && (this.location = e);
+		super(U.AGENT_PLATFORM), this.location = br, e && (this.location = e);
 	}
 	_getModelPath(e, t) {
-		return `/${xr}/projects/${e}/locations/${this.location}/${t}`;
+		return `/${Sr}/projects/${e}/locations/${this.location}/${t}`;
 	}
 	_getTemplatePath(e, t) {
-		return `/${xr}/projects/${e}/locations/${this.location}/templates/${t}`;
+		return `/${Sr}/projects/${e}/locations/${this.location}/templates/${t}`;
 	}
 };
 /**
@@ -2530,21 +2530,21 @@ var _r = "@firebase/ai", vr = "3.1.0", R = "AI", yr = "global", br = "firebaseve
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function jr(e) {
-	if (e instanceof G) return `${R}/googleai`;
-	if (e instanceof Ar) return `${R}/agentplatform/${e.location}`;
-	throw new z(U.ERROR, `Invalid backend: ${JSON.stringify(e.backendType)}`);
-}
 function Mr(e) {
+	if (e instanceof W) return `${L}/googleai`;
+	if (e instanceof jr) return `${L}/agentplatform/${e.location}`;
+	throw new R(H.ERROR, `Invalid backend: ${JSON.stringify(e.backendType)}`);
+}
+function Nr(e) {
 	let t = e.split("/");
-	if (t[0] !== R) throw new z(U.ERROR, `Invalid instance identifier, unknown prefix '${t[0]}'`);
+	if (t[0] !== L) throw new R(H.ERROR, `Invalid instance identifier, unknown prefix '${t[0]}'`);
 	switch (t[1]) {
 		case "agentplatform":
 			let n = t[2];
-			if (!n) throw new z(U.ERROR, `Invalid instance identifier, unknown location '${e}'`);
-			return new Ar(n);
-		case "googleai": return new G();
-		default: throw new z(U.ERROR, `Invalid instance identifier string: '${e}'`);
+			if (!n) throw new R(H.ERROR, `Invalid instance identifier, unknown location '${e}'`);
+			return new jr(n);
+		case "googleai": return new W();
+		default: throw new R(H.ERROR, `Invalid instance identifier string: '${e}'`);
 	}
 }
 /**
@@ -2563,10 +2563,10 @@ function Mr(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var K = new Te("@firebase/ai"), q;
+var G = new Ee("@firebase/ai"), K;
 (function(e) {
 	e.UNAVAILABLE = "unavailable", e.DOWNLOADABLE = "downloadable", e.DOWNLOADING = "downloading", e.AVAILABLE = "available";
-})(q ||= {});
+})(K ||= {});
 /**
 * @license
 * Copyright 2025 Google LLC
@@ -2583,37 +2583,37 @@ var K = new Te("@firebase/ai"), q;
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Nr = {
+var Pr = {
 	type: "text",
 	languages: ["en"]
-}, Pr = [Nr, { type: "image" }], Fr = [Nr], Ir = class e {
+}, Fr = [Pr, { type: "image" }], Ir = [Pr], Lr = class e {
 	constructor(e, t, n) {
 		this.languageModelProvider = e, this.mode = t, this.downloadPromise = null, this.onDeviceParams = { createOptions: {
-			expectedInputs: Pr,
-			expectedOutputs: Fr
-		} }, n && (this.onDeviceParams = n, this.onDeviceParams.createOptions ? (this.onDeviceParams.createOptions.expectedInputs || (this.onDeviceParams.createOptions.expectedInputs = Pr), this.onDeviceParams.createOptions.expectedOutputs || (this.onDeviceParams.createOptions.expectedOutputs = Fr)) : this.onDeviceParams.createOptions = {
-			expectedInputs: Pr,
-			expectedOutputs: Fr
+			expectedInputs: Fr,
+			expectedOutputs: Ir
+		} }, n && (this.onDeviceParams = n, this.onDeviceParams.createOptions ? (this.onDeviceParams.createOptions.expectedInputs || (this.onDeviceParams.createOptions.expectedInputs = Fr), this.onDeviceParams.createOptions.expectedOutputs || (this.onDeviceParams.createOptions.expectedOutputs = Ir)) : this.onDeviceParams.createOptions = {
+			expectedInputs: Fr,
+			expectedOutputs: Ir
 		});
 	}
 	async isAvailable(t) {
-		if (!this.mode) return K.debug("On-device inference unavailable because mode is undefined."), !1;
-		if (this.mode === V.ONLY_IN_CLOUD) return K.debug("On-device inference unavailable because mode is \"only_in_cloud\"."), !1;
+		if (!this.mode) return G.debug("On-device inference unavailable because mode is undefined."), !1;
+		if (this.mode === B.ONLY_IN_CLOUD) return G.debug("On-device inference unavailable because mode is \"only_in_cloud\"."), !1;
 		let n = await this.languageModelProvider?.availability(this.onDeviceParams.createOptions);
-		if (this.mode === V.ONLY_ON_DEVICE) {
-			if (n === q.UNAVAILABLE) throw new z(U.API_NOT_ENABLED, "Local LanguageModel API not available in this environment.");
-			if (n === q.DOWNLOADABLE || n === q.DOWNLOADING) {
-				K.debug("Waiting for download of LanguageModel to complete.");
+		if (this.mode === B.ONLY_ON_DEVICE) {
+			if (n === K.UNAVAILABLE) throw new R(H.API_NOT_ENABLED, "Local LanguageModel API not available in this environment.");
+			if (n === K.DOWNLOADABLE || n === K.DOWNLOADING) {
+				G.debug("Waiting for download of LanguageModel to complete.");
 				try {
 					await this.downloadPromise;
 				} catch (e) {
-					throw new z(U.ERROR, e.message);
+					throw new R(H.ERROR, e.message);
 				}
 				return !0;
 			}
 			return !0;
 		}
-		return n === q.AVAILABLE ? e.isOnDeviceRequest(t) ? !0 : (K.debug("On-device inference unavailable because request is incompatible."), !1) : (K.debug(`On-device inference unavailable because availability is "${n}".`), !1);
+		return n === K.AVAILABLE ? e.isOnDeviceRequest(t) ? !0 : (G.debug("On-device inference unavailable because request is incompatible."), !1) : (G.debug(`On-device inference unavailable because availability is "${n}".`), !1);
 	}
 	async generateContent(t) {
 		let n = await this.createSession(), r = await Promise.all(t.contents.map(e.toLanguageModelMessage)), i = await n.prompt(r, this.onDeviceParams.promptOptions);
@@ -2624,19 +2624,19 @@ var Nr = {
 		return e.toStreamResponse(i);
 	}
 	async countTokens(e) {
-		throw new z(U.REQUEST_ERROR, "Count Tokens is not yet available for on-device model.");
+		throw new R(H.REQUEST_ERROR, "Count Tokens is not yet available for on-device model.");
 	}
 	static isOnDeviceRequest(t) {
-		if (t.contents.length === 0) return K.debug("Empty prompt rejected for on-device inference."), !1;
+		if (t.contents.length === 0) return G.debug("Empty prompt rejected for on-device inference."), !1;
 		for (let n of t.contents) {
-			if (n.parts.some((e) => "functionResponse" in e)) return K.debug("Content with a function response part rejected for on-device inference."), !1;
-			for (let t of n.parts) if ("inlineData" in t && t.inlineData && e.SUPPORTED_MIME_TYPES.indexOf(t.inlineData.mimeType) === -1) return K.debug(`Unsupported mime type "${t.inlineData.mimeType}" rejected for on-device inference.`), !1;
+			if (n.parts.some((e) => "functionResponse" in e)) return G.debug("Content with a function response part rejected for on-device inference."), !1;
+			for (let t of n.parts) if ("inlineData" in t && t.inlineData && e.SUPPORTED_MIME_TYPES.indexOf(t.inlineData.mimeType) === -1) return G.debug(`Unsupported mime type "${t.inlineData.mimeType}" rejected for on-device inference.`), !1;
 		}
 		return !0;
 	}
 	async downloadIfAvailable(e) {
 		let t = await this.languageModelProvider?.availability(this.onDeviceParams.createOptions);
-		return (t === q.DOWNLOADABLE || t === q.DOWNLOADING) && this.download(e), t;
+		return (t === K.DOWNLOADABLE || t === K.DOWNLOADING) && this.download(e), t;
 	}
 	download(e) {
 		if (this.downloadPromise) return;
@@ -2668,13 +2668,13 @@ var Nr = {
 				value: await createImageBitmap(t)
 			};
 		}
-		throw new z(U.REQUEST_ERROR, "Processing of this Part type is not currently supported.");
+		throw new R(H.REQUEST_ERROR, "Processing of this Part type is not currently supported.");
 	}
 	static toLanguageModelMessageRole(e) {
 		return e === "model" ? "assistant" : "user";
 	}
 	async createSession() {
-		if (!this.languageModelProvider) throw new z(U.UNSUPPORTED, "Chrome AI requested for unsupported browser version.");
+		if (!this.languageModelProvider) throw new R(H.UNSUPPORTED, "Chrome AI requested for unsupported browser version.");
 		let e = await this.languageModelProvider.create(this.onDeviceParams.createOptions);
 		return this.oldSession && this.oldSession.destroy(), this.oldSession = e, e;
 	}
@@ -2692,10 +2692,10 @@ var Nr = {
 		} })) };
 	}
 };
-Ir.SUPPORTED_MIME_TYPES = ["image/jpeg", "image/png"];
-function Lr(e, t, n) {
+Lr.SUPPORTED_MIME_TYPES = ["image/jpeg", "image/png"];
+function Rr(e, t, n) {
 	let r = (t || b()).LanguageModel;
-	if (r && e) return new Ir(r, e, n);
+	if (r && e) return new Lr(r, e, n);
 }
 /**
 * @license
@@ -2713,7 +2713,7 @@ function Lr(e, t, n) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Rr = class {
+var zr = class {
 	constructor(e, t, n, r, i) {
 		this.app = e, this.backend = t, this.chromeAdapterFactory = i;
 		let a = r?.getImmediate({ optional: !0 }), o = n?.getImmediate({ optional: !0 });
@@ -2745,10 +2745,10 @@ var Rr = class {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function zr(e, { instanceIdentifier: t }) {
-	if (!t) throw new z(U.ERROR, "AIService instance identifier is undefined.");
-	let n = Mr(t);
-	return new Rr(e.getProvider("app").getImmediate(), n, e.getProvider("auth-internal"), e.getProvider("app-check-internal"), Lr);
+function Br(e, { instanceIdentifier: t }) {
+	if (!t) throw new R(H.ERROR, "AIService instance identifier is undefined.");
+	let n = Nr(t);
+	return new zr(e.getProvider("app").getImmediate(), n, e.getProvider("auth-internal"), e.getProvider("app-check-internal"), Rr);
 }
 /**
 * @license
@@ -2766,10 +2766,10 @@ function zr(e, { instanceIdentifier: t }) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function Br(e) {
-	if (!e.app?.options?.apiKey) throw new z(U.NO_API_KEY, "The \"apiKey\" field is empty in the local Firebase config. Firebase AI requires this field to contain a valid API key.");
-	if (!e.app?.options?.projectId) throw new z(U.NO_PROJECT_ID, "The \"projectId\" field is empty in the local Firebase config. Firebase AI requires this field to contain a valid project ID.");
-	if (!e.app?.options?.appId) throw new z(U.NO_APP_ID, "The \"appId\" field is empty in the local Firebase config. Firebase AI requires this field to contain a valid app ID.");
+function Vr(e) {
+	if (!e.app?.options?.apiKey) throw new R(H.NO_API_KEY, "The \"apiKey\" field is empty in the local Firebase config. Firebase AI requires this field to contain a valid API key.");
+	if (!e.app?.options?.projectId) throw new R(H.NO_PROJECT_ID, "The \"projectId\" field is empty in the local Firebase config. Firebase AI requires this field to contain a valid project ID.");
+	if (!e.app?.options?.appId) throw new R(H.NO_APP_ID, "The \"appId\" field is empty in the local Firebase config. Firebase AI requires this field to contain a valid app ID.");
 	let t = {
 		apiKey: e.app.options.apiKey,
 		project: e.app.options.projectId,
@@ -2777,7 +2777,7 @@ function Br(e) {
 		automaticDataCollectionEnabled: e.app.automaticDataCollectionEnabled,
 		backend: e.backend
 	};
-	if (Mt(e.app) && e.app.settings.appCheckToken) {
+	if (Nt(e.app) && e.app.settings.appCheckToken) {
 		let n = e.app.settings.appCheckToken;
 		t.getAppCheckToken = () => Promise.resolve({ token: n });
 	} else e.appCheck && (t.getAppCheckToken = e.options?.useLimitedUseAppCheckTokens ? () => e.appCheck.getLimitedUseToken() : () => e.appCheck.getToken());
@@ -2799,12 +2799,12 @@ function Br(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Vr = class e {
+var Hr = class e {
 	constructor(t, n) {
-		this._apiSettings = Br(t), this.model = e.normalizeModelName(n, this._apiSettings.backend.backendType);
+		this._apiSettings = Vr(t), this.model = e.normalizeModelName(n, this._apiSettings.backend.backendType);
 	}
 	static normalizeModelName(t, n) {
-		return n === W.GOOGLE_AI ? e.normalizeGoogleAIModelName(t) : e.normalizeVertexAIModelName(t);
+		return n === U.GOOGLE_AI ? e.normalizeGoogleAIModelName(t) : e.normalizeVertexAIModelName(t);
 	}
 	static normalizeGoogleAIModelName(e) {
 		return `models/${e}`;
@@ -2813,7 +2813,7 @@ var Vr = class e {
 		let t;
 		return t = e.includes("/") ? e.startsWith("models/") ? `publishers/google/${e}` : e : `publishers/google/models/${e}`, t;
 	}
-}, Hr = "Timeout has expired.", Ur = "AbortError", Wr = class {
+}, Ur = "Timeout has expired.", Wr = "AbortError", Gr = class {
 	constructor(e) {
 		/**
 		* @license
@@ -2841,22 +2841,22 @@ var Vr = class e {
 		return this.params.templateId ? `${this.params.apiSettings.backend._getTemplatePath(this.params.apiSettings.project, this.params.templateId)}:${this.params.task}` : `${this.params.apiSettings.backend._getModelPath(this.params.apiSettings.project, this.params.model)}:${this.params.task}`;
 	}
 	get baseUrl() {
-		return this.params.singleRequestOptions?.baseUrl ?? `https://${br}`;
+		return this.params.singleRequestOptions?.baseUrl ?? `https://${xr}`;
 	}
 	get queryParams() {
 		let e = new URLSearchParams();
 		return this.params.stream && e.set("alt", "sse"), e;
 	}
 };
-function Gr(e) {
+function Kr(e) {
 	let t = [];
-	return t.push(`${Cr}/${Sr}`), t.push(`fire/${Sr}`), (e.params.apiSettings.inferenceMode === V.PREFER_ON_DEVICE || e.params.apiSettings.inferenceMode === V.PREFER_IN_CLOUD) && t.push(wr), t.join(" ");
+	return t.push(`${wr}/${Cr}`), t.push(`fire/${Cr}`), (e.params.apiSettings.inferenceMode === B.PREFER_ON_DEVICE || e.params.apiSettings.inferenceMode === B.PREFER_IN_CLOUD) && t.push(Tr), t.join(" ");
 }
-async function Kr(e) {
+async function qr(e) {
 	let t = new Headers();
-	if (t.append("Content-Type", "application/json"), t.append("x-goog-api-client", Gr(e)), t.append("x-goog-api-key", e.params.apiSettings.apiKey), e.params.apiSettings.automaticDataCollectionEnabled && t.append("X-Firebase-Appid", e.params.apiSettings.appId), e.params.apiSettings.getAppCheckToken) {
+	if (t.append("Content-Type", "application/json"), t.append("x-goog-api-client", Kr(e)), t.append("x-goog-api-key", e.params.apiSettings.apiKey), e.params.apiSettings.automaticDataCollectionEnabled && t.append("X-Firebase-Appid", e.params.apiSettings.appId), e.params.apiSettings.getAppCheckToken) {
 		let n = await e.params.apiSettings.getAppCheckToken();
-		n && (t.append("X-Firebase-AppCheck", n.token), n.error && K.warn(`Unable to obtain a valid App Check token: ${n.error.message}`));
+		n && (t.append("X-Firebase-AppCheck", n.token), n.error && G.warn(`Unable to obtain a valid App Check token: ${n.error.message}`));
 	}
 	if (e.params.apiSettings.getAuthToken) {
 		let n = await e.params.apiSettings.getAuthToken();
@@ -2864,15 +2864,15 @@ async function Kr(e) {
 	}
 	return t;
 }
-async function qr(e, t) {
-	let n = new Wr(e), r, i = e.singleRequestOptions?.signal, a = e.singleRequestOptions?.timeout != null && e.singleRequestOptions.timeout >= 0 ? e.singleRequestOptions.timeout : Tr, o = new AbortController(), s = setTimeout(() => {
-		o.abort(new DOMException(Hr, Ur)), K.debug(`Aborting request to ${n} due to timeout (${a}ms)`);
+async function Jr(e, t) {
+	let n = new Gr(e), r, i = e.singleRequestOptions?.signal, a = e.singleRequestOptions?.timeout != null && e.singleRequestOptions.timeout >= 0 ? e.singleRequestOptions.timeout : Er, o = new AbortController(), s = setTimeout(() => {
+		o.abort(new DOMException(Ur, Wr)), G.debug(`Aborting request to ${n} due to timeout (${a}ms)`);
 	}, a), c = AbortSignal.any(i ? [i, o.signal] : [o.signal]);
-	if (i && i.aborted) throw clearTimeout(s), new DOMException(i.reason ?? "Aborted externally before fetch", Ur);
+	if (i && i.aborted) throw clearTimeout(s), new DOMException(i.reason ?? "Aborted externally before fetch", Wr);
 	try {
 		let e = {
 			method: "POST",
-			headers: await Kr(n),
+			headers: await qr(n),
 			signal: c,
 			body: t
 		};
@@ -2882,11 +2882,11 @@ async function qr(e, t) {
 				let n = await r.json();
 				e = n.error.message, n.error.details && (e += ` ${JSON.stringify(n.error.details)}`, t = n.error.details);
 			} catch {}
-			throw r.status === 403 && t && t.some((e) => e.reason === "SERVICE_DISABLED") && t.some((e) => e.links?.[0]?.description.includes("Google developers console API activation")) ? new z(U.API_NOT_ENABLED, `The Firebase AI SDK requires the Firebase AI API ('firebasevertexai.googleapis.com') to be enabled in your Firebase project. Enable this API by visiting the Firebase Console at https://console.firebase.google.com/project/${n.params.apiSettings.project}/ailogic/ and clicking "Get started". If you enabled this API recently, wait a few minutes for the action to propagate to our systems and then retry.`, {
+			throw r.status === 403 && t && t.some((e) => e.reason === "SERVICE_DISABLED") && t.some((e) => e.links?.[0]?.description.includes("Google developers console API activation")) ? new R(H.API_NOT_ENABLED, `The Firebase AI SDK requires the Firebase AI API ('firebasevertexai.googleapis.com') to be enabled in your Firebase project. Enable this API by visiting the Firebase Console at https://console.firebase.google.com/project/${n.params.apiSettings.project}/ailogic/ and clicking "Get started". If you enabled this API recently, wait a few minutes for the action to propagate to our systems and then retry.`, {
 				status: r.status,
 				statusText: r.statusText,
 				errorDetails: t
-			}) : new z(U.FETCH_ERROR, `Error fetching from ${n}: [${r.status} ${r.statusText}] ${e}`, {
+			}) : new R(H.FETCH_ERROR, `Error fetching from ${n}: [${r.status} ${r.statusText}] ${e}`, {
 				status: r.status,
 				statusText: r.statusText,
 				errorDetails: t
@@ -2894,7 +2894,7 @@ async function qr(e, t) {
 		}
 	} catch (e) {
 		let t = e;
-		throw e.code !== U.FETCH_ERROR && e.code !== U.API_NOT_ENABLED && e instanceof Error && e.name !== Ur && (t = new z(U.ERROR, `Error fetching from ${n.toString()}: ${e.message}`), t.stack = e.stack), t;
+		throw e.code !== H.FETCH_ERROR && e.code !== H.API_NOT_ENABLED && e instanceof Error && e.name !== Wr && (t = new R(H.ERROR, `Error fetching from ${n.toString()}: ${e.message}`), t.stack = e.stack), t;
 	} finally {
 		clearTimeout(s);
 	}
@@ -2916,14 +2916,14 @@ async function qr(e, t) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function Jr(e) {
+function Yr(e) {
 	if (e.candidates && e.candidates.length > 0) {
-		if (e.candidates.length > 1 && K.warn(`This response had ${e.candidates.length} candidates. Returning text from the first candidate only. Access response.candidates directly to use the other candidates.`), ti(e.candidates[0])) throw new z(U.RESPONSE_ERROR, `Response error: ${Y(e)}. Response body stored in error.response`, { response: e });
+		if (e.candidates.length > 1 && G.warn(`This response had ${e.candidates.length} candidates. Returning text from the first candidate only. Access response.candidates directly to use the other candidates.`), ni(e.candidates[0])) throw new R(H.RESPONSE_ERROR, `Response error: ${J(e)}. Response body stored in error.response`, { response: e });
 		return !0;
 	}
 	return !1;
 }
-function J(e) {
+function q(e) {
 	return "type" in e && e.type ? e : e.text === void 0 ? e.inlineData === void 0 ? e.functionCall === void 0 ? e.functionResponse === void 0 ? e.fileData === void 0 ? e.executableCode === void 0 ? e.codeExecutionResult === void 0 ? e : {
 		...e,
 		type: "codeExecutionResult"
@@ -2947,82 +2947,82 @@ function J(e) {
 		type: "text"
 	};
 }
-function Yr(e, t = H.IN_CLOUD) {
-	if (e.candidates?.[0] && !e.candidates[0].hasOwnProperty("index") && (e.candidates[0].index = 0), e.candidates) for (let t of e.candidates) t.content?.parts && (t.content.parts = t.content.parts.map(J));
-	let n = Xr(e);
+function Xr(e, t = V.IN_CLOUD) {
+	if (e.candidates?.[0] && !e.candidates[0].hasOwnProperty("index") && (e.candidates[0].index = 0), e.candidates) for (let t of e.candidates) t.content?.parts && (t.content.parts = t.content.parts.map(q));
+	let n = Zr(e);
 	return n.inferenceSource = t, n;
 }
-function Xr(e) {
+function Zr(e) {
 	return e.text = () => {
-		if (Jr(e)) return Zr(e, (e) => !("thought" in e && e.thought));
-		if (e.promptFeedback) throw new z(U.RESPONSE_ERROR, `Text not available. ${Y(e)}`, { response: e });
+		if (Yr(e)) return Qr(e, (e) => !("thought" in e && e.thought));
+		if (e.promptFeedback) throw new R(H.RESPONSE_ERROR, `Text not available. ${J(e)}`, { response: e });
 		return "";
 	}, e.thoughtSummary = () => {
-		if (Jr(e)) {
-			let t = Zr(e, (e) => !!("thought" in e && e.thought));
+		if (Yr(e)) {
+			let t = Qr(e, (e) => !!("thought" in e && e.thought));
 			return t === "" ? void 0 : t;
 		}
-		if (e.promptFeedback) throw new z(U.RESPONSE_ERROR, `Thought summary not available. ${Y(e)}`, { response: e });
+		if (e.promptFeedback) throw new R(H.RESPONSE_ERROR, `Thought summary not available. ${J(e)}`, { response: e });
 	}, e.inlineDataParts = () => {
-		if (Jr(e)) return $r(e);
-		if (e.promptFeedback) throw new z(U.RESPONSE_ERROR, `Data not available. ${Y(e)}`, { response: e });
+		if (Yr(e)) return ei(e);
+		if (e.promptFeedback) throw new R(H.RESPONSE_ERROR, `Data not available. ${J(e)}`, { response: e });
 	}, e.functionCalls = () => {
-		if (Jr(e)) return Qr(e);
-		if (e.promptFeedback) throw new z(U.RESPONSE_ERROR, `Function call not available. ${Y(e)}`, { response: e });
+		if (Yr(e)) return $r(e);
+		if (e.promptFeedback) throw new R(H.RESPONSE_ERROR, `Function call not available. ${J(e)}`, { response: e });
 	}, e;
 }
-function Zr(e, t) {
+function Qr(e, t) {
 	let n = [];
 	if (e.candidates?.[0].content?.parts) for (let r of e.candidates?.[0].content?.parts) {
-		let e = J(r);
+		let e = q(r);
 		e.type === "text" && t(e) && n.push(e.text);
 	}
 	return n.length > 0 ? n.join("") : "";
 }
-function Qr(e) {
+function $r(e) {
 	if (!e) return;
 	let t = [];
 	if (e.candidates?.[0].content?.parts) for (let n of e.candidates?.[0].content?.parts) {
-		let e = J(n);
+		let e = q(n);
 		e.type === "functionCall" && t.push(e.functionCall);
 	}
 	if (t.length > 0) return t;
 }
-function $r(e) {
+function ei(e) {
 	let t = [];
 	if (e.candidates?.[0].content?.parts) for (let n of e.candidates?.[0].content?.parts) {
-		let e = J(n);
+		let e = q(n);
 		e.type === "inlineData" && t.push(e);
 	}
 	if (t.length > 0) return t;
 }
-var ei = [
-	B.RECITATION,
-	B.SAFETY,
-	B.BLOCKLIST,
-	B.PROHIBITED_CONTENT,
-	B.SPII,
-	B.MALFORMED_FUNCTION_CALL,
-	B.IMAGE_SAFETY,
-	B.IMAGE_PROHIBITED_CONTENT,
-	B.IMAGE_OTHER,
-	B.NO_IMAGE,
-	B.IMAGE_RECITATION,
-	B.LANGUAGE,
-	B.UNEXPECTED_TOOL_CALL,
-	B.TOO_MANY_TOOL_CALLS,
-	B.MISSING_THOUGHT_SIGNATURE,
-	B.MALFORMED_RESPONSE
+var ti = [
+	z.RECITATION,
+	z.SAFETY,
+	z.BLOCKLIST,
+	z.PROHIBITED_CONTENT,
+	z.SPII,
+	z.MALFORMED_FUNCTION_CALL,
+	z.IMAGE_SAFETY,
+	z.IMAGE_PROHIBITED_CONTENT,
+	z.IMAGE_OTHER,
+	z.NO_IMAGE,
+	z.IMAGE_RECITATION,
+	z.LANGUAGE,
+	z.UNEXPECTED_TOOL_CALL,
+	z.TOO_MANY_TOOL_CALLS,
+	z.MISSING_THOUGHT_SIGNATURE,
+	z.MALFORMED_RESPONSE
 ];
-function ti(e) {
-	return !!e.finishReason && ei.some((t) => t === e.finishReason);
+function ni(e) {
+	return !!e.finishReason && ti.some((t) => t === e.finishReason);
 }
-function Y(e) {
+function J(e) {
 	let t = "";
 	if ((!e.candidates || e.candidates.length === 0) && e.promptFeedback) t += "Response was blocked", e.promptFeedback?.blockReason && (t += ` due to ${e.promptFeedback.blockReason}`), e.promptFeedback?.blockReasonMessage && (t += `: ${e.promptFeedback.blockReasonMessage}`);
 	else if (e.candidates?.[0]) {
 		let n = e.candidates[0];
-		ti(n) && (t += `Candidate was blocked due to ${n.finishReason}`, n.finishMessage && (t += `: ${n.finishMessage}`));
+		ni(n) && (t += `Candidate was blocked due to ${n.finishReason}`, n.finishMessage && (t += `: ${n.finishMessage}`));
 	}
 	return t;
 }
@@ -3042,7 +3042,7 @@ function Y(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function ni(e) {
+function ri(e) {
 	if (e != null) {
 		if (typeof e == "string") return {
 			role: "system",
@@ -3053,10 +3053,10 @@ function ni(e) {
 		};
 		if (e.type === "text" || "text" in e && typeof e.text == "string") return {
 			role: "system",
-			parts: [_(J(e))]
+			parts: [_(q(e))]
 		};
 		if (e.parts) {
-			let t = e.parts.map((e) => _(J(e)));
+			let t = e.parts.map((e) => _(q(e)));
 			return e.role ? {
 				...e,
 				parts: t
@@ -3067,7 +3067,7 @@ function ni(e) {
 		}
 	}
 }
-function ri(e) {
+function ii(e) {
 	let t = [];
 	if (typeof e == "string") t = [{
 		type: "text",
@@ -3076,20 +3076,20 @@ function ri(e) {
 	else for (let n of e) typeof n == "string" ? t.push({
 		type: "text",
 		text: n
-	}) : t.push(_(J(n)));
-	return ii(t);
+	}) : t.push(_(q(n)));
+	return ai(t);
 }
-function ii(e) {
+function ai(e) {
 	let t = {
 		role: "user",
 		parts: []
 	}, n = !1, r = !1;
 	for (let i of e) i.type === "functionResponse" || "functionResponse" in i ? r = !0 : n = !0, t.parts.push(i);
-	if (n && r) throw new z(U.INVALID_CONTENT, "Within a single message, FunctionResponse cannot be mixed with other type of Part in the request for sending chat message.");
-	if (!n && !r) throw new z(U.INVALID_CONTENT, "No Content is provided for sending chat message.");
+	if (n && r) throw new R(H.INVALID_CONTENT, "Within a single message, FunctionResponse cannot be mixed with other type of Part in the request for sending chat message.");
+	if (!n && !r) throw new R(H.INVALID_CONTENT, "No Content is provided for sending chat message.");
 	return t;
 }
-function ai(e) {
+function oi(e) {
 	let t;
 	if (e.contents) {
 		let n = e;
@@ -3097,19 +3097,19 @@ function ai(e) {
 			...n,
 			contents: n.contents.map((e) => ({
 				...e,
-				parts: e.parts ? e.parts.map(J) : []
+				parts: e.parts ? e.parts.map(q) : []
 			}))
 		};
-	} else t = { contents: [ri(e)] };
-	return e.systemInstruction && (t.systemInstruction = ni(e.systemInstruction)), t;
-}
-function oi(e) {
-	return e.parts && Array.isArray(e.parts) ? {
-		...e,
-		parts: e.parts.map(si)
-	} : e;
+	} else t = { contents: [ii(e)] };
+	return e.systemInstruction && (t.systemInstruction = ri(e.systemInstruction)), t;
 }
 function si(e) {
+	return e.parts && Array.isArray(e.parts) ? {
+		...e,
+		parts: e.parts.map(ci)
+	} : e;
+}
+function ci(e) {
 	let t;
 	if ("type" in e) {
 		let { type: n, ...r } = e;
@@ -3117,25 +3117,25 @@ function si(e) {
 	} else t = e;
 	return t.functionResponse && (t = {
 		...t,
-		functionResponse: oi(t.functionResponse)
+		functionResponse: si(t.functionResponse)
 	}), t;
 }
-function ci(e) {
+function li(e) {
 	return e.parts ? {
 		...e,
-		parts: e.parts.map(si)
+		parts: e.parts.map(ci)
 	} : e;
 }
-function li(e) {
-	return e == null || typeof e == "string" ? e : "parts" in e && Array.isArray(e.parts) ? ci(e) : si(e);
-}
 function ui(e) {
-	let t = { ...e };
-	return t.contents &&= t.contents.map(ci), t.systemInstruction &&= li(t.systemInstruction), t;
+	return e == null || typeof e == "string" ? e : "parts" in e && Array.isArray(e.parts) ? li(e) : ci(e);
 }
 function di(e) {
 	let t = { ...e };
-	return t.contents &&= t.contents.map(ci), t.systemInstruction &&= li(t.systemInstruction), t;
+	return t.contents &&= t.contents.map(li), t.systemInstruction &&= ui(t.systemInstruction), t;
+}
+function fi(e) {
+	let t = { ...e };
+	return t.contents &&= t.contents.map(li), t.systemInstruction &&= ui(t.systemInstruction), t;
 }
 /**
 * @license
@@ -3153,38 +3153,38 @@ function di(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function fi(e) {
+function pi(e) {
 	if (e.safetySettings?.forEach((e) => {
-		if (e.method) throw new z(U.UNSUPPORTED, "SafetySetting.method is not supported in the the Gemini Developer API. Please remove this property.");
+		if (e.method) throw new R(H.UNSUPPORTED, "SafetySetting.method is not supported in the the Gemini Developer API. Please remove this property.");
 	}), e.generationConfig?.topK) {
 		let t = Math.round(e.generationConfig.topK);
-		t !== e.generationConfig.topK && (K.warn("topK in GenerationConfig has been rounded to the nearest integer to match the format for requests to the Gemini Developer API."), e.generationConfig.topK = t);
+		t !== e.generationConfig.topK && (G.warn("topK in GenerationConfig has been rounded to the nearest integer to match the format for requests to the Gemini Developer API."), e.generationConfig.topK = t);
 	}
 	return e;
 }
-function pi(e) {
+function mi(e) {
 	return {
-		candidates: e.candidates ? hi(e.candidates) : void 0,
-		promptFeedback: e.promptFeedback ? gi(e.promptFeedback) : void 0,
+		candidates: e.candidates ? gi(e.candidates) : void 0,
+		promptFeedback: e.promptFeedback ? _i(e.promptFeedback) : void 0,
 		usageMetadata: e.usageMetadata
 	};
 }
-function mi(e, t) {
+function hi(e, t) {
 	return { generateContentRequest: {
 		model: t,
 		...e
 	} };
 }
-function hi(e) {
+function gi(e) {
 	let t = [], n;
 	return t && e.forEach((e) => {
 		let r;
 		if (e.citationMetadata && (r = { citations: e.citationMetadata.citationSources }), e.safetyRatings && (n = e.safetyRatings.map((e) => ({
 			...e,
-			severity: e.severity ?? Or.HARM_SEVERITY_UNSUPPORTED,
+			severity: e.severity ?? kr.HARM_SEVERITY_UNSUPPORTED,
 			probabilityScore: e.probabilityScore ?? 0,
 			severityScore: e.severityScore ?? 0
-		}))), e.content?.parts?.some((e) => "videoMetadata" in e && e.videoMetadata)) throw new z(U.UNSUPPORTED, "Part.videoMetadata is not supported in the Gemini Developer API. Please remove this property.");
+		}))), e.content?.parts?.some((e) => "videoMetadata" in e && e.videoMetadata)) throw new R(H.UNSUPPORTED, "Part.videoMetadata is not supported in the Gemini Developer API. Please remove this property.");
 		let i = {
 			index: e.index,
 			content: e.content,
@@ -3198,13 +3198,13 @@ function hi(e) {
 		t.push(i);
 	}), t;
 }
-function gi(e) {
+function _i(e) {
 	let t = [];
 	return (e.safetyRatings ?? []).forEach((e) => {
 		t.push({
 			category: e.category,
 			probability: e.probability,
-			severity: e.severity ?? Or.HARM_SEVERITY_UNSUPPORTED,
+			severity: e.severity ?? kr.HARM_SEVERITY_UNSUPPORTED,
 			probabilityScore: e.probabilityScore ?? 0,
 			severityScore: e.severityScore ?? 0,
 			blocked: e.blocked
@@ -3231,45 +3231,45 @@ function gi(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var _i = /^data\: (.*)(?:\n\n|\r\r|\r\n\r\n)/;
-async function vi(e, t, n) {
-	let [r, i] = Si(e.body.pipeThrough(new TextDecoderStream("utf8", { fatal: !0 }))).tee(), { response: a, firstValue: o } = await yi(i, t, n);
+var vi = /^data\: (.*)(?:\n\n|\r\r|\r\n\r\n)/;
+async function yi(e, t, n) {
+	let [r, i] = Ci(e.body.pipeThrough(new TextDecoderStream("utf8", { fatal: !0 }))).tee(), { response: a, firstValue: o } = await bi(i, t, n);
 	return {
-		stream: xi(r, t, n),
+		stream: Si(r, t, n),
 		response: a,
 		firstValue: o
 	};
 }
-async function yi(e, t, n) {
+async function bi(e, t, n) {
 	let [r, i] = e.tee(), { value: a } = await r.getReader().read();
 	return {
 		firstValue: a,
-		response: bi(i, t, n)
+		response: xi(i, t, n)
 	};
 }
-async function bi(e, t, n) {
+async function xi(e, t, n) {
 	let r = [], i = e.getReader();
 	for (;;) {
 		let { done: e, value: a } = await i.read();
 		if (e) {
-			let e = Ci(r);
-			return t.backend.backendType === W.GOOGLE_AI && (e = pi(e)), Yr(e, n);
+			let e = wi(r);
+			return t.backend.backendType === U.GOOGLE_AI && (e = mi(e)), Xr(e, n);
 		}
 		r.push(a);
 	}
 }
-async function* xi(e, t, n) {
+async function* Si(e, t, n) {
 	let r = e.getReader();
 	for (;;) {
 		let { value: e, done: i } = await r.read();
 		if (i) break;
 		let a;
-		a = t.backend.backendType === W.GOOGLE_AI ? Yr(pi(e), n) : Yr(e, n);
+		a = t.backend.backendType === U.GOOGLE_AI ? Xr(mi(e), n) : Xr(e, n);
 		let o = a.candidates?.[0];
 		(o?.content?.parts || o?.finishReason || o?.citationMetadata || o?.urlContextMetadata) && (yield a);
 	}
 }
-function Si(e) {
+function Ci(e) {
 	let t = e.getReader();
 	return new ReadableStream({ start(e) {
 		let n = "";
@@ -3278,29 +3278,29 @@ function Si(e) {
 			return t.read().then(({ value: t, done: i }) => {
 				if (i) {
 					if (n.trim()) {
-						e.error(new z(U.PARSE_FAILED, "Failed to parse stream"));
+						e.error(new R(H.PARSE_FAILED, "Failed to parse stream"));
 						return;
 					}
 					e.close();
 					return;
 				}
 				n += t;
-				let a = n.match(_i), o;
+				let a = n.match(vi), o;
 				for (; a;) {
 					try {
 						o = JSON.parse(a[1]);
 					} catch {
-						e.error(new z(U.PARSE_FAILED, `Error parsing JSON response: "${a[1]}`));
+						e.error(new R(H.PARSE_FAILED, `Error parsing JSON response: "${a[1]}`));
 						return;
 					}
-					e.enqueue(o), n = n.substring(a[0].length), a = n.match(_i);
+					e.enqueue(o), n = n.substring(a[0].length), a = n.match(vi);
 				}
 				return r();
 			});
 		}
 	} });
 }
-function Ci(e) {
+function wi(e) {
 	let t = { promptFeedback: e[e.length - 1]?.promptFeedback };
 	for (let n of e) if (n.candidates) for (let e of n.candidates) {
 		let n = e.index || 0;
@@ -3314,8 +3314,8 @@ function Ci(e) {
 			});
 			for (let r of e.content.parts) {
 				if ("text" in r && r.text === "") continue;
-				if (Object.keys(r).length === 0) throw new z(U.INVALID_CONTENT, "Part should have at least one property, but there are none. This is likely caused by a malformed response from the backend.");
-				let e = J({ ...r });
+				if (Object.keys(r).length === 0) throw new R(H.INVALID_CONTENT, "Part should have at least one property, but there are none. This is likely caused by a malformed response from the backend.");
+				let e = q({ ...r });
 				Object.keys(e).length > 0 && t.candidates[n].content.parts.push(e);
 			}
 		}
@@ -3338,47 +3338,47 @@ function Ci(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var wi = [
-	U.FETCH_ERROR,
-	U.ERROR,
-	U.API_NOT_ENABLED
+var Ti = [
+	H.FETCH_ERROR,
+	H.ERROR,
+	H.API_NOT_ENABLED
 ];
-async function Ti(e, t, n, r) {
+async function Ei(e, t, n, r) {
 	if (!t) return {
 		response: await r(),
-		inferenceSource: H.IN_CLOUD
+		inferenceSource: V.IN_CLOUD
 	};
 	switch (t.mode) {
-		case V.ONLY_ON_DEVICE:
+		case B.ONLY_ON_DEVICE:
 			if (await t.isAvailable(e)) return {
 				response: await n(),
-				inferenceSource: H.ON_DEVICE
+				inferenceSource: V.ON_DEVICE
 			};
-			throw new z(U.UNSUPPORTED, "Inference mode is ONLY_ON_DEVICE, but an on-device model is not available.");
-		case V.ONLY_IN_CLOUD: return {
+			throw new R(H.UNSUPPORTED, "Inference mode is ONLY_ON_DEVICE, but an on-device model is not available.");
+		case B.ONLY_IN_CLOUD: return {
 			response: await r(),
-			inferenceSource: H.IN_CLOUD
+			inferenceSource: V.IN_CLOUD
 		};
-		case V.PREFER_IN_CLOUD: try {
+		case B.PREFER_IN_CLOUD: try {
 			return {
 				response: await r(),
-				inferenceSource: H.IN_CLOUD
+				inferenceSource: V.IN_CLOUD
 			};
 		} catch (r) {
-			if (r instanceof z && wi.includes(r.code) && await t.isAvailable(e)) return {
+			if (r instanceof R && Ti.includes(r.code) && await t.isAvailable(e)) return {
 				response: await n(),
-				inferenceSource: H.ON_DEVICE
+				inferenceSource: V.ON_DEVICE
 			};
 			throw r;
 		}
-		case V.PREFER_ON_DEVICE: return await t.isAvailable(e) ? {
+		case B.PREFER_ON_DEVICE: return await t.isAvailable(e) ? {
 			response: await n(),
-			inferenceSource: H.ON_DEVICE
+			inferenceSource: V.ON_DEVICE
 		} : {
 			response: await r(),
-			inferenceSource: H.IN_CLOUD
+			inferenceSource: V.IN_CLOUD
 		};
-		default: throw new z(U.ERROR, `Unexpected infererence mode: ${t.mode}`);
+		default: throw new R(H.ERROR, `Unexpected infererence mode: ${t.mode}`);
 	}
 }
 /**
@@ -3397,8 +3397,8 @@ async function Ti(e, t, n, r) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-async function Ei(e, t, n, r) {
-	return n = ui(n), e.backend.backendType === W.GOOGLE_AI && (n = fi(n)), qr({
+async function Di(e, t, n, r) {
+	return n = di(n), e.backend.backendType === U.GOOGLE_AI && (n = pi(n)), Jr({
 		task: "streamGenerateContent",
 		model: t,
 		apiSettings: e,
@@ -3406,12 +3406,12 @@ async function Ei(e, t, n, r) {
 		singleRequestOptions: r
 	}, JSON.stringify(n));
 }
-async function Di(e, t, n, r, i) {
-	let a = await Ti(n, r, () => r.generateContentStream(n), () => Ei(e, t, n, i));
-	return vi(a.response, e, a.inferenceSource);
+async function Oi(e, t, n, r, i) {
+	let a = await Ei(n, r, () => r.generateContentStream(n), () => Di(e, t, n, i));
+	return yi(a.response, e, a.inferenceSource);
 }
-async function Oi(e, t, n, r) {
-	return n = ui(n), e.backend.backendType === W.GOOGLE_AI && (n = fi(n)), qr({
+async function ki(e, t, n, r) {
+	return n = di(n), e.backend.backendType === U.GOOGLE_AI && (n = pi(n)), Jr({
 		model: t,
 		task: "generateContent",
 		apiSettings: e,
@@ -3419,13 +3419,13 @@ async function Oi(e, t, n, r) {
 		singleRequestOptions: r
 	}, JSON.stringify(n));
 }
-async function ki(e, t, n, r, i) {
-	let a = await Ti(n, r, () => r.generateContent(n), () => Oi(e, t, n, i));
-	return { response: Yr(await Ai(a.response, e), a.inferenceSource) };
+async function Ai(e, t, n, r, i) {
+	let a = await Ei(n, r, () => r.generateContent(n), () => ki(e, t, n, i));
+	return { response: Xr(await ji(a.response, e), a.inferenceSource) };
 }
-async function Ai(e, t) {
+async function ji(e, t) {
 	let n = await e.json();
-	return t.backend.backendType === W.GOOGLE_AI ? pi(n) : n;
+	return t.backend.backendType === U.GOOGLE_AI ? mi(n) : n;
 }
 /**
 * @license
@@ -3443,14 +3443,14 @@ async function Ai(e, t) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var ji = "SILENT_ERROR", Mi = 10, Ni = class {
+var Mi = "SILENT_ERROR", Ni = 10, Pi = class {
 	constructor(e, t, n) {
 		this.params = t, this.requestOptions = n, this._history = [], this._sendPromise = Promise.resolve(), this._apiSettings = e;
 	}
 	async getHistory() {
 		return await this._sendPromise, _(this._history).map((e) => ({
 			...e,
-			parts: e.parts ? e.parts.map(J) : []
+			parts: e.parts ? e.parts.map(q) : []
 		}));
 	}
 	async _sendMessage(e, t) {
@@ -3458,10 +3458,10 @@ var ji = "SILENT_ERROR", Mi = 10, Ni = class {
 		await this._sendPromise;
 		let r = [];
 		return this._sendPromise = this._sendPromise.then(async () => {
-			let i, a = 0, o = this.requestOptions?.maxSequentialFunctionCalls ?? Mi;
+			let i, a = 0, o = this.requestOptions?.maxSequentialFunctionCalls ?? Ni;
 			do {
 				let o;
-				i ? (a++, o = ri(await this._callFunctionsAsNeeded(i))) : o = ri(e);
+				i ? (a++, o = ii(await this._callFunctionsAsNeeded(i))) : o = ii(e);
 				let s = this._formatRequest(o, [...r]);
 				r.push(o);
 				let c = await this._callGenerateContent(s, t);
@@ -3473,51 +3473,51 @@ var ji = "SILENT_ERROR", Mi = 10, Ni = class {
 						};
 						r.push(_(e));
 					} else {
-						let e = Y(c.response);
-						e && K.warn(`sendMessage() was unsuccessful. ${e}. Inspect response object for details.`);
+						let e = J(c.response);
+						e && G.warn(`sendMessage() was unsuccessful. ${e}. Inspect response object for details.`);
 					}
 				} else i = void 0;
 			} while (i && a < o);
-			i && a >= o && K.warn(`Automatic function calling exceeded the limit of ${o} function calls. Returning last model response.`);
+			i && a >= o && G.warn(`Automatic function calling exceeded the limit of ${o} function calls. Returning last model response.`);
 		}), await this._sendPromise, this._history = this._history.concat(r), n;
 	}
 	async _sendMessageStream(e, t) {
 		await this._sendPromise;
 		let n = [], r = (async () => {
-			let r, i = 0, a = this.requestOptions?.maxSequentialFunctionCalls ?? Mi, o;
+			let r, i = 0, a = this.requestOptions?.maxSequentialFunctionCalls ?? Ni, o;
 			do {
 				let a;
-				r ? (i++, a = ri(await this._callFunctionsAsNeeded(r))) : a = ri(e);
+				r ? (i++, a = ii(await this._callFunctionsAsNeeded(r))) : a = ii(e);
 				let s = this._formatRequest(a, [...n]);
 				if (n.push(a), o = await this._callGenerateContentStream(s, t), r = this._getCallableFunctionCalls(o.firstValue), r && o.firstValue && o.firstValue.candidates && o.firstValue.candidates.length > 0) {
 					let e = { ...o.firstValue.candidates[0].content };
 					e.role ||= "model", n.push(e);
 				}
 			} while (r && i < a);
-			return r && i >= a && K.warn(`Automatic function calling exceeded the limit of ${a} function calls. Returning last model response.`), {
+			return r && i >= a && G.warn(`Automatic function calling exceeded the limit of ${a} function calls. Returning last model response.`), {
 				stream: o.stream,
 				response: o.response
 			};
 		})();
 		return this._sendPromise = this._sendPromise.then(async () => r).catch((e) => {
-			throw Error(ji);
+			throw Error(Mi);
 		}).then((e) => e.response).then((e) => {
 			if (e.candidates && e.candidates.length > 0) {
 				this._history = this._history.concat(n);
 				let t = { ...e.candidates[0].content };
 				t.role ||= "model", this._history.push(_(t));
 			} else {
-				let t = Y(e);
-				t && K.warn(`sendMessageStream() was unsuccessful. ${t}. Inspect response object for details.`);
+				let t = J(e);
+				t && G.warn(`sendMessageStream() was unsuccessful. ${t}. Inspect response object for details.`);
 			}
 		}).catch((e) => {
-			e.message !== ji && e.name !== "AbortError" && K.error(e);
+			e.message !== Mi && e.name !== "AbortError" && G.error(e);
 		}), r;
 	}
 	_getCallableFunctionCalls(e) {
 		let t = this.params?.tools?.find((e) => e.functionDeclarations);
 		if (!t?.functionDeclarations) return;
-		let n = Qr(e);
+		let n = $r(e);
 		if (n) {
 			for (let e of n) if (!t.functionDeclarations?.some((t) => t.name === e.name && typeof t.functionReference == "function")) return;
 			return n;
@@ -3530,7 +3530,7 @@ var ji = "SILENT_ERROR", Mi = 10, Ni = class {
 				let e = r.functionDeclarations.find((e) => e.name === i.name);
 				if (e?.functionReference) {
 					let r = Promise.resolve(e.functionReference(i.args)).catch((t) => {
-						let n = new z(U.ERROR, `Error in user-defined function "${e.name}": ${t.message}`);
+						let n = new R(H.ERROR, `Error in user-defined function "${e.name}": ${t.message}`);
 						throw n.stack = t.stack, n;
 					});
 					t.push({
@@ -3554,16 +3554,16 @@ var ji = "SILENT_ERROR", Mi = 10, Ni = class {
 			}
 			return i;
 		}
-		throw new z(U.REQUEST_ERROR, "No function declarations were provided in \"tools\".");
+		throw new R(H.REQUEST_ERROR, "No function declarations were provided in \"tools\".");
 	}
-}, Pi = [
+}, Fi = [
 	"text",
 	"inlineData",
 	"functionCall",
 	"functionResponse",
 	"thought",
 	"thoughtSignature"
-], Fi = {
+], Ii = {
 	user: [
 		"text",
 		"inlineData",
@@ -3577,7 +3577,7 @@ var ji = "SILENT_ERROR", Mi = 10, Ni = class {
 		"thoughtSignature"
 	],
 	system: ["text"]
-}, Ii = {
+}, Li = {
 	user: ["model"],
 	function: ["model"],
 	model: ["user", "function"],
@@ -3599,14 +3599,14 @@ var ji = "SILENT_ERROR", Mi = 10, Ni = class {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function Li(e) {
+function Ri(e) {
 	let t = null;
 	for (let n of e) {
 		let { role: e, parts: r } = n;
-		if (!t && e !== "user") throw new z(U.INVALID_CONTENT, `First Content should be with role 'user', got ${e}`);
-		if (!Dr.includes(e)) throw new z(U.INVALID_CONTENT, `Each item should include role field. Got ${e} but valid roles are: ${JSON.stringify(Dr)}`);
-		if (!Array.isArray(r)) throw new z(U.INVALID_CONTENT, "Content should have 'parts' property with an array of Parts");
-		if (r.length === 0) throw new z(U.INVALID_CONTENT, "Each Content should have at least one part");
+		if (!t && e !== "user") throw new R(H.INVALID_CONTENT, `First Content should be with role 'user', got ${e}`);
+		if (!Or.includes(e)) throw new R(H.INVALID_CONTENT, `Each item should include role field. Got ${e} but valid roles are: ${JSON.stringify(Or)}`);
+		if (!Array.isArray(r)) throw new R(H.INVALID_CONTENT, "Content should have 'parts' property with an array of Parts");
+		if (r.length === 0) throw new R(H.INVALID_CONTENT, "Each Content should have at least one part");
 		let i = {
 			text: 0,
 			inlineData: 0,
@@ -3631,9 +3631,9 @@ function Li(e) {
 			]) t in e && (i[t] += 1);
 			"thought" in e && e.thought && (i.thought += 1), "thoughtSignature" in e && e.thoughtSignature && (i.thoughtSignature += 1);
 		}
-		let a = Fi[e];
-		for (let t of Pi) if (!a.includes(t) && i[t] > 0) throw new z(U.INVALID_CONTENT, `Content with role '${e}' can't contain '${t}' part`);
-		if (t && !Ii[e].includes(t.role)) throw new z(U.INVALID_CONTENT, `Content with role '${e}' can't follow '${t.role}'. Valid previous roles: ${JSON.stringify(Ii)}`);
+		let a = Ii[e];
+		for (let t of Fi) if (!a.includes(t) && i[t] > 0) throw new R(H.INVALID_CONTENT, `Content with role '${e}' can't contain '${t}' part`);
+		if (t && !Li[e].includes(t.role)) throw new R(H.INVALID_CONTENT, `Content with role '${e}' can't follow '${t.role}'. Valid previous roles: ${JSON.stringify(Li)}`);
 		t = n;
 	}
 }
@@ -3653,11 +3653,11 @@ function Li(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Ri = class extends Ni {
+var zi = class extends Pi {
 	constructor(e, t, n, r, i) {
-		super(e, r, i), this.model = t, this.chromeAdapter = n, this.params = r, this.requestOptions = i, r?.history && (Li(r.history), this._history = _(r.history)), this.params?.systemInstruction != null && (this.params = {
+		super(e, r, i), this.model = t, this.chromeAdapter = n, this.params = r, this.requestOptions = i, r?.history && (Ri(r.history), this._history = _(r.history)), this.params?.systemInstruction != null && (this.params = {
 			...this.params,
-			systemInstruction: ni(this.params.systemInstruction)
+			systemInstruction: ri(this.params.systemInstruction)
 		});
 	}
 	_formatRequest(e, t) {
@@ -3675,13 +3675,13 @@ var Ri = class extends Ni {
 		};
 	}
 	_callGenerateContent(e, t) {
-		return ki(this._apiSettings, this.model, e, this.chromeAdapter, {
+		return Ai(this._apiSettings, this.model, e, this.chromeAdapter, {
 			...this.requestOptions,
 			...t
 		});
 	}
 	_callGenerateContentStream(e, t) {
-		return Di(this._apiSettings, this.model, e, this.chromeAdapter, {
+		return Oi(this._apiSettings, this.model, e, this.chromeAdapter, {
 			...this.requestOptions,
 			...t
 		});
@@ -3709,14 +3709,14 @@ var Ri = class extends Ni {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-async function zi(e, t, n, r) {
-	n = di(n);
+async function Bi(e, t, n, r) {
+	n = fi(n);
 	let i = "";
-	if (e.backend.backendType === W.GOOGLE_AI) {
-		let e = mi(n, t);
+	if (e.backend.backendType === U.GOOGLE_AI) {
+		let e = hi(n, t);
 		i = JSON.stringify(e);
 	} else i = JSON.stringify(n);
-	return (await qr({
+	return (await Jr({
 		model: t,
 		task: "countTokens",
 		apiSettings: e,
@@ -3724,9 +3724,9 @@ async function zi(e, t, n, r) {
 		singleRequestOptions: r
 	}, i)).json();
 }
-async function Bi(e, t, n, r, i) {
-	if (r?.mode === V.ONLY_ON_DEVICE) throw new z(U.UNSUPPORTED, "countTokens() is not supported for on-device models.");
-	return zi(e, t, n, i);
+async function Vi(e, t, n, r, i) {
+	if (r?.mode === B.ONLY_ON_DEVICE) throw new R(H.UNSUPPORTED, "countTokens() is not supported for on-device models.");
+	return Bi(e, t, n, i);
 }
 /**
 * @license
@@ -3744,23 +3744,23 @@ async function Bi(e, t, n, r, i) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-var Vi = class extends Vr {
+var Hi = class extends Hr {
 	constructor(e, t, n, r) {
-		super(e, t.model), this.chromeAdapter = r, this.generationConfig = t.generationConfig || {}, Hi(this.generationConfig), this.safetySettings = t.safetySettings || [], this.tools = t.tools, this.toolConfig = t.toolConfig, this.systemInstruction = ni(t.systemInstruction), this.requestOptions = n || {};
+		super(e, t.model), this.chromeAdapter = r, this.generationConfig = t.generationConfig || {}, Ui(this.generationConfig), this.safetySettings = t.safetySettings || [], this.tools = t.tools, this.toolConfig = t.toolConfig, this.systemInstruction = ri(t.systemInstruction), this.requestOptions = n || {};
 	}
 	async initializeDeviceModel(e) {
-		if (this.chromeAdapter && this.chromeAdapter.mode !== V.ONLY_IN_CLOUD) {
-			if (await this.chromeAdapter.downloadIfAvailable(e) === q.UNAVAILABLE) {
-				let e = new z(U.API_NOT_ENABLED, "Local LanguageModel API not available in this environment.");
-				if (this.chromeAdapter.mode === V.ONLY_ON_DEVICE) throw e;
-				K.debug(e.message);
+		if (this.chromeAdapter && this.chromeAdapter.mode !== B.ONLY_IN_CLOUD) {
+			if (await this.chromeAdapter.downloadIfAvailable(e) === K.UNAVAILABLE) {
+				let e = new R(H.API_NOT_ENABLED, "Local LanguageModel API not available in this environment.");
+				if (this.chromeAdapter.mode === B.ONLY_ON_DEVICE) throw e;
+				G.debug(e.message);
 			}
 			await this.chromeAdapter.downloadPromise;
 		}
 	}
 	async generateContent(e, t) {
-		let n = ai(e);
-		return ki(this._apiSettings, this.model, {
+		let n = oi(e);
+		return Ai(this._apiSettings, this.model, {
 			generationConfig: this.generationConfig,
 			safetySettings: this.safetySettings,
 			tools: this.tools,
@@ -3773,7 +3773,7 @@ var Vi = class extends Vr {
 		});
 	}
 	async generateContentStream(e, t) {
-		let n = ai(e), { stream: r, response: i } = await Di(this._apiSettings, this.model, {
+		let n = oi(e), { stream: r, response: i } = await Oi(this._apiSettings, this.model, {
 			generationConfig: this.generationConfig,
 			safetySettings: this.safetySettings,
 			tools: this.tools,
@@ -3790,7 +3790,7 @@ var Vi = class extends Vr {
 		};
 	}
 	startChat(e) {
-		return new Ri(this._apiSettings, this.model, this.chromeAdapter, {
+		return new zi(this._apiSettings, this.model, this.chromeAdapter, {
 			tools: this.tools,
 			toolConfig: this.toolConfig,
 			systemInstruction: this.systemInstruction,
@@ -3800,17 +3800,17 @@ var Vi = class extends Vr {
 		}, this.requestOptions);
 	}
 	async countTokens(e, t) {
-		let n = ai(e);
-		return Bi(this._apiSettings, this.model, n, this.chromeAdapter, {
+		let n = oi(e);
+		return Vi(this._apiSettings, this.model, n, this.chromeAdapter, {
 			...this.requestOptions,
 			...t
 		});
 	}
 };
-function Hi(e) {
-	if (e.thinkingConfig?.thinkingBudget != null && e.thinkingConfig?.thinkingLevel) throw new z(U.UNSUPPORTED, "Cannot set both thinkingBudget and thinkingLevel in a config.");
-	if (e.responseSchema != null && e.responseJsonSchema != null) throw new z(U.UNSUPPORTED, "Cannot set both responseSchema and responseJsonSchema in a config.");
-	if ((e.responseSchema != null || e.responseJsonSchema != null) && e.responseMimeType !== "application/json" && e.responseMimeType !== "text/x.enum") throw new z(U.UNSUPPORTED, "responseMimeType must be set to \"application/json\" or \"text/x.enum\" if responseSchema or responseJsonSchema are set.");
+function Ui(e) {
+	if (e.thinkingConfig?.thinkingBudget != null && e.thinkingConfig?.thinkingLevel) throw new R(H.UNSUPPORTED, "Cannot set both thinkingBudget and thinkingLevel in a config.");
+	if (e.responseSchema != null && e.responseJsonSchema != null) throw new R(H.UNSUPPORTED, "Cannot set both responseSchema and responseJsonSchema in a config.");
+	if ((e.responseSchema != null || e.responseJsonSchema != null) && e.responseMimeType !== "application/json" && e.responseMimeType !== "text/x.enum") throw new R(H.UNSUPPORTED, "responseMimeType must be set to \"application/json\" or \"text/x.enum\" if responseSchema or responseJsonSchema are set.");
 }
 /**
 * @license
@@ -3940,29 +3940,29 @@ function Hi(e) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function Ui(e = It(), t) {
-	e = he(e);
-	let n = jt(e, R), r = jr(t?.backend ?? new G()), i = n.getImmediate({ identifier: r }), a = i.options;
+function Wi(e = Lt(), t) {
+	e = ge(e);
+	let n = Mt(e, L), r = Mr(t?.backend ?? new W()), i = n.getImmediate({ identifier: r }), a = i.options;
 	if (a) {
 		let n = t?.useLimitedUseAppCheckTokens, r = !!a.useLimitedUseAppCheckTokens;
-		if (n != null && !!n !== r) throw new z(U.ALREADY_INITIALIZED, `getAI() has already been called for app "${e.name}" and this backend with useLimitedUseAppCheckTokens: ${r}. This option cannot be changed after the AI instance has been initialized. Pass the desired options to the first getAI() call for this app and backend, or omit useLimitedUseAppCheckTokens to reuse the existing instance.`);
+		if (n != null && !!n !== r) throw new R(H.ALREADY_INITIALIZED, `getAI() has already been called for app "${e.name}" and this backend with useLimitedUseAppCheckTokens: ${r}. This option cannot be changed after the AI instance has been initialized. Pass the desired options to the first getAI() call for this app and backend, or omit useLimitedUseAppCheckTokens to reuse the existing instance.`);
 		return i;
 	}
 	return i.options = { useLimitedUseAppCheckTokens: t?.useLimitedUseAppCheckTokens ?? !1 }, i;
 }
-var Wi = [
+var Gi = [
 	"mode",
 	"onDeviceParams",
 	"inCloudParams"
 ];
-function Gi(e, t, n) {
+function Ki(e, t, n) {
 	let r = t, i;
 	if (r.mode) {
-		for (let e of Object.keys(t)) Wi.includes(e) || K.warn(`When a hybrid inference mode is specified (mode is currently set to ${r.mode}), "${e}" cannot be configured at the top level. Configuration for in-cloud and on-device must be done separately in inCloudParams and onDeviceParams. Configuration values set outside of inCloudParams and onDeviceParams will be ignored.`);
-		i = r.inCloudParams || { model: Er };
+		for (let e of Object.keys(t)) Gi.includes(e) || G.warn(`When a hybrid inference mode is specified (mode is currently set to ${r.mode}), "${e}" cannot be configured at the top level. Configuration for in-cloud and on-device must be done separately in inCloudParams and onDeviceParams. Configuration values set outside of inCloudParams and onDeviceParams will be ignored.`);
+		i = r.inCloudParams || { model: Dr };
 	} else i = t;
-	if (!i.model) throw new z(U.NO_MODEL, "Must provide a model name. Example: getGenerativeModel({ model: 'my-model-name' })");
-	let a = e.chromeAdapterFactory?.(r.mode, typeof window > "u" ? void 0 : window, r.onDeviceParams), o = new Vi(e, i, n, a);
+	if (!i.model) throw new R(H.NO_MODEL, "Must provide a model name. Example: getGenerativeModel({ model: 'my-model-name' })");
+	let a = e.chromeAdapterFactory?.(r.mode, typeof window > "u" ? void 0 : window, r.onDeviceParams), o = new Hi(e, i, n, a);
 	return o._apiSettings.inferenceMode = r.mode, o;
 }
 /**
@@ -3981,12 +3981,12 @@ function Gi(e, t, n) {
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-function Ki() {
-	j(new T(R, zr, "PUBLIC").setMultipleInstances(!0)), N(_r, vr), N(_r, vr, "esm2020");
+function qi() {
+	A(new w(L, Br, "PUBLIC").setMultipleInstances(!0)), M(vr, yr), M(vr, yr, "esm2020");
 }
-Ki();
+qi();
 // firebase-planner-core.mjs
-var qi = /* @__PURE__ */ c((/* @__PURE__ */ o(((e, t) => {
+var Ji = /* @__PURE__ */ c((/* @__PURE__ */ o(((e, t) => {
 	var n = {
 		expectedInputs: [{
 			type: "text",
@@ -4436,28 +4436,26 @@ var qi = /* @__PURE__ */ c((/* @__PURE__ */ o(((e, t) => {
 		createOptions: n,
 		failureContext: d
 	};
-})))(), 1), Ji = (e, t) => e && typeof e == "object" && !Array.isArray(e) && Object.keys(e).length === t.length && t.every((t) => Object.hasOwn(e, t)), Yi = (e, t = 300) => typeof e == "string" && e.length > 0 && e.length <= t;
-function Xi({ sdk: e, localClientModule: t, config: n, environment: r = globalThis } = {}) {
+})))(), 1), Yi = (e, t) => e && typeof e == "object" && !Array.isArray(e) && Object.keys(e).length === t.length && t.every((t) => Object.hasOwn(e, t)), Xi = (e, t = 300) => typeof e == "string" && e.length > 0 && e.length <= t;
+function Zi({ sdk: e, localClientModule: t, config: n, environment: r = globalThis } = {}) {
 	let i = [
 		"initializeApp",
 		"deleteApp",
 		"getApps",
-		"initializeAppCheck",
-		"ReCaptchaEnterpriseProvider",
 		"getAI",
 		"GoogleAIBackend",
 		"getGenerativeModel"
 	];
 	if (!e || e.SDK_VERSION !== "13.3.0" || !i.every((t) => typeof e[t] == "function") || e.InferenceMode?.ONLY_ON_DEVICE !== "only_on_device" || e.InferenceSource?.ON_DEVICE !== "on_device" || typeof t?.LocalDecisionClient != "function" || !t.createOptions) throw Error("unsupported-firebase-dependencies");
-	if (!Ji(n, [
+	if (!Yi(n, [
 		"firebase",
 		"appCheckSiteKey",
 		"appName"
-	]) || !Ji(n.firebase, [
+	]) || !Yi(n.firebase, [
 		"apiKey",
 		"projectId",
 		"appId"
-	]) || !Object.values(n.firebase).every((e) => Yi(e)) || !Yi(n.appCheckSiteKey) || !Yi(n.appName, 80) || !/^[A-Za-z0-9_-]+$/.test(n.appName)) throw Error("invalid-explicit-public-firebase-config");
+	]) || !Object.values(n.firebase).every((e) => Xi(e)) || !Xi(n.appCheckSiteKey) || !Xi(n.appName, 80) || !/^[A-Za-z0-9_-]+$/.test(n.appName)) throw Error("invalid-explicit-public-firebase-config");
 	let a = Object.fromEntries(i.map((t) => [t, e[t]])), o = structuredClone(n), s = structuredClone(t.createOptions), c = t.LocalDecisionClient, l = null, u = null, d = null, f = null, p = !1, m = !1, h = 0, g = /* @__PURE__ */ new Set();
 	function _(e) {
 		let t = new AbortController(), n = h, r = !1;
@@ -4467,7 +4465,7 @@ function Xi({ sdk: e, localClientModule: t, config: n, environment: r = globalTh
 			reason: "native-operation-timeout",
 			diagnostic: "operation-timeout"
 		} : { status: "discarded" }), { once: !0 })), a = setTimeout(() => {
-			g.has(t) && h === n && (r = !0, C());
+			g.has(t) && h === n && (r = !0, te());
 		}, 9e4);
 		return Promise.race([e(), i]).finally(() => {
 			clearTimeout(a), g.delete(t);
@@ -4558,10 +4556,7 @@ function Xi({ sdk: e, localClientModule: t, config: n, environment: r = globalTh
 			if (i !== h || m) return { status: "discarded" };
 			if (!d) {
 				if (f = n, a.getApps().some((e) => e.name === o.appName)) throw Error("app-name-already-used");
-				l = a.initializeApp(structuredClone(o.firebase), o.appName), a.initializeAppCheck(l, {
-					provider: new a.ReCaptchaEnterpriseProvider(o.appCheckSiteKey),
-					isTokenAutoRefreshEnabled: !1
-				}), u = a.getAI(l, { backend: new a.GoogleAIBackend() }), y(), d = new c({
+				l = a.initializeApp(structuredClone(o.firebase), o.appName), u = a.getAI(l, { backend: new a.GoogleAIBackend() }), y(), d = new c({
 					languageModel: () => r.LanguageModel,
 					createModel: b,
 					onlyOnDevice: "only_on_device",
@@ -4626,19 +4621,19 @@ function Xi({ sdk: e, localClientModule: t, config: n, environment: r = globalTh
 			});
 		}
 	}
-	function C() {
+	function te() {
 		h++, p = !1;
 		for (let e of g) e.abort();
 		d?.stop();
 	}
-	async function te() {
-		return m || (m = !0, C(), await x()), { status: "disposed" };
+	async function ne() {
+		return m || (m = !0, te(), await x()), { status: "disposed" };
 	}
 	return {
 		prepareFromUserGesture: (e) => _(() => S(e)),
 		decide: (e) => _(() => ee(e)),
-		stop: C,
-		dispose: te,
+		stop: te,
+		dispose: ne,
 		get state() {
 			return {
 				prepared: d?.state.prepared ?? !1,
@@ -4654,7 +4649,7 @@ function Xi({ sdk: e, localClientModule: t, config: n, environment: r = globalTh
 	};
 }
 // firebase-cloud-session-core.mjs
-var Zi = (e, t) => e && typeof e == "object" && !Array.isArray(e) && Object.keys(e).length === t.length && t.every((t) => Object.hasOwn(e, t)), Qi = (e, t) => typeof e == "string" && e.length > 0 && e.length <= t, $i = "gemini-3.5-flash-lite";
+var Qi = (e, t) => e && typeof e == "object" && !Array.isArray(e) && Object.keys(e).length === t.length && t.every((t) => Object.hasOwn(e, t)), $i = (e, t) => typeof e == "string" && e.length > 0 && e.length <= t, Y = "gemini-3.5-flash-lite";
 function ea(e, t, n) {
 	if (n || e?.name === "AbortError") return "cloud-wait-ended";
 	if (t === "receipt") return "cloud-source-unconfirmed";
@@ -4691,15 +4686,15 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 	];
 	if (!e || e.SDK_VERSION !== "13.3.0" || !l.every((t) => typeof e[t] == "function") || e.InferenceMode?.ONLY_IN_CLOUD !== "only_in_cloud" || e.InferenceSource?.IN_CLOUD !== "in_cloud") throw Error("unsupported-firebase-dependencies");
 	if (!["review", "function-draft"].includes(r) || typeof s != "function" || typeof c != "function" || !Number.isSafeInteger(a) || a < 1 || a > 2048 || !Number.isSafeInteger(o) || o < 1 || o > 2e4) throw Error("invalid-cloud-contract");
-	if (!Zi(t, [
+	if (!Qi(t, [
 		"firebase",
 		"appCheckSiteKey",
 		"appName"
-	]) || !Zi(t.firebase, [
+	]) || !Qi(t.firebase, [
 		"apiKey",
 		"projectId",
 		"appId"
-	]) || !Object.values(t.firebase).every((e) => Qi(e, 300)) || !Qi(t.appCheckSiteKey, 300) || !Qi(t.appName, 80) || !/^[A-Za-z0-9_-]+$/.test(t.appName)) throw Error("invalid-explicit-public-firebase-config");
+	]) || !Object.values(t.firebase).every((e) => $i(e, 300)) || !$i(t.appCheckSiteKey, 300) || !$i(t.appName, 80) || !/^[A-Za-z0-9_-]+$/.test(t.appName)) throw Error("invalid-explicit-public-firebase-config");
 	let u = Object.fromEntries(l.map((t) => [t, e[t]])), d = structuredClone(t), f = structuredClone(i), p = null, m = null, h = null, g = null, _ = null, v = null, y = !1, b = 0, x = 0, S = () => n.window === n && n.isSecureContext === !0 && !!n.document;
 	function ee(e, t = null) {
 		if (y || v) throw Error("cloud-" + r + "-unavailable");
@@ -4709,7 +4704,7 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 		let { payloadJson: i } = n;
 		if (i !== void 0 && (typeof i != "string" || !n.prompt.endsWith(i))) throw Error("invalid-preview-payload");
 		let a = Object.freeze({
-			model: $i,
+			model: Y,
 			revision: n.revision,
 			prompt: n.prompt,
 			...i === void 0 ? {} : { payloadJson: i }
@@ -4720,14 +4715,14 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 			schema: n.responseSchema ?? f
 		}, a;
 	}
-	function C() {
+	function te() {
 		let e = d.appName + "-cloud-" + r;
 		if (!p) {
 			if (u.getApps().some((t) => t.name === e)) throw Error("app-name-already-used");
 			p = u.initializeApp(structuredClone(d.firebase), e);
 		}
 	}
-	function te(e) {
+	function ne(e) {
 		if (h && g === e) {
 			if (typeof h.generateContent != "function" || h.chromeAdapter && h.chromeAdapter.mode !== "only_in_cloud") throw Error("unknown-cloud-model-shape");
 			return h;
@@ -4735,7 +4730,7 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 		let t = u.getAI(p, { backend: new u.GoogleAIBackend() }), n = u.getGenerativeModel(t, {
 			mode: "only_in_cloud",
 			inCloudParams: {
-				model: $i,
+				model: Y,
 				generationConfig: {
 					maxOutputTokens: a,
 					responseMimeType: "application/json",
@@ -4746,7 +4741,7 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 		if (typeof n?.generateContent != "function" || n.chromeAdapter && n.chromeAdapter.mode !== "only_in_cloud") throw Error("unknown-cloud-model-shape");
 		return h = n, g = e, h;
 	}
-	function w(e, t) {
+	function C(e, t) {
 		return new Promise((n, r) => {
 			let i = !1, a = () => t.removeEventListener("abort", o), o = () => {
 				i || (i = !0, a(), r(Error("cloud-wait-ended")));
@@ -4758,7 +4753,7 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 			}), t.aborted && o();
 		});
 	}
-	async function ne(e, t) {
+	async function re(e, t) {
 		if (y || v || !_ || e !== _.visible) return {
 			status: "blocked",
 			reason: "review-current-payload-first"
@@ -4777,17 +4772,17 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 		v = a;
 		let l = setTimeout(() => a.abort(), 6e4), f = "initialize";
 		try {
-			C(), f = "attestation", m ??= u.initializeAppCheck(p, {
+			te(), f = "attestation", m ??= u.initializeAppCheck(p, {
 				provider: new u.ReCaptchaEnterpriseProvider(d.appCheckSiteKey),
 				isTokenAutoRefreshEnabled: !1
 			});
-			let e = await w(u.getToken(m), a.signal);
+			let e = await C(u.getToken(m), a.signal);
 			if (y || b !== s || a.signal.aborted) return { status: "discarded" };
 			if (typeof e?.token != "string" || !e.token) throw Error("missing-app-check-token");
 			f = "initialize";
-			let n = te(i.schema);
+			let n = ne(i.schema);
 			x++, f = "request", t?.();
-			let r = await w(n.generateContent(i.visible.prompt, { signal: a.signal }), a.signal);
+			let r = await C(n.generateContent(i.visible.prompt, { signal: a.signal }), a.signal);
 			if (y || b !== s) return { status: "discarded" };
 			if (f = "receipt", r?.response?.inferenceSource !== "in_cloud" || Object.hasOwn(r, "inferenceSource") && r.inferenceSource !== "in_cloud") throw Error("unexpected-inference-source");
 			f = "output";
@@ -4804,12 +4799,12 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 			clearTimeout(l), v === a && (v = null);
 		}
 	}
-	function re() {
+	function ie() {
 		b++, _ = null, v?.abort();
 	}
-	async function ie() {
+	async function ae() {
 		if (y) return;
-		y = !0, re();
+		y = !0, ie();
 		let e = p;
 		if (p = null, m = null, h = null, e) try {
 			await u.deleteApp(e);
@@ -4817,14 +4812,14 @@ function ta({ sdk: e, config: t, environment: n = globalThis, purpose: r, respon
 	}
 	return {
 		preview: ee,
-		send: ne,
-		stop: re,
-		dispose: ie,
+		send: re,
+		stop: ie,
+		dispose: ae,
 		get state() {
 			return {
 				busy: !!v,
 				calls: x,
-				model: $i,
+				model: Y,
 				sdkInitialized: !!p,
 				disposed: y,
 				runtimeVerified: !1
@@ -5039,7 +5034,7 @@ var X = /* @__PURE__ */ c((/* @__PURE__ */ o(((e, t) => {
 		gradeFunctionObservations: b,
 		inspectFunctionObservations: y
 	};
-})))(), 1), na = (e, t) => e && typeof e == "object" && !Array.isArray(e) && Object.keys(e).length === t.length && t.every((t) => Object.hasOwn(e, t)), Z = (e, t) => typeof e == "string" && e.length > 0 && e.length <= t, ra = $i, ia = {
+})))(), 1), na = (e, t) => e && typeof e == "object" && !Array.isArray(e) && Object.keys(e).length === t.length && t.every((t) => Object.hasOwn(e, t)), Z = (e, t) => typeof e == "string" && e.length > 0 && e.length <= t, ra = Y, ia = {
 	type: "object",
 	properties: {
 		assessment: {
@@ -5483,7 +5478,7 @@ function Fa(e) {
 	};
 }
 // firebase-function-draft-core.mjs
-var Ia = $i, La = (e, t) => e && typeof e == "object" && !Array.isArray(e) && Object.keys(e).length === t.length && t.every((t) => Object.hasOwn(e, t)), Ra = (e) => new TextEncoder().encode(e).length, za = (e) => Fa("sha256").update(e).digest("hex"), Ba = {
+var Ia = Y, La = (e, t) => e && typeof e == "object" && !Array.isArray(e) && Object.keys(e).length === t.length && t.every((t) => Object.hasOwn(e, t)), Ra = (e) => new TextEncoder().encode(e).length, za = (e) => Fa("sha256").update(e).digest("hex"), Ba = {
 	type: "object",
 	properties: {
 		abstain: { type: "boolean" },
@@ -5512,7 +5507,7 @@ function Va(e, t) {
 	if (r.some((e) => !i.has(e))) throw Error("read-function-and-contract-first");
 	let a = X.default.validateFunctionFiles(Object.fromEntries(r.map((e) => [e, i.get(e).content]))), o = X.default.parseContractSource(a[X.default.CONTRACT_PATH]), s = X.default.checkIds(o);
 	if (!Array.isArray(n.publicChecks) || n.publicChecks.length !== s.length || new Set(n.publicChecks.map((e) => e?.id)).size !== s.length || !n.publicChecks.every((e) => e && s.includes(e.id) && typeof e.ok == "boolean") || !n.publicChecks.some((e) => e.ok === !1)) throw Error("current-function-failure-required");
-	let c = qi.default.failureContext(n);
+	let c = Ji.default.failureContext(n);
 	for (let e of c.failedFunctionExamples ?? []) {
 		let t = o.cases.find((t) => t.id === e.id);
 		if (JSON.stringify(JSON.parse(e.args)) !== JSON.stringify(t.args) || JSON.stringify(JSON.parse(e.expected)) !== JSON.stringify(t.expected)) throw Error("failure-contract-mismatch");
@@ -5605,18 +5600,18 @@ function Ha(e = {}) {
 function Ua(e) {
 	return Ha({
 		sdk: {
-			initializeApp: Ft,
-			deleteApp: Rt,
-			getApps: Lt,
-			SDK_VERSION: Pt,
-			getToken: pr,
-			initializeAppCheck: dr,
-			ReCaptchaEnterpriseProvider: cr,
-			getAI: Ui,
-			GoogleAIBackend: G,
-			getGenerativeModel: Gi,
-			InferenceMode: V,
-			InferenceSource: H
+			initializeApp: It,
+			deleteApp: zt,
+			getApps: Rt,
+			SDK_VERSION: Ft,
+			getToken: mr,
+			initializeAppCheck: fr,
+			ReCaptchaEnterpriseProvider: lr,
+			getAI: Wi,
+			GoogleAIBackend: W,
+			getGenerativeModel: Ki,
+			InferenceMode: B,
+			InferenceSource: V
 		},
 		config: e,
 		environment: globalThis
@@ -5625,39 +5620,37 @@ function Ua(e) {
 function Wa(e) {
 	return la({
 		sdk: {
-			initializeApp: Ft,
-			deleteApp: Rt,
-			getApps: Lt,
-			SDK_VERSION: Pt,
-			getToken: pr,
-			initializeAppCheck: dr,
-			ReCaptchaEnterpriseProvider: cr,
-			getAI: Ui,
-			GoogleAIBackend: G,
-			getGenerativeModel: Gi,
-			InferenceMode: V,
-			InferenceSource: H
+			initializeApp: It,
+			deleteApp: zt,
+			getApps: Rt,
+			SDK_VERSION: Ft,
+			getToken: mr,
+			initializeAppCheck: fr,
+			ReCaptchaEnterpriseProvider: lr,
+			getAI: Wi,
+			GoogleAIBackend: W,
+			getGenerativeModel: Ki,
+			InferenceMode: B,
+			InferenceSource: V
 		},
 		config: e,
 		environment: globalThis
 	});
 }
 function Ga(e) {
-	return Xi({
+	return Zi({
 		sdk: {
-			initializeApp: Ft,
-			deleteApp: Rt,
-			getApps: Lt,
-			SDK_VERSION: Pt,
-			initializeAppCheck: dr,
-			ReCaptchaEnterpriseProvider: cr,
-			getAI: Ui,
-			GoogleAIBackend: G,
-			getGenerativeModel: Gi,
-			InferenceMode: V,
-			InferenceSource: H
+			initializeApp: It,
+			deleteApp: zt,
+			getApps: Rt,
+			SDK_VERSION: Ft,
+			getAI: Wi,
+			GoogleAIBackend: W,
+			getGenerativeModel: Ki,
+			InferenceMode: B,
+			InferenceSource: V
 		},
-		localClientModule: qi.default,
+		localClientModule: Ji.default,
 		config: e,
 		environment: globalThis
 	});

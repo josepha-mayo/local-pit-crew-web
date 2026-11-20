@@ -2,7 +2,7 @@
 const exact=(x,keys)=>x&&typeof x==='object'&&!Array.isArray(x)&&Object.keys(x).length===keys.length&&keys.every(k=>Object.hasOwn(x,k));
 const text=(x,max=300)=>typeof x==='string'&&x.length>0&&x.length<=max;
 export function createFirebasePlannerCore({sdk,localClientModule,config,environment=globalThis}={}){
- const names=['initializeApp','deleteApp','getApps','initializeAppCheck','ReCaptchaEnterpriseProvider','getAI','GoogleAIBackend','getGenerativeModel'];
+ const names=['initializeApp','deleteApp','getApps','getAI','GoogleAIBackend','getGenerativeModel'];
  if(!sdk||sdk.SDK_VERSION!=='13.3.0'||!names.every(k=>typeof sdk[k]==='function')||
   sdk.InferenceMode?.ONLY_ON_DEVICE!=='only_on_device'||sdk.InferenceSource?.ON_DEVICE!=='on_device'||
   typeof localClientModule?.LocalDecisionClient!=='function'||!localClientModule.createOptions)throw Error('unsupported-firebase-dependencies');
@@ -85,14 +85,15 @@ export function createFirebasePlannerCore({sdk,localClientModule,config,environm
   try{provider=browser(true);}catch{return{status:'blocked',reason:'secure-browser-gesture-native-api-required'};}
   busy=true;const mine=epoch;
   try{
-   // Reject unavailable/downloading/downloadable before Firebase/App Check initialization.
+   // Reject unavailable/downloading/downloadable before Firebase initialization.
    if(await provider.availability(structuredClone(options))!=='available')return{status:'blocked',reason:'local-model-not-already-available'};
    if(mine!==epoch||disposed)return{status:'discarded'};
    if(!client){
     native=provider;
     if(d.getApps().some(existing=>existing.name===cfg.appName))throw Error('app-name-already-used');
     app=d.initializeApp(structuredClone(cfg.firebase),cfg.appName);
-    d.initializeAppCheck(app,{provider:new d.ReCaptchaEnterpriseProvider(cfg.appCheckSiteKey),isTokenAutoRefreshEnabled:false});
+    // This app has only a guarded on-device model. Cloud review and drafting
+    // use their own Firebase apps and attest before sending a prompt.
     ai=d.getAI(app,{backend:new d.GoogleAIBackend()});
     factoryGuard();
     client=new Client({languageModel:()=>environment.LanguageModel,createModel,onlyOnDevice:'only_on_device',onDeviceSource:'on_device'});

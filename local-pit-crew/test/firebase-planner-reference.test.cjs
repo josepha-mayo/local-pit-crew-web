@@ -47,10 +47,10 @@ test('Firebase core blocks unavailable/downloading/downloadable before App Check
   assert.equal(f.calls.initializeApp,0);assert.equal(f.calls.appCheck,0);assert.equal(f.calls.initializeModel,0);await a.dispose();
  }
 });
-test('Firebase core invokes real LocalDecisionClient contract with fake SDK only',async()=>{
+test('Firebase core invokes the local-only client without starting App Check',async()=>{
  const f=fake(),a=await adapter(f);
  assert.equal((await a.prepareFromUserGesture()).status,'prepared');
- assert.equal(f.calls.initializeApp,1);assert.equal(f.calls.appCheck,1);assert.equal(f.calls.initializeModel,1);
+ assert.equal(f.calls.initializeApp,1);assert.equal(f.calls.appCheck,0);assert.equal(f.calls.initializeModel,1);
  assert.equal(f.calls.generate,0);assert.equal(a.state.runtimeVerified,false);
  const result=await a.decide({revision:0,evidence:[],events:[]});
  assert.equal(result.status,'decision');assert.deepEqual(result.decision,answer);assert.equal(f.calls.generate,1);
