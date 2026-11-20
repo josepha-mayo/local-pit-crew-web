@@ -1065,7 +1065,8 @@ module.exports = { uniqueTags };`;
    busy=true;render(current);el('advisor-status').textContent='Nano is inspecting the failed checks. You can stop and keep working from these checks.';
    let message;
    try{
-    const prepared=await client.prepareFromUserGesture({repairAdviceOnly:true});
+    const repairAdviceFormat=hosted&&current.mode==='function-contract'?'source-line':'verbatim-quote';
+    const prepared=await client.prepareFromUserGesture({repairAdviceOnly:true,repairAdviceFormat});
     if(mine!==advisorEpoch)return;
     if(prepared.status!=='prepared')throw Error(prepared.reason==='native-operation-timeout'?
      'Nano setup exceeded its 90-second wait. No diagnosis was accepted; check model readiness before trying again.':
