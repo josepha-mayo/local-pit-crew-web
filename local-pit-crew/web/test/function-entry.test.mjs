@@ -332,7 +332,8 @@ function cloudFixture(){
  let respond=async()=>reply();
  const sdk={SDK_VERSION:'13.3.0',InferenceMode:{ONLY_IN_CLOUD:'only_in_cloud'},InferenceSource:{IN_CLOUD:'in_cloud'},getApps:()=>apps,
   initializeApp(config,name){calls.init++;const app={name};apps.push(app);return app;},async deleteApp(app){apps.splice(apps.indexOf(app),1);},
-  initializeAppCheck(){},ReCaptchaEnterpriseProvider:class{},GoogleAIBackend:class{},getAI:()=>({}),
+  initializeAppCheck(app){return {app};},async getToken(){return {token:'AUTHORED_TEST_TOKEN'};},
+  ReCaptchaEnterpriseProvider:class{},GoogleAIBackend:class{},getAI:()=>({}),
   getGenerativeModel(_ai,params){calls.schemas.push(params.inCloudParams.generationConfig.responseJsonSchema);
    return{chromeAdapter:{mode:'only_in_cloud'},generateContent(prompt){calls.prompts.push(prompt);return respond();}};}};
  const client=createFirebaseFunctionDrafterCore({sdk,config,environment});

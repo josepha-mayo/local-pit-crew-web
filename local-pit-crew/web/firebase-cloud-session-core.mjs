@@ -8,7 +8,7 @@ function failureDiagnostic(error,phase,aborted){
  if(phase==='receipt')return'cloud-source-unconfirmed';
  if(phase==='output')return'cloud-response-rejected';
  if(error?.code==='api-not-enabled')return'cloud-service-not-enabled';
- if(typeof error?.code==='string'&&error.code.startsWith('appCheck/'))return'cloud-attestation-failed';
+ if(phase==='attestation'||(typeof error?.code==='string'&&error.code.startsWith('appCheck/')))return'cloud-attestation-failed';
  // Firebase AI 3.1.0 attaches HTTP status here. Never parse or return its
  // message, URL, response body, status text or provider error details.
  if(error?.code==='fetch-error'){
@@ -23,12 +23,12 @@ function failureDiagnostic(error,phase,aborted){
  return'cloud-request-failed';
 }
 export function createFirebaseCloudSessionCore({sdk,config,environment=globalThis,purpose,responseSchema,maxOutputTokens,maxResponseBytes,prepare,decode}={}){
- const names=['initializeApp','deleteApp','getApps','initializeAppCheck','ReCaptchaEnterpriseProvider','getAI','GoogleAIBackend','getGenerativeModel'];
+ const names=['initializeApp','deleteApp','getApps','getToken','initializeAppCheck','ReCaptchaEnterpriseProvider','getAI','GoogleAIBackend','getGenerativeModel'];
  if(!sdk||sdk.SDK_VERSION!=='13.3.0'||!names.every(k=>typeof sdk[k]==='function')||sdk.InferenceMode?.ONLY_IN_CLOUD!=='only_in_cloud'||sdk.InferenceSource?.IN_CLOUD!=='in_cloud')throw Error('unsupported-firebase-dependencies');
  if(!['review','function-draft'].includes(purpose)||typeof prepare!=='function'||typeof decode!=='function'||!Number.isSafeInteger(maxOutputTokens)||maxOutputTokens<1||maxOutputTokens>2048||!Number.isSafeInteger(maxResponseBytes)||maxResponseBytes<1||maxResponseBytes>20000)throw Error('invalid-cloud-contract');
  if(!exact(config,['firebase','appCheckSiteKey','appName'])||!exact(config.firebase,['apiKey','projectId','appId'])||!Object.values(config.firebase).every(v=>text(v,300))||!text(config.appCheckSiteKey,300)||!text(config.appName,80)||!/^[A-Za-z0-9_-]+$/.test(config.appName))throw Error('invalid-explicit-public-firebase-config');
  const d=Object.fromEntries(names.map(k=>[k,sdk[k]])),cfg=structuredClone(config),schema=structuredClone(responseSchema);
- let app=null,appCheckReady=false,model=null,modelSchema=null,review=null,pending=null,disposed=false,epoch=0,calls=0;
+ let app=null,appCheck=null,model=null,modelSchema=null,review=null,pending=null,disposed=false,epoch=0,calls=0;
  const browser=()=>environment.window===environment&&environment.isSecureContext===true&&!!environment.document;
  function preview(snapshot,hint=null){
   if(disposed||pending)throw Error('cloud-'+purpose+'-unavailable');review=null;
@@ -40,11 +40,12 @@ export function createFirebaseCloudSessionCore({sdk,config,environment=globalThi
    ...(payloadJson===undefined?{}:{payloadJson})});
   review={visible,context:prepared.context,schema:prepared.responseSchema??schema};return visible;
  }
- function initialize(requestSchema){
-  if(model&&modelSchema===requestSchema){if(typeof model.generateContent!=='function'||(model.chromeAdapter&&model.chromeAdapter.mode!=='only_in_cloud'))throw Error('unknown-cloud-model-shape');return model;}
+ function initializeApp(){
   const name=cfg.appName+'-cloud-'+purpose;
   if(!app){if(d.getApps().some(existing=>existing.name===name))throw Error('app-name-already-used');app=d.initializeApp(structuredClone(cfg.firebase),name);}
-  if(!appCheckReady){d.initializeAppCheck(app,{provider:new d.ReCaptchaEnterpriseProvider(cfg.appCheckSiteKey),isTokenAutoRefreshEnabled:false});appCheckReady=true;}
+ }
+ function initializeModel(requestSchema){
+  if(model&&modelSchema===requestSchema){if(typeof model.generateContent!=='function'||(model.chromeAdapter&&model.chromeAdapter.mode!=='only_in_cloud'))throw Error('unknown-cloud-model-shape');return model;}
   const ai=d.getAI(app,{backend:new d.GoogleAIBackend()});
   const candidate=d.getGenerativeModel(ai,{mode:'only_in_cloud',inCloudParams:{model:CLOUD_MODEL,generationConfig:{maxOutputTokens,responseMimeType:'application/json',responseJsonSchema:structuredClone(requestSchema)}}},{timeout:60000});
   if(typeof candidate?.generateContent!=='function'||(candidate.chromeAdapter&&candidate.chromeAdapter.mode!=='only_in_cloud'))throw Error('unknown-cloud-model-shape');
@@ -58,7 +59,7 @@ export function createFirebaseCloudSessionCore({sdk,config,environment=globalThi
    if(signal.aborted)abort();
   });
  }
- async function send(approvedReview){
+ async function send(approvedReview,onRequest){
   if(disposed||pending||!review||approvedReview!==review.visible)return{status:'blocked',reason:'review-current-payload-first'};
   if(!browser()||environment.navigator?.userActivation?.isActive!==true)return{status:'blocked',reason:'secure-browser-gesture-required'};
   if(calls>=5)return{status:'blocked',reason:'cloud-call-budget'};
@@ -66,8 +67,19 @@ export function createFirebaseCloudSessionCore({sdk,config,environment=globalThi
   const timer=setTimeout(()=>controller.abort(),60000);
   let phase='initialize';
   try{
-   const raw=initialize(owned.schema);if(disposed||epoch!==mine||controller.signal.aborted)return{status:'discarded'};calls++;
+   initializeApp();
+   phase='attestation';
+   appCheck??=d.initializeAppCheck(app,{provider:new d.ReCaptchaEnterpriseProvider(cfg.appCheckSiteKey),isTokenAutoRefreshEnabled:false});
+   // The AI SDK can send the prompt after failed attestation. Require a valid
+   // cached or newly issued App Check token before handing it the payload.
+   const attestation=await waitForResult(d.getToken(appCheck),controller.signal);
+   if(disposed||epoch!==mine||controller.signal.aborted)return{status:'discarded'};
+   if(typeof attestation?.token!=='string'||!attestation.token)throw Error('missing-app-check-token');
+   phase='initialize';
+   const raw=initializeModel(owned.schema);
+   calls++;
    phase='request';
+   onRequest?.();
    const result=await waitForResult(raw.generateContent(owned.visible.prompt,{signal:controller.signal}),controller.signal);
    if(disposed||epoch!==mine)return{status:'discarded'};
    phase='receipt';
@@ -81,6 +93,6 @@ export function createFirebaseCloudSessionCore({sdk,config,environment=globalThi
   }finally{clearTimeout(timer);if(pending===controller)pending=null;}
  }
  function stop(){epoch++;review=null;pending?.abort();}
- async function dispose(){if(disposed)return;disposed=true;stop();const owned=app;app=null;model=null;if(owned)try{await d.deleteApp(owned);}catch{/* Never expose raw provider or configuration errors. */}}
+ async function dispose(){if(disposed)return;disposed=true;stop();const owned=app;app=null;appCheck=null;model=null;if(owned)try{await d.deleteApp(owned);}catch{/* Never expose raw provider or configuration errors. */}}
  return{preview,send,stop,dispose,get state(){return{busy:!!pending,calls,model:CLOUD_MODEL,sdkInitialized:!!app,disposed,runtimeVerified:false};}};
 }

@@ -19,7 +19,8 @@ function fake(){
  let result=()=>Promise.resolve({response:{inferenceSource:'in_cloud',text:()=>JSON.stringify({abstain:false,source:corrected,explanation:'Preserve zero and reject non-number input before clamping.'})}});
  const sdk={SDK_VERSION:'13.3.0',InferenceMode:{ONLY_IN_CLOUD:'only_in_cloud'},InferenceSource:{IN_CLOUD:'in_cloud'},getApps:()=>apps,
   initializeApp(options,name){calls.init++;const app={name};apps.push(app);return app;},async deleteApp(app){calls.deleted.push(app);apps.splice(apps.indexOf(app),1);},
-  initializeAppCheck(app,options){calls.appCheck++;assert.equal(options.isTokenAutoRefreshEnabled,false);},ReCaptchaEnterpriseProvider:class{},GoogleAIBackend:class{},getAI:()=>({}),
+  initializeAppCheck(app,options){calls.appCheck++;assert.equal(options.isTokenAutoRefreshEnabled,false);return {app};},
+  async getToken(){return {token:'AUTHORED_TEST_TOKEN'};},ReCaptchaEnterpriseProvider:class{},GoogleAIBackend:class{},getAI:()=>({}),
   getGenerativeModel(ai,params,options){
    calls.models.push({params,options});return{chromeAdapter:{mode:'only_in_cloud'},generateContent(prompt,options){calls.prompts.push({prompt,options});return result();}};
   }};
@@ -63,8 +64,9 @@ test('draft output cannot supply bindings, change the contract, exceed limits or
  const result=await r.send(r.preview(snapshot()));assert.equal(result.status,'needs-evidence');assert.equal(Object.hasOwn(result,'source'),false);await r.dispose();
 });
 test('stopped draft requests discard late model output, and colliding apps are never owned or deleted',async()=>{
- const f=fake(),r=await drafter(f);let release;
- f.result=()=>new Promise(resolve=>{release=resolve;});const pending=r.send(r.preview(snapshot()));r.stop();assert.equal((await pending).status,'discarded');
+ const f=fake(),r=await drafter(f);let release,entered;
+ const started=new Promise(resolve=>{entered=resolve;});
+ f.result=()=>new Promise(resolve=>{release=resolve;entered();});const pending=r.send(r.preview(snapshot()));await started;r.stop();assert.equal((await pending).status,'discarded');
  release({response:{inferenceSource:'in_cloud',text:()=>JSON.stringify({abstain:false,source:corrected,explanation:'late'})}});await Promise.resolve();
  assert.equal(r.state.busy,false);assert.equal(r.state.calls,1);await r.dispose();
  const collision=fake(),other={name:'test-draft-cloud-function-draft'};collision.apps.push(other);const blocked=await drafter(collision);

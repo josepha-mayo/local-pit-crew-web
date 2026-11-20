@@ -69,7 +69,7 @@ module.exports = { uniqueTags };`;
    'cloud-unauthenticated':'Google could not authenticate this request. Check Firebase and App Check setup.',
    'cloud-model-unavailable':'The configured cloud model was not found or is unavailable to this project.',
    'cloud-service-not-enabled':'Firebase AI Logic is not enabled for this project. Check its project setup.',
-   'cloud-attestation-failed':'App Check setup did not finish. Check the attestation provider and approved website origins.',
+   'cloud-attestation-failed':'Firebase App Check could not verify this browser. You can continue with local checks.',
    'cloud-service-unavailable':'The cloud service could not complete this request. Try again later if you still need it.',
    'cloud-request-rejected':'Google rejected the request format or configuration. Check the app and model setup.',
    'cloud-source-unconfirmed':'The response did not confirm cloud inference. It was rejected.',
@@ -1163,12 +1163,13 @@ module.exports = { uniqueTags };`;
   el('send-function-draft').addEventListener('click',async()=>{
    if(busy||inspection||cloudBusy||!draftClient||!draftReview||current?.mode!=='function-contract')return;
    const client=draftClient,approved=draftReview,owner=current.sessionId,mine=++draftEpoch,callsBefore=client.state.calls;
-   draftReview=null;draftBusy=true;busy=true;draftStatus='Requesting a cloud replacement. Review and Apply are still required before code changes.';render(current);
+   draftReview=null;draftBusy=true;busy=true;draftStatus='Verifying this browser with Firebase App Check…';render(current);
    try{
-    // Invoke synchronously in the Send gesture. The pinned transport records an
-    // SDK invocation before its first await, so cancellation cannot hide a call.
-    const pending=client.send(approved);if(current?.sessionId===owner){draftCalls+=Math.max(0,client.state.calls-callsBefore);el('cloud-calls').textContent=String(cloudCalls+draftCalls);}
-    const result=await pending;
+    const result=await client.send(approved,()=>{
+     draftCalls+=client.state.calls-callsBefore;
+     draftStatus='Requesting a cloud replacement. Review and Apply are still required before code changes.';
+     render(current);
+    });
     if(mine!==draftEpoch||current?.sessionId!==owner||current?.snapshot?.revision!==approved.revision||current.snapshot.closed)return;
     if(result.status==='needs-evidence'){draftStatus='Model requested more evidence: '+result.explanation;return;}
     if(result.status!=='draft'||result.inferenceSource!=='in_cloud'){draftStatus=cloudFailureMessage(result);return;}

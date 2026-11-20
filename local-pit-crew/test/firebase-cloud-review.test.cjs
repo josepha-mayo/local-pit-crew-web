@@ -16,7 +16,8 @@ function fake(){
  const sdk={SDK_VERSION:'13.3.0',InferenceMode:{ONLY_IN_CLOUD:'only_in_cloud'},InferenceSource:{IN_CLOUD:'in_cloud'},
   getApps:()=>apps,initializeApp(options,name){calls.init++;const app={name};apps.push(app);return app;},
   deleteApp:async app=>{calls.deleted.push(app);const index=apps.indexOf(app);if(index>=0)apps.splice(index,1);},
-  initializeAppCheck(app,options){calls.appCheck++;assert.equal(options.isTokenAutoRefreshEnabled,false);},
+  initializeAppCheck(app,options){calls.appCheck++;assert.equal(options.isTokenAutoRefreshEnabled,false);return {app};},
+  async getToken(){return {token:'AUTHORED_TEST_TOKEN'};},
   ReCaptchaEnterpriseProvider:class{constructor(key){assert.equal(key,config.appCheckSiteKey);}},GoogleAIBackend:class{},
   getAI:()=>({}),getGenerativeModel(ai,params,options){calls.models.push({params,options});return{chromeAdapter:{mode:'only_in_cloud'},generateContent(prompt,options){calls.prompts.push({prompt,options});return result();}};}
  };
@@ -57,6 +58,44 @@ test('invalid cloud receipts and output stay distinct from provider rate limits 
  const {cloudFailureMessage}=require('../ui/public/app.js');
  assert.equal(cloudFailureMessage({diagnostic:'PRIVATE_UNKNOWN',message:'PRIVATE_RAW'}).includes('PRIVATE_'),false);
  for(const diagnostic of ['__proto__','toString','constructor'])assert.match(cloudFailureMessage({diagnostic}),/^The cloud request did not finish/);
+});
+
+test('failed App Check holds back the preview and leaves the inference budget available',async()=>{
+ const f=fake();
+ const outcomes=[new Error('PRIVATE_ATTESTATION_ERROR'),{}, {token:'AUTHORED_TEST_TOKEN'}];
+ f.sdk.getToken=async check=>{
+  assert.equal(check.app,f.apps[0]);
+  const next=outcomes.shift();
+  if(next instanceof Error)throw next;
+  return next;
+ };
+ const r=await reviewer(f);
+ for(let attempt=0;attempt<2;attempt++){
+  const approval=r.preview(snapshot());
+  assert.deepEqual(await r.send(approval),{status:'blocked',reason:'cloud-review-failed',diagnostic:'cloud-attestation-failed'});
+  assert.equal((await r.send(approval)).reason,'review-current-payload-first');
+ }
+ assert.equal(r.state.calls,0);
+ assert.deepEqual(f.calls.models,[]);
+ assert.deepEqual(f.calls.prompts,[]);
+ const approval=r.preview(snapshot());
+ assert.equal((await r.send(approval)).status,'review');
+ assert.equal(f.calls.appCheck,1);
+ assert.equal(f.calls.prompts[0].prompt,approval.prompt);
+ await r.dispose();
+});
+
+test('stopping while attestation is pending cannot send a prompt after the token arrives',async()=>{
+ const f=fake(),token=deferred();
+ f.sdk.getToken=()=>token.promise;
+ const r=await reviewer(f),pending=r.send(r.preview(snapshot()));
+ r.stop();
+ assert.deepEqual(await pending,{status:'discarded'});
+ token.resolve({token:'LATE_TEST_TOKEN'});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(r.state.calls,0);
+ assert.deepEqual(f.calls.prompts,[]);
+ await r.dispose();
 });
 
 test('a suggested example cannot duplicate an existing input or exceed the checked contract limits',async()=>{
@@ -143,17 +182,18 @@ test('cloud can challenge a current Nano hypothesis and spends at most five expl
 });
 
 test('cloud stop releases an abort-ignoring request and discards late output without reviving a review',{timeout:1000},async()=>{
- const f=fake(),gate=deferred();f.result=()=>gate.promise;const r=await reviewer(f);
+ const f=fake(),gate=deferred(),entered=deferred();f.result=()=>{entered.resolve();return gate.promise;};const r=await reviewer(f);
  const pending=r.send(r.preview(snapshot()));assert.equal(r.state.busy,true);
+ await entered.promise;
  r.stop();assert.equal((await pending).status,'discarded');assert.equal(r.state.busy,false);
  assert.equal(f.calls.prompts[0].options.signal.aborted,true);gate.resolve({response:{inferenceSource:'in_cloud',text(){throw Error('must not consume stale text');}}});
  await new Promise(resolve=>setImmediate(resolve));assert.equal(r.state.calls,1);await r.dispose();
 });
 
 test('cloud deadline releases a stuck delegate, requests HTTP abort and consumes late rejection',async t=>{
- const f=fake(),gate=deferred();f.result=()=>gate.promise;const r=await reviewer(f);
+ const f=fake(),gate=deferred(),entered=deferred();f.result=()=>{entered.resolve();return gate.promise;};const r=await reviewer(f);
  t.mock.timers.enable({apis:['setTimeout']});
- const pending=r.send(r.preview(snapshot()));t.mock.timers.tick(60000);
+ const pending=r.send(r.preview(snapshot()));await entered.promise;t.mock.timers.tick(60000);
  assert.equal((await pending).reason,'cloud-wait-ended');assert.equal(r.state.busy,false);
  assert.equal(f.calls.prompts[0].options.signal.aborted,true);
  gate.reject(Error('DO-NOT-EXPOSE-PROVIDER-DETAILS'));await Promise.resolve();await r.dispose();
