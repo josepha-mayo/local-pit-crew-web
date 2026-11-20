@@ -30,7 +30,9 @@ summary{min-height:44px;padding:10px 0;font-size:13px;line-height:1.6}
 .function-challenge input,.function-challenge textarea{min-height:44px;font-size:13px}
 .muted,.advisor-hint,.readiness,.file-row,.trail ol{font-size:12px}
 .panel-head{flex-wrap:wrap}
-.run-strip li{font-size:12px}
+.run-strip li{font-size:12px;color:#535f4e}
+.run-guidance button[aria-disabled="true"]{opacity:.44;cursor:not-allowed}
+#apply,.counterexample-detail summary{scroll-margin-block-start:7rem}
 pre{font-size:12px}
 .check{grid-template-columns:42px minmax(0,1fr);font-size:12px}
 .check pre{font-size:12px}

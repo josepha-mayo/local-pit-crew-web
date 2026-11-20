@@ -91,6 +91,37 @@ test('a guided baseline setup failure focuses Retry and restores the evidence af
   assert.deepEqual(f.calls.filter(call=>call.body?.action==='read').map(call=>call.body.path),['src/function.js','contract.json']);
  }finally{await f.close();}
 });
+test('the guided next step retains focus and ignores activation during verification',async()=>{
+ let begin,release,attempts=0;
+ const started=new Promise(resolve=>{begin=resolve;});
+ const pending=new Promise(resolve=>{release=resolve;});
+ const f=await setup({holdCheck:async()=>{if(++attempts===2){begin();await pending;}}});
+ try{
+  await f.el('try-shipping-example').click();
+  await f.el('load-function-example-patch').click();
+  f.el('load').focus();
+  await f.el('load').click();
+  const next=f.el('next-action');
+  assert.equal(f.activeElement,next);
+  await next.click();
+  assert.equal(f.activeElement,f.el('apply'));
+  await f.el('apply').click();
+  assert.equal(f.activeElement,next);
+  const verification=next.click();
+  await started;
+  assert.equal(f.activeElement,next);
+  assert.equal(next.disabled,false);
+  assert.equal(next.attributes.get('aria-disabled'),'true');
+  await next.click();
+  assert.equal(f.calls.filter(call=>call.body?.action==='test').length,2);
+  release();
+  await verification;
+  assert.equal(f.el('pass-count').textContent,'4/4');
+  assert.equal(f.activeElement,next);
+  assert.equal(next.textContent,'Try a new counterexample');
+  assert.equal(next.attributes.get('aria-disabled'),'false');
+ }finally{release();await f.close();}
+});
 test('one-click function entry runs real failing checks, reads evidence, preserves draft intake and makes no model call',async()=>{
  const f=await setup();try{
   assert.equal(f.el('active-run').hidden,true);assert.equal(f.el('mode-chip').textContent,'Ready for a repair');

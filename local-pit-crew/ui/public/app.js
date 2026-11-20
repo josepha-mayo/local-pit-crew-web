@@ -681,7 +681,14 @@ module.exports = { uniqueTags };`;
         observedPair('counterexample-input-values','Before',change.before,'After',change.after,true),full);
       }else detail.append(inputs);
      }
-     detail.append(node('p','Observed for this checked source. Your examples define the expected behavior.','muted'));block.append(detail);
+     detail.append(node('p','Observed for this checked source. Your examples define the expected behavior.','muted'));
+     if(check===firstFailure&&guidedRun?.sessionId===state.sessionId){
+      const back=node('button','Return to repair controls','secondary');
+      back.id='return-to-repair';back.type='button';back.disabled=blocked;
+      back.addEventListener('click',()=>el('next-action').focus?.());
+      detail.append(back);
+     }
+     block.append(detail);
     }
     if(!check.ok&&check.message)block.append(node('pre',check.message));el('checks').append(block);
    }
@@ -735,7 +742,7 @@ module.exports = { uniqueTags };`;
     const challenge=guidedChallengeControl(current,checkedFunctionForDownload(current));
     return challenge?{label:'Try a new counterexample',target:'challenge-function',focus:challenge}:{label:'Finish checked repair',action:'finish'};
    }
-   if(view.canApply)return{label:'Review before Apply',target:'patches',focus:'apply'};
+   if(view.canApply)return{label:'Review before Apply',target:'apply'};
    if(view.canTest)return{label:current.setupRetryPending?'Retry verification':current.proposal?.applied?'Verify replacement':'Run baseline checks',action:'test'};
    if(draftResult)return{label:'Review cloud diff',action:'review-function-draft'};
    if(draftReview)return{label:'Review cloud request',target:'function-draft-preview',focus:'send-function-draft'};
@@ -745,7 +752,12 @@ module.exports = { uniqueTags };`;
   }
   function renderNextAction(){
    const next=nextAction(),button=el('next-action');button.hidden=!next;
-   button.textContent=next?.label??'';button.disabled=!next||!!next.waiting||(next.action?el(next.action).disabled:false);
+   button.textContent=next?.label??'';
+   const disabled=!next||!!next.waiting||(next.action?el(next.action).disabled:false);
+   // Keep the active control in the keyboard path while a check is running.
+   const retainFocus=disabled&&next&&document.activeElement===button;
+   button.disabled=disabled&&!retainFocus;
+   button.setAttribute?.('aria-disabled',String(disabled));
   }
   el('next-action').addEventListener('click',()=>{
    const next=nextAction();if(!next||next.waiting)return;
@@ -817,7 +829,9 @@ module.exports = { uniqueTags };`;
    el('challenge-args').value=JSON.stringify(args,null,2);
    el('challenge-expected').value=expected===undefined?'':JSON.stringify(expected,null,2);
    el('challenge-status').textContent=message;
-   el('challenge-expected').focus?.();
+   const expectedInput=el('challenge-expected');
+   expectedInput.focus?.({preventScroll:true});
+   expectedInput.scrollIntoView?.({block:'center',behavior:'auto'});
   }
   async function request(path,body,onStale){
    // Synchronous start guard: never send a competing start while any request is pending.
@@ -872,6 +886,15 @@ module.exports = { uniqueTags };`;
    const ownerSession=current.sessionId,live=current.mode==='configured-local-unverified',ownerEpoch=liveEpoch,ownerPump=livePump;
    const result=await request(live?'/api/workbench/action':current.mode==='function-contract'?'/api/function/action':'/api/action',{sessionId:ownerSession,revision:current.snapshot.revision,action:live&&name==='load-authored'?'generate':name,...extra});
    if(live&&result&&ownerEpoch===liveEpoch&&ownerPump===livePump&&current?.sessionId===ownerSession&&current.snapshot.closed)stopLive();
+   return result;
+  }
+  async function guidedAction(name,button,extra){
+   const run=guidedRun;
+   const stayWithRun=run&&run.sessionId===current?.sessionId&&document.activeElement===el(button);
+   const result=await action(name,extra);
+   const focused=document.activeElement;
+   if(result?.state&&!result.error&&stayWithRun&&run===guidedRun&&current?.sessionId===run.sessionId
+    &&(!focused||focused===document.body||focused===el(button)))el('next-action').focus?.();
    return result;
   }
   function stopLive(){
@@ -1532,8 +1555,10 @@ module.exports = { uniqueTags };`;
   el('load-function-example-patch').addEventListener('click',()=>{
    if(busy||inspection||cloudBusy||!guidedRun||current?.sessionId!==guidedRun.sessionId||!viewModel(current).canLoad)return;
    const {walkthrough}=guidedRun;
-   el('function-replacement').value=current.challengeParent?walkthrough.finalPatch:walkthrough.firstPatch;
-   el('function-replacement').focus?.();
+   const replacement=el('function-replacement');
+   replacement.value=current.challengeParent?walkthrough.finalPatch:walkthrough.firstPatch;
+   replacement.focus?.({preventScroll:true});
+   replacement.scrollIntoView?.({block:'center',behavior:'auto'});
   });
   el('fill-tab-padding-challenge').addEventListener('click',()=>{
    if(busy||inspection||cloudBusy)return;
@@ -1553,13 +1578,13 @@ module.exports = { uniqueTags };`;
    if(existing){el('challenge-status').textContent='These arguments are already in the current examples. Choose another number.';return;}
    fillChallengeExample({label:'Try the first unsafe integer',args},'Enter the return value you expect for these arguments. This test drafts input only, and no model was called.');
   });
-  el('load').addEventListener('click',()=>current?.mode==='function-contract'?action('propose',{source:el('function-replacement').value}):action('load-authored'));
+  el('load').addEventListener('click',()=>current?.mode==='function-contract'?guidedAction('propose','load',{source:el('function-replacement').value}):action('load-authored'));
   el('load-trap').addEventListener('click',()=>action('load-authored-trap'));
-  el('apply').addEventListener('click',()=>action('apply'));
+  el('apply').addEventListener('click',()=>guidedAction('apply','apply'));
   el('test').addEventListener('click',()=>{
    if(!busy&&!inspection&&guidedRun?.needsBaselineInspection&&guidedRun.sessionId===current?.sessionId
     &&!current.challengeParent&&!current.proposal?.applied)return inspectWalkthroughBaseline();
-   return action('test');
+   return guidedAction('test','test');
   });
   function inspectFirstFailure(){
    const summary=el('checks').querySelector?.('.fail summary');
