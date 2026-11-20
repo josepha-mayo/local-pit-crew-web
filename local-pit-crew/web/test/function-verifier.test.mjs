@@ -5,10 +5,10 @@ import {createBrowserFunctionVerifier} from '../function-verifier.mjs';
 import contracts from '../../runner/function-contract.cjs';
 import controller from '../../src/controller.cjs';
 const task=()=>contracts.createFunctionTask({schema:contracts.TASK_SCHEMA,title:'Authored worker test',instructions:'Return zero.',exportName:'fn',source:'module.exports={fn:()=>0};',cases:[{label:'zero',args:[],expected:0}]});
-function fixture(){
+function fixture(cancelInterpreterPreload){
  const workers=[],timers=new Map();let serial=0;
  const env={Worker:class{},WebAssembly:{},setTimeout(fn,delay){const id=++serial;timers.set(id,{fn,delay});return id;},clearTimeout(id){timers.delete(id);}};
- const runtime=createBrowserFunctionVerifier(env,()=>{const w={terminate(){this.terminated=true;},postMessage(data){this.input=structuredClone(data);},send(data){this.onmessage({data});}};workers.push(w);return w;});
+ const runtime=createBrowserFunctionVerifier(env,()=>{const w={terminate(){this.terminated=true;},postMessage(data){this.input=structuredClone(data);},send(data){this.onmessage({data});}};workers.push(w);return w;},cancelInterpreterPreload);
  const ticket=()=>{const t=task();return{id:'authored-ticket',suiteId:t.id,workspaceHash:controller.workspaceHash(t.files),files:{...t.files}};};
  const result=()=>({status:'observed',observations:[{id:'case-01',status:'returned',output:'0',argsAfter:'[]'}]});
  return{runtime,workers,timers,ticket,result};
@@ -49,9 +49,12 @@ test('unsupported browsers, stale workspace hashes and resource failures never f
  const outcome=await pending;assert.equal(outcome.status,'unavailable');assert.equal(outcome.checks,undefined);
 });
 test('a setup deadline releases a worker before sending source and ignores its late readiness',async()=>{
- const f=fixture(),pending=f.runtime.runPublicChecks(f.ticket()),worker=f.workers[0];
+ const preload=new AbortController();
+ const f=fixture(()=>preload.abort()),pending=f.runtime.runPublicChecks(f.ticket()),worker=f.workers[0];
+ assert.equal(preload.signal.aborted,false);
  [...f.timers.values()][0].fn();
  assert.equal((await pending).reason,'browser-setup-unavailable');
+ assert.equal(preload.signal.aborted,true);
  assert.equal(worker.terminated,true);
  worker.send({status:'ready'});
  assert.equal(worker.input,undefined);

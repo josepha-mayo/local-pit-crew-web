@@ -132,11 +132,27 @@ test('static preview serves the compiled app with CSP and has no task mutation e
  assert.equal(Object.keys(manifest.files).some(name=>name.startsWith('browser-planner-pump')),false);
  const bootstrap=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
  assert.ok(bootstrap?.includes('import("/'+entryAsset+'")'));
- assert.ok(page.headers.get('content-security-policy').includes("'sha256-"+createHash('sha256').update(bootstrap).digest('base64')+"'"));
+ const preload=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(preload);
+ for(const script of [preload,bootstrap])
+  assert.ok(page.headers.get('content-security-policy').includes("'sha256-"+createHash('sha256').update(script).digest('base64')+"'"));
  assert.doesNotMatch(page.headers.get('content-security-policy'),/'unsafe-inline'/);
  const asset=await fetch(origin+'/'+entryAsset);assert.equal(asset.status,200);
  assert.match(asset.headers.get('content-type'),/javascript/);
  const wasmName=Object.keys(manifest.files).find(name=>name.endsWith('.wasm'));
+ for(const [hash,supported,expected] of [['#checkout-repair',true,1],['#same-score',true,1],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
+  const requests=[];
+  const context=vm.createContext({location:{hash},Worker:supported?class Worker{}:undefined,WebAssembly:{},AbortController,
+   fetch:(url,{signal})=>{requests.push({url,signal});return Promise.resolve({ok:false});}});
+  vm.runInContext(preload,context,{timeout:1000});
+  assert.equal(requests.length,expected,hash);
+  if(expected){
+   assert.equal(requests[0].url,'/'+wasmName);
+   assert.equal(requests[0].signal.aborted,false);
+   vm.runInContext('cancelInterpreterPreload()',context,{timeout:1000});
+   assert.equal(requests[0].signal.aborted,true);
+  }
+ }
  const wasm=await fetch(origin+'/'+wasmName);assert.equal(wasm.headers.get('content-type'),'application/wasm');assert.equal(wasm.headers.get('cache-control'),IMMUTABLE_CACHE);
  for(const name of Object.keys(manifest.cachePolicies))assert.equal((await fetch(origin+'/'+name)).headers.get('cache-control'),IMMUTABLE_CACHE,name);
  for(const name of ['firebase-config.json','firebase-planner.mjs','build-manifest.json'])assert.equal((await fetch(origin+'/'+name)).headers.get('cache-control'),'no-store',name);

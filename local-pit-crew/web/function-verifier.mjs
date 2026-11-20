@@ -6,14 +6,14 @@ const {workspaceHash}=controller;
 const failureStatuses=new Set(['resource-limit','guest-exception-or-engine-limit','unsupported-export','oversized-observation','cleanup-uncertain','runtime-failed']);
 // Test injection supplies authored worker events only. Production uses the fixed
 // bundled URL below; requests cannot choose a script URL, module or callback.
-export function createBrowserFunctionVerifier(environment=globalThis,createWorker=()=>new Worker(new URL('./function-worker.mjs',import.meta.url),{type:'module'})){
+export function createBrowserFunctionVerifier(environment=globalThis,createWorker=()=>new Worker(new URL('./function-worker.mjs',import.meta.url),{type:'module'}),cancelInterpreterPreload){
  let active=null,closed=false;
  const schedule=environment.setTimeout?.bind(environment)??setTimeout,cancelTimer=environment.clearTimeout?.bind(environment)??clearTimeout;
  const supported=typeof environment.Worker==='function'&&typeof environment.WebAssembly==='object';
  const capabilityFor=suiteId=>Object.freeze({available:supported&&!closed&&suiteId===FUNCTION_SUITE,qualified:false,
   admissionKind:'browser-worker-quickjs',benchmarkEligible:false,reason:suiteId!==FUNCTION_SUITE?'unsupported-suite':closed||!supported?'runtime-unavailable':null});
  return Object.freeze({capabilityFor,
-  close(){closed=true;active?.stop('aborted');},
+  close(){closed=true;cancelInterpreterPreload?.();active?.stop('aborted');},
   async runPublicChecks(ticket,{signal}={}){
    const t=contracts.fields(ticket,['id','suiteId','workspaceHash','files']);
    const binding={ticketId:t.id,suiteId:t.suiteId,workspaceHash:t.workspaceHash};
@@ -33,6 +33,8 @@ export function createBrowserFunctionVerifier(environment=globalThis,createWorke
     function finish(result){
      if(settled)return;settled=true;cancelTimer(timer);signal?.removeEventListener('abort',abort);
      let cleanup=true;try{worker?.terminate();}catch{cleanup=false;}
+     // Release the page's pending fetch too, so retry can start a fresh download.
+     if(!ready)cancelInterpreterPreload?.();
      if(active===owner)active=null;resolve(cleanup?result:unavailable('cleanup-uncertain'));
     }
     try{

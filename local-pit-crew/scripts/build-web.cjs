@@ -28,7 +28,20 @@ async function main(argv){
  const compiledEntry=path.join(out,'reference-app.mjs');
  const entry=fingerprint('reference-app.mjs',fs.readFileSync(compiledEntry));
  fs.renameSync(compiledEntry,path.join(out,entry));
- const bootstrap=`import("/${entry}").then(({startBrowserReferenceApp})=>startBrowserReferenceApp()).catch(()=>{
+ const interpreters=fs.readdirSync(out).filter(name=>name.endsWith('.wasm'));
+ if(interpreters.length!==1||staticCachePolicy(interpreters[0])==='no-store')throw Error('Expected one fingerprinted browser interpreter');
+ // These two direct links always run browser checks as soon as the app mounts.
+ // Start the interpreter download alongside the app modules for those visits.
+ const preloadInterpreter=`const cancelInterpreterPreload=(()=>{
+ if(location.hash!=='#checkout-repair'&&location.hash!=='#same-score')return;
+ if(typeof Worker!=='function'||typeof WebAssembly!=='object'||typeof AbortController!=='function'||typeof fetch!=='function')return;
+ const controller=new AbortController();
+ fetch(${JSON.stringify('/'+interpreters[0])},{signal:controller.signal,priority:'low'})
+  .then(response=>response.ok?response.arrayBuffer():undefined).catch(()=>{});
+ return ()=>controller.abort();
+})();`;
+ const bootstrap=`import("/${entry}").then(({startBrowserReferenceApp})=>startBrowserReferenceApp({cancelInterpreterPreload})).catch(()=>{
+ cancelInterpreterPreload?.();
  const status=document.getElementById('entry-status');
  status.textContent='The repair bench could not load. Reload to fetch the current build.';
  status.className='status error';
@@ -40,7 +53,7 @@ async function main(argv){
   .replace('href="/style.css"','href="/'+style+'"')
   .replace('<script src="/browser-planner-pump.js" defer></script>','')
   .replace('<script src="/app.js" defer></script>',
-   '<link rel="modulepreload" href="/'+entry+'"><link rel="modulepreload" href="/'+app+'"><script type="module">'+bootstrap+'</script>')
+   '<link rel="modulepreload" href="/'+entry+'"><link rel="modulepreload" href="/'+app+'"><script>'+preloadInterpreter+'</script><script type="module">'+bootstrap+'</script>')
   .replace('</head>','<meta name="local-pit-crew-firebase" content="'+(config?'configured':'disabled')+'">\n<meta name="local-pit-crew-app" content="/'+app+'">\n</head>')
   .replace('127.0.0.1 / LOCAL COMPANION','BROWSER REPAIR BENCH')
   .replace('Connecting to the local service…','Opening the repair bench…')
@@ -55,9 +68,9 @@ async function main(argv){
  const scripts=directives.findIndex(s=>s.split(/\s/)[0]==='script-src');
  if(scripts<0||directives[scripts].split(/\s+/).includes("'unsafe-eval'"))throw Error('Explicit script policy without JavaScript eval required');
  if(!directives[scripts].split(/\s+/).includes("'wasm-unsafe-eval'"))directives[scripts]+=" 'wasm-unsafe-eval'";
- const bootstrapHash="'sha256-"+crypto.createHash('sha256').update(bootstrap).digest('base64')+"'";
+ const startupHashes=[preloadInterpreter,bootstrap].map(script=>"'sha256-"+crypto.createHash('sha256').update(script).digest('base64')+"'");
  for(const [index,directive] of directives.entries())if(/^script-src(?:-elem)?\s/.test(directive))
-  directives[index]+=' '+bootstrapHash;
+  directives[index]+=' '+startupHashes.join(' ');
  const workers=directives.findIndex(s=>s.split(/\s/)[0]==='worker-src');
  if(workers>=0)directives[workers]="worker-src 'self'";else directives.push("worker-src 'self'");
  const csp=directives.join('; ');
