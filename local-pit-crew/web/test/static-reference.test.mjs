@@ -90,6 +90,9 @@ test('built static artifact has no host JavaScript evaluator, Node imports or Ap
   assert.deepEqual(Object.keys(config.firebaseConfig.firebase).sort(),['apiKey','appId','projectId']);
  }
  assert.equal(manifest.appCheckDebug,false);assert.equal(manifest.execution,'authored-drills-and-bounded-function-worker');
+ const workerScripts=Object.keys(manifest.files).filter(name=>/^function-.*\.mjs$/.test(name));
+ assert.equal(workerScripts.length,1,'The browser verifier loads one JavaScript asset');
+ assert.match(workerScripts[0],/^function-worker-/);
  const wasm=Object.keys(manifest.files).filter(name=>name.endsWith('.wasm'));
  assert.equal(wasm.length,1);assert.equal((await readFile(new URL(wasm[0],base))).byteLength,503134);
  for(const name of names.filter(name=>/\.(m?js)$/.test(name)))assert.doesNotMatch(await readFile(new URL(name,base),'utf8'),/data:application\/wasm;base64/,'Interpreter must not be duplicated in JS');

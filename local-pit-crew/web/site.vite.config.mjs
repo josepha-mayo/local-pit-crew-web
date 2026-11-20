@@ -33,7 +33,16 @@ export default defineConfig({
  root:fileURLToPath(new URL('.',import.meta.url)),
  cacheDir:fileURLToPath(new URL('./.vite-cache-site',import.meta.url)),
  resolve:{alias:{'node:crypto':fileURLToPath(new URL('./reference-crypto.mjs',import.meta.url))},conditions:['browser','import','default']},
- worker:{format:'es',plugins:()=>[externalInterpreterAsset()],rolldownOptions:{output:{entryFileNames:'function-worker-[hash].mjs',chunkFileNames:'function-[name]-[hash].mjs',assetFileNames:'function-[name]-[hash][extname]'}}},
+ worker:{
+  format:'es',
+  plugins:()=>[externalInterpreterAsset()],
+  rolldownOptions:{output:{
+   // Load the verifier's JavaScript in one request and cache its Wasm separately.
+   codeSplitting:false,
+   entryFileNames:'function-worker-[hash].mjs',
+   assetFileNames:'function-[name]-[hash][extname]'
+  }}
+ },
  plugins:[externalInterpreterAsset(),{name:'closed-authored-programs',resolveId(id){if(id===virtualId)return resolvedId;},load(id){if(id===resolvedId)return authoredProgramsModule();}}],
  build:{rolldownOptions:{output:{comments:{legal:true},assetFileNames:'function-[name]-[hash][extname]'}},lib:{entry:fileURLToPath(new URL('./reference-app.mjs',import.meta.url)),formats:['es'],fileName:()=> 'reference-app.mjs'},
   outDir:fileURLToPath(new URL('./site-dist',import.meta.url)),emptyOutDir:true,sourcemap:false}
