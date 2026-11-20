@@ -13,11 +13,13 @@ import {createFirebaseFunctionDrafterCore} from '../firebase-function-draft-core
 import {createFirebaseCloudReviewerCore} from '../firebase-cloud-review-core.mjs';
 import replayModule from '../../../scripts/replay-function.cjs';
 const settle=async()=>{for(let i=0;i<50;i++)await Promise.resolve();};
-async function setup({holdCheck=null,holdReplay=null,hash='',digest=null,tamperCheckedSource=false,tamperReplayContract=false,cloud=null,fetchFirebaseConfig=null,nativeStatus=null,clipboard=null}={}){
+async function setup({holdCheck=null,admissionKind='test-wasm-only',holdReplay=null,hash='',digest=null,tamperCheckedSource=false,tamperReplayContract=false,cloud=null,fetchFirebaseConfig=null,nativeStatus=null,clipboard=null}={}){
  const reference=await workflowModule.createReferenceWorkflow({definitions:[],executeChecks(){throw Error('Not a drill test');}});
  const calls=[],downloads=[],objectUrls=new Map(),lifecycle=new Map();let urlIndex=0,reloads=0,activeElement=null;
- const verifier={capabilityFor:()=>({available:true,qualified:false,admissionKind:'test-wasm-only'}),close(){},async runPublicChecks(ticket,{signal}){
-  if(holdCheck)await holdCheck();
+ const verifier={capabilityFor:()=>({available:true,qualified:false,admissionKind}),close(){},async runPublicChecks(ticket,{signal}){
+  if(holdCheck&&(await holdCheck())==='browser-setup-unavailable'){
+   return{status:'unavailable',ticketId:ticket.id,suiteId:ticket.suiteId,workspaceHash:ticket.workspaceHash,reason:'browser-setup-unavailable'};
+  }
   const result=await probeModule.runCandidateProbe({suiteId:ticket.suiteId,files:ticket.files},{signal});
   if(result.status!=='observed')throw Error('No candidate verdict');
   return{status:'candidate-verdict',ticketId:ticket.id,suiteId:ticket.suiteId,workspaceHash:ticket.workspaceHash,observations:result.observations,checks:result.checks};
@@ -32,7 +34,7 @@ async function setup({holdCheck=null,holdReplay=null,hash='',digest=null,tamperC
   replaceChildren(...items){this.children=items;}click(){if(this.download){downloads.push({fileName:this.download,blob:objectUrls.get(this.href)});return;}return this.listeners.get('click')?.();}
  }
  const elements=new Map(),el=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
- const document={readyState:'complete',getElementById:el,createElement:()=>new Element()};
+ const document={readyState:'complete',getElementById:el,createElement:()=>new Element(),get activeElement(){return activeElement;}};
  const window={document,location:{hash,reload(){reloads++;}},setTimeout,clearTimeout,Blob,crypto:{subtle:{digest:digest??webcrypto.subtle.digest.bind(webcrypto.subtle)}},
   URL:{createObjectURL(blob){const url='blob:authored-'+(++urlIndex);objectUrls.set(url,blob);return url;},revokeObjectURL(url){objectUrls.delete(url);}},
   addEventListener(event,callback){lifecycle.set(event,callback);},fetch:fetchFirebaseConfig??(()=>{throw Error('Unexpected network');}),
@@ -69,6 +71,24 @@ test('a cached return reloads the hosted workbench after teardown, while an ordi
   assert.equal(f.reloads,0);
   f.lifecycle.get('pageshow')({persisted:true});
   assert.equal(f.reloads,1);
+ }finally{await f.close();}
+});
+test('a guided baseline setup failure focuses Retry and restores the evidence after the next check',async()=>{
+ let attempts=0;
+ const f=await setup({admissionKind:'browser-worker-quickjs',holdCheck:()=>++attempts===1?'browser-setup-unavailable':undefined});
+ try{
+  await f.el('try-shipping-example').click();
+  assert.equal(f.el('next-action').textContent,'Retry verification');
+  assert.equal(f.activeElement,f.el('next-action'));
+  assert.equal(f.el('pass-count').textContent,'—');
+  await f.el('next-action').click();
+  assert.equal(f.el('pass-count').textContent,'3/4');
+  assert.equal(f.el('source-evidence').open,true);
+  assert.equal(f.activeElement,f.el('active-run'));
+  const runs=f.calls.filter(call=>call.body?.action==='test');
+  assert.equal(runs.length,2);
+  assert.equal(runs[0].body.sessionId,runs[1].body.sessionId);
+  assert.deepEqual(f.calls.filter(call=>call.body?.action==='read').map(call=>call.body.path),['src/function.js','contract.json']);
  }finally{await f.close();}
 });
 test('one-click function entry runs real failing checks, reads evidence, preserves draft intake and makes no model call',async()=>{

@@ -1490,11 +1490,20 @@ module.exports = { uniqueTags };`;
    if(busy||inspection||!functionCapability?.available)return;
    const opened=await openFunction({schema:'local-pit-crew/function-task/v1',...walkthrough.spec});
    if(!opened?.openedFunctionSessionId||opened.openedFunctionSessionId!==current?.sessionId||current?.mode!=='function-contract')return;
-   guidedRun={sessionId:current.sessionId,walkthrough};
+   guidedRun={sessionId:current.sessionId,walkthrough,needsBaselineInspection:true};
+   return inspectWalkthroughBaseline();
+  }
+  async function inspectWalkthroughBaseline(){
+   const run=guidedRun;
    const owner={sessionId:current.sessionId};inspection=owner;
    const ownsRun=()=>inspection===owner&&current?.sessionId===owner.sessionId&&current.mode==='function-contract'&&!current.snapshot?.closed;
+   let retry=false;
    try{
-    const checked=await action('test',{},owner);if(!ownsRun()||checked?.error||!checked?.state?.checks?.length)return;
+    const checked=await action('test',{},owner);
+    if(!ownsRun())return;
+    retry=checked?.state?.setupRetryPending===true;
+    if(checked?.error||!checked?.state?.checks?.length)return;
+    run.needsBaselineInspection=false;
     for(const path of ['src/function.js','contract.json']){
      const read=await action('read',{path},owner);if(!ownsRun()||read?.error||!read?.state)return;
     }
@@ -1502,7 +1511,15 @@ module.exports = { uniqueTags };`;
     el('active-run').scrollIntoView?.({block:'start',behavior:'auto'});
     el('failure-preview').scrollIntoView?.({block:'nearest',behavior:'auto'});
     el('active-run').focus?.({preventScroll:true});
-   }finally{if(inspection===owner){inspection=null;if(current)render(current);}}
+   }finally{
+    if(inspection===owner){
+     inspection=null;if(current)render(current);
+     const focused=document.activeElement;
+     if(retry&&(!focused||focused===document.body||focused===el('test')||focused===el('next-action'))){
+      el('next-action').focus?.({preventScroll:true});
+     }
+    }
+   }
   }
   el('try-function-example').addEventListener('click',()=>runWalkthrough(tagWalkthrough));
   el('try-shipping-example').addEventListener('click',()=>runWalkthrough(shippingWalkthrough));
@@ -1539,7 +1556,11 @@ module.exports = { uniqueTags };`;
   el('load').addEventListener('click',()=>current?.mode==='function-contract'?action('propose',{source:el('function-replacement').value}):action('load-authored'));
   el('load-trap').addEventListener('click',()=>action('load-authored-trap'));
   el('apply').addEventListener('click',()=>action('apply'));
-  el('test').addEventListener('click',()=>action('test'));
+  el('test').addEventListener('click',()=>{
+   if(!busy&&!inspection&&guidedRun?.needsBaselineInspection&&guidedRun.sessionId===current?.sessionId
+    &&!current.challengeParent&&!current.proposal?.applied)return inspectWalkthroughBaseline();
+   return action('test');
+  });
   function inspectFirstFailure(){
    const summary=el('checks').querySelector?.('.fail summary');
    if(!summary)return;
