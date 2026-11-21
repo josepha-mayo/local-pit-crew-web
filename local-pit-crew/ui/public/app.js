@@ -361,6 +361,7 @@ module.exports = { uniqueTags };`;
    'downloading':'The browser is downloading the model. Check readiness again when setup finishes.'
   };
   const nanoSetupMessage=()=>blockedNativeStatus[browserReadiness];
+  const savedOfflineBench=()=>hosted&&global.navigator?.serviceWorker?.controller?.scriptURL===global.location?.origin+'/offline-worker.js';
   const firebaseAvailable=client=>!!client||(hosted&&!firebaseLoaded&&!!plannerCapability?.available);
   async function readFirebaseConfig(){
    const existing=plannerCapability?.firebaseConfig??liveCapability?.firebaseConfig;
@@ -993,7 +994,7 @@ module.exports = { uniqueTags };`;
   });
   async function prepareDiagnosisTab(){
    if(!liveClient){
-    if(global.navigator?.onLine===false)return 'Chrome has the model. Connect to load Firebase for offline diagnosis in this tab.';
+    if(global.navigator?.onLine===false&&!savedOfflineBench())return 'Chrome has the model. Connect to load Firebase for offline diagnosis in this tab.';
     el('browser-status').textContent='Chrome has the model. Loading Firebase for this tab…';
     try{await loadFirebaseClients();}
     catch{return 'Chrome has the model. The Firebase client could not load. Check your connection and try again.';}
@@ -1054,7 +1055,7 @@ module.exports = { uniqueTags };`;
   el('diagnose').addEventListener('click',async()=>{
    const snapshot=repairSnapshot(current);if(busy||inspection||nanoSetupMessage()||!snapshot||!firebaseAvailable(liveClient)||!['authored-reference','function-contract'].includes(current.mode))return;
    if(!liveClient){
-    if(hosted&&global.navigator?.onLine===false){
+    if(hosted&&global.navigator?.onLine===false&&!savedOfflineBench()){
      el('advisor-status').textContent='Connect once and use model setup to load Firebase for offline diagnosis in this tab.';
      return;
     }

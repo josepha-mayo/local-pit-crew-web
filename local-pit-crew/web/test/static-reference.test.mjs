@@ -114,6 +114,17 @@ test('distributed browser assets retain upstream notices and the full hash-libra
  assert.match(licenses,/The above copyright notice and this permission notice shall be included/);
 });
 
+test('offline release includes the fixed verifier and only explicitly public app files',async()=>{
+ const manifest=JSON.parse(await readFile(new URL('build-manifest.json',base),'utf8'));
+ const script=await readFile(new URL('offline-worker.js',base),'utf8');
+ const offline=JSON.parse(/^const offlineBuild = ([^\n]+);/.exec(script)[1]);
+ assert.match(offline.version,/^[a-f0-9]{16}$/);
+ assert.deepEqual(offline.immutable,Object.keys(manifest.cachePolicies).sort().map(name=>'/'+name));
+ assert.equal(offline.immutable.filter(name=>name.endsWith('.wasm')).length,1);
+ assert.deepEqual(offline.publicFiles,['/index.html','/checkout-preview.jpg',...(manifest.firebaseConfigured?['/firebase-config.json','/firebase-planner.mjs']:[])]);
+ assert.equal(staticCachePolicy('offline-worker.js'),'no-store');
+});
+
 test('static preview serves the compiled app with CSP and has no task mutation endpoints',async t=>{
  const server=await require('../../scripts/preview-web.cjs').start();
  t.after(()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve);}));

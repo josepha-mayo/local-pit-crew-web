@@ -76,6 +76,13 @@ async function main(argv){
  const csp=directives.join('; ');
  const headers={'Content-Security-Policy':csp,'X-Content-Type-Options':'nosniff','Referrer-Policy':config?'strict-origin-when-cross-origin':'no-referrer','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Cache-Control':'no-store'};
  const cachePolicies=Object.fromEntries(fs.readdirSync(out).filter(name=>fs.statSync(path.join(out,name)).isFile()&&staticCachePolicy(name)!=='no-store').map(name=>[name,staticCachePolicy(name)]));
+ const offlineSource=readText(path.join(web,'offline-worker.js'));
+ const immutable=Object.keys(cachePolicies).sort();
+ const publicFiles=['index.html','checkout-preview.jpg',...(config?['firebase-config.json','firebase-planner.mjs']:[])];
+ const release=crypto.createHash('sha256').update(offlineSource).update(JSON.stringify(headers));
+ for(const name of [...immutable,...publicFiles])release.update(name).update(fs.readFileSync(path.join(out,name)));
+ const offlineBuild={version:release.digest('hex').slice(0,16),immutable:immutable.map(name=>'/'+name),publicFiles:publicFiles.map(name=>'/'+name)};
+ fs.writeFileSync(path.join(out,'offline-worker.js'),'const offlineBuild = '+JSON.stringify(offlineBuild)+';\n'+offlineSource);
  fs.writeFileSync(path.join(out,'_headers'),'/*\n'+Object.entries(headers).map(([key,value])=>'  '+key+': '+value).join('\n')+'\n'+Object.entries(cachePolicies).map(([name,value])=>'/'+name+'\n  Cache-Control: '+value+'\n').join(''));
  fs.writeFileSync(path.join(out,'hosting-headers.json'),JSON.stringify(headers,null,2)+'\n');
  fs.writeFileSync(path.join(out,'firebase.json'),JSON.stringify({hosting:{public:'.',ignore:['firebase.json','hosting-headers.json','**/.*'],headers:[{source:'**',headers:Object.entries(headers).map(([key,value])=>({key,value}))},...Object.entries(cachePolicies).map(([name,value])=>({source:'/'+name,headers:[{key:'Cache-Control',value}]}))]}},null,2)+'\n');

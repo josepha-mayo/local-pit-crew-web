@@ -5,6 +5,7 @@ import {createReferenceTransport} from './reference-transport.mjs';
 import {referenceAssert} from './reference-assert.mjs';
 import {createBrowserFunctionVerifier} from './function-verifier.mjs';
 import {createBrowserFunctionWorkbench} from './function-workbench.mjs';
+import {bindOfflineCopy} from './offline-client.mjs';
 const {getTasks}=catalogModule.createCatalog(referenceAssert);
 export {runAuthoredBrowserChecks};
 export async function createBrowserReferenceApp(firebaseConfig=null,{firebaseConfigured=!!firebaseConfig,cancelInterpreterPreload}={}){
@@ -22,4 +23,5 @@ export async function startBrowserReferenceApp({cancelInterpreterPreload}={}){
  // Keep the shared browser entry unwrapped: its CommonJS export branch is for
  // Node tests only and must not be selected by a bundler-generated module shim.
  await import(/* @vite-ignore */ appPath);
+ bindOfflineCopy();
 }

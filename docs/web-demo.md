@@ -71,6 +71,8 @@ Fingerprinted startup files, the interpreter and workers receive long-lived immu
 
 Opening the bench and running local checks leave the Firebase client unloaded. For offline diagnosis, open **Runtime & setup** and select **Check on-device model** while connected. When Chrome reports the model available, the bench loads the public Firebase configuration and client. Keep the tab open and select **Ask Nano about this failure** to run the diagnosis, including after disconnecting. The separate cloud clients use App Check when you approve a cloud request. If setup takes longer than Chrome's user activation window, the app asks for another click before starting Nano.
 
+In the static bench, choose **Runtime & setup → Save bench for offline use** while connected. After the save completes, reopen the same URL offline to run the browser verifier or open a downloaded replay. In a Firebase-enabled build, Chrome can also diagnose a failure in the reopened tab if its own model is ready. The saved files include the public app, the fixed interpreter and optional public Firebase configuration. Download a replay file to keep your source and example data between tabs.
+
 A literal-source citation can ground a model's hypothesis without making the hypothesis correct. Passing examples and browser-generated run records do not establish held-out correctness or model repair accuracy.
 
 The static test suite compares every named program's outcomes against the Node runner, repeats state-sensitive cases, checks UTF-8 hash parity, exercises the complete authored workflow including the trap and correction, rejects arbitrary program selectors and checks the served artifact and headers. Real browser/Firebase testing remains a separate release check.
