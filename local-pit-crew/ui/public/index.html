@@ -57,6 +57,17 @@
   <button id="run-boundary-probe" type="button" class="secondary">Probe boundary inputs</button>
   <p id="boundary-probe-status" class="comparison-status" tabindex="-1" role="status"></p>
   <div id="boundary-probe-results" class="comparison-evidence"></div>
+  <section id="probe-example-editor" class="restore-replay" aria-labelledby="probe-example-title" hidden>
+   <h4 id="probe-example-title">Add a regression test</h4>
+   <pre id="probe-example-args" aria-label="Selected input arguments"></pre>
+   <label for="probe-example-label">Test name</label>
+   <input id="probe-example-label" maxlength="80">
+   <label for="probe-example-expected">Expected return in JSON</label>
+   <textarea id="probe-example-expected" rows="3" spellcheck="false" aria-describedby="probe-example-help probe-example-status"></textarea>
+   <p id="probe-example-help" class="muted">Use the required behavior to decide the expected return. Loading replaces the repair form and keeps the active run open.</p>
+   <button id="load-probe-example" type="button" class="secondary">Load candidate with this test</button>
+   <p id="probe-example-status" class="muted" role="status"></p>
+  </section>
  </section>
  <button id="download-comparison-summary" type="button" class="secondary" hidden>Download comparison summary</button>
  <p id="comparison-summary-status" class="muted" role="status"></p>

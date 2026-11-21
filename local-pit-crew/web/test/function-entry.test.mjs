@@ -371,14 +371,36 @@ test('boundary probes expose a new disagreement while the original four checks s
   await f.el('run-boundary-probe').click();
   assert.match(f.el('boundary-probe-status').textContent,/1 of 6 new inputs produced different behavior/);
   assert.equal(f.el('compare-replay-status').textContent,before);
-  assert.deepEqual(f.el('boundary-probe-results').children[0].children.map(node=>node.textContent),[
-   'Argument 1 → ""','Input arguments','[""]','Baseline · Input preserved','{"cursor":""}','Candidate · Input preserved','{}'
+  const evidence=f.el('boundary-probe-results').children[0];
+  assert.deepEqual(evidence.children.map(node=>node.textContent),[
+   'Argument 1 → ""','Input arguments','[""]','Baseline · Input preserved','{"cursor":""}','Candidate · Input preserved','{}',
+   'Use this input for a test'
   ]);
   assert.equal(f.el('active-run').hidden,true);
   assert.equal(f.el('comparison-failure').hidden,true);
   assert.deepEqual(f.calls.filter(c=>c.path==='/api/function/compare-replays').map(c=>c.body),[
    {example:'pagination-boundary'},{example:'pagination-boundary',probe:true}
   ]);
+  await evidence.children.at(-1).click();
+  assert.equal(f.el('probe-example-expected').value,'');
+  assert.equal(f.activeElement,f.el('probe-example-expected'));
+  await f.el('load-probe-example').click();
+  assert.match(f.el('probe-example-status').textContent,/Enter the expected return as JSON/);
+  assert.equal(f.el('function-source').value,'');
+  f.el('probe-example-label').value='Keep an empty string cursor';
+  f.el('probe-example-expected').value='{"cursor":""}';
+  await f.el('load-probe-example').click();
+  const cases=JSON.parse(f.el('function-cases').value);
+  assert.equal(cases.length,5);
+  assert.deepEqual(cases[4],{label:'Keep an empty string cursor',args:[''],expected:{cursor:''}});
+  assert.equal(f.el('active-run').hidden,true);
+  assert.equal(f.el('compare-replay-status').textContent,before);
+  await f.el('open-function').click();
+  assert.equal(f.el('pass-count').textContent,'—');
+  await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'4/5');
+  const replay=await replayModule.replay(f.el('failure-replay-json').textContent);
+  assert.deepEqual(replay.checks.filter(check=>!check.ok).map(check=>check.id),['case-05']);
  }finally{await f.close();}
 });
 test('intake explains malformed examples next to the form and a rejected contract preserves the current run',async()=>{

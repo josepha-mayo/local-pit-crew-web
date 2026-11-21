@@ -2,7 +2,7 @@
 // A portable data envelope. Hash agreement binds bytes; it is not a signature
 // and never imports an earlier verdict. Replaying requires fresh execution.
 const {createHash}=require('node:crypto');
-const {fields,dense,validateFunctionFiles,parseContractSource,createFunctionTask,TASK_SCHEMA,FUNCTION_ENTRY,CONTRACT_PATH}=require('../runner/function-contract.cjs');
+const {fields,dense,validateFunctionFiles,validateContract,parseContractSource,createFunctionTask,TASK_SCHEMA,FUNCTION_ENTRY,CONTRACT_PATH}=require('../runner/function-contract.cjs');
 const REPLAY_SCHEMA='local-pit-crew/function-replay/v1',CONTEXT_REPLAY_SCHEMA='local-pit-crew/function-replay/v2',MAX_REPLAY_BYTES=80000;
 const hash=s=>createHash('sha256').update(s).digest('hex');
 function validateContext(value){
@@ -44,8 +44,14 @@ function prepareFileComparison(baselineFiles,candidateFiles,context){
  if(baselineFiles[FUNCTION_ENTRY]===candidateFiles[FUNCTION_ENTRY])throw Error('unchanged-source');
  return{baselineFiles,candidateFiles,context};
 }
-function prepareFunctionReplay(text){
- const {files,context}=parseReplay(text),contract=parseContractSource(files[CONTRACT_PATH]);
+function prepareFunctionReplay(text,example){
+ const {files,context}=parseReplay(text);
+ let contract=parseContractSource(files[CONTRACT_PATH]);
+ if(example!==undefined){
+  const row=fields(example,['label','args','expected']);
+  const id='case-'+String(contract.cases.length+1).padStart(2,'0');
+  contract=validateContract({...contract,cases:[...contract.cases,{id,...row}]});
+ }
  return{spec:{schema:TASK_SCHEMA,title:context?.title??'Reopened '+contract.exportName,instructions:context?.instructions??'',exportName:contract.exportName,source:files[FUNCTION_ENTRY],cases:contract.cases.map(({label,args,expected})=>({label,args,expected}))},contextRestored:context!==null};
 }
 function createFunctionChallenge(parent,example){

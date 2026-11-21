@@ -1381,7 +1381,16 @@ module.exports = { uniqueTags };`;
   const compareExample=el('compare-replay-example');
   const comparisonInputs=[el('comparison-baseline-file'),el('comparison-candidate-file')];
   const probePanel=el('boundary-probe'),probeButton=el('run-boundary-probe'),probeStatus=el('boundary-probe-status'),probeResults=el('boundary-probe-results');
+  const probeEditor=el('probe-example-editor'),probeLabel=el('probe-example-label'),probeExpected=el('probe-example-expected');
+  const probeTestStatus=el('probe-example-status');
   let comparisonSummary=null,comparisonFailureReplay=null,comparedRequest=null;
+  let probeDraft=null;
+  function clearProbeEditor(){
+   probeDraft=null;
+   probeEditor.hidden=true;
+   probeExpected.value='';
+   probeTestStatus.textContent='';
+  }
   function clearComparison(){
    comparisonSummary=null;
    comparisonFailureReplay=null;
@@ -1389,6 +1398,7 @@ module.exports = { uniqueTags };`;
    probePanel.hidden=true;
    probeStatus.textContent='';
    probeResults.replaceChildren();
+   clearProbeEditor();
    comparisonDownload.hidden=true;
    comparisonDownload.textContent='Download comparison summary';
    comparisonDownloadStatus.textContent='';
@@ -1447,6 +1457,34 @@ module.exports = { uniqueTags };`;
      node('pre',observation.argumentsAfter??'The arguments could not be represented as JSON.'));
    }
   }
+  el('load-probe-example').addEventListener('click',async()=>{
+   const draft=probeDraft;
+   if(!draft||busy||inspection||cloudBusy||pageLeaving||!token)return;
+   const expectedText=probeExpected.value,label=probeLabel.value;
+   let expected;
+   try{expected=JSON.parse(expectedText);}catch{
+    probeTestStatus.textContent='Enter the expected return as JSON. Use null for a null return.';
+    probeExpected.focus?.();
+    return;
+   }
+   const before=intakeFields.map(input=>input.value);
+   const example={label,args:JSON.parse(draft.args),expected};
+   probeTestStatus.textContent='Checking the extended contract…';
+   const result=await request('/api/function/replay',{packet:draft.replay,example});
+   if(pageLeaving||draft!==probeDraft)return;
+   if(probeExpected.value!==expectedText||probeLabel.value!==label||intakeFields.some((input,index)=>input.value!==before[index])){
+    probeTestStatus.textContent='Your draft changed during validation and was kept. Load again to replace it.';
+    return;
+   }
+   if(!result?.replay){
+    probeTestStatus.textContent=result?.error??'Could not check the extended contract. Try again.';
+    return;
+   }
+   clearProbeEditor();
+   fillReplayIntake(result.replay,result.replay.contextRestored
+    ?'Candidate loaded with your new regression test. Open my function and run fresh checks.'
+    :'Candidate loaded with your new regression test. Enter Required behavior, then open and check the function.');
+  });
   for(const input of comparisonInputs)input.addEventListener('change',()=>{
    compareStatus.textContent='';
    clearComparison();
@@ -1465,7 +1503,10 @@ module.exports = { uniqueTags };`;
    comparisonBusy=true;busy=true;
    if(current)render(current);
    comparisonInputs.forEach(input=>{input.disabled=true;});updateComparisonControls();
-   if(probe)probeResults.replaceChildren();else clearComparison();
+   if(probe){
+    probeResults.replaceChildren();
+    clearProbeEditor();
+   }else clearComparison();
    const feedback=probe?probeStatus:compareStatus;
    feedback.textContent=probe?'Running the new inputs in separate local workers…':
     repeat?'Running the same saved examples twice in separate workers…':'Validating the files and running fresh checks in separate workers…';
@@ -1489,13 +1530,29 @@ module.exports = { uniqueTags };`;
     if(pageLeaving||(probe&&reviewedComparison!==comparedRequest))return;
     if(!response.ok){feedback.textContent=result.error;return;}
     if(probe){
-     const {count,differences}=result.probe;
+     const {count,differences,replay}=result.probe;
      probeStatus.textContent=differences.length+' of '+count+' new inputs produced different behavior. Review the observations before deciding the expected result.';
+     if(differences.length&&!replay)probeStatus.textContent+=' The saved contract already contains eight tests.';
      for(const {label,args,baseline,candidate} of differences){
       const item=node('details');
       item.open=differences.length===1;
       item.append(node('summary',label),node('p','Input arguments'),node('pre',args));
       appendVersionObservations(item,baseline,candidate);
+      if(replay){
+       const draft=node('button','Use this input for a test','secondary');
+       draft.type='button';
+       draft.addEventListener('click',()=>{
+        if(busy||pageLeaving)return;
+        probeDraft={replay,args};
+        probeLabel.value='Boundary test · '+label;
+        el('probe-example-args').textContent=args;
+        probeExpected.value='';
+        probeTestStatus.textContent='';
+        probeEditor.hidden=false;
+        probeExpected.focus?.();
+       });
+       item.append(draft);
+      }
       probeResults.append(item);
      }
      return;

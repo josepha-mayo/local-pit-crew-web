@@ -64,8 +64,10 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
     return{status:200,body:{state:state(),startCanceled:true}};
    }
    if(method==='POST'&&pathname==='/api/function/replay'){
-    if(!exact(body,['packet']))return fail(400,'Provide one saved replay case.');
-    try{return{status:200,body:{replay:replays.prepareFunctionReplay(JSON.stringify(body.packet))}};}catch{return fail(400,'Replay case invalid. Check its format, size and file hashes.');}
+    const adding=exact(body,['packet','example']);
+    if(!adding&&!exact(body,['packet']))return fail(400,'Provide one saved replay case.');
+    try{return{status:200,body:{replay:replays.prepareFunctionReplay(JSON.stringify(body.packet),body.example)}};}
+    catch{return fail(400,adding?'Could not add this test. Check the name, expected JSON and contract limits.':'Replay case invalid. Check its format, size and file hashes.');}
    }
    if(method==='POST'&&pathname==='/api/function/compare-replays'){
     const error=(status,message)=>({status,body:{error:message}});
@@ -92,11 +94,13 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
      cause.message==='unchanged-source'?'Both versions contain the same source. Choose a different candidate.':
      source?'Check the baseline replay hash and use a nonempty JavaScript file up to 6,000 bytes.':'Check the replay formats and file hashes.');}
     if(probe&&repeat)return error(400,'Choose two different versions for boundary probes.');
-    let probeCases;
+    let probeCases,probeReplay;
     if(probe){
      const planned=probeContract(files.baselineFiles[contracts.CONTRACT_PATH]);
      probeCases=planned.cases;
      if(!probeCases.length)return error(400,'Boundary probes need a string, number or boolean directly in the saved arguments.');
+     const original=contracts.parseContractSource(files.candidateFiles[contracts.CONTRACT_PATH]);
+     if(original.cases.length<contracts.LIMITS.cases)probeReplay=replays.createFunctionReplay(files.candidateFiles,files.context);
      const contract=JSON.stringify(planned);
      files.baselineFiles={...files.baselineFiles,[contracts.CONTRACT_PATH]:contract};
      files.candidateFiles={...files.candidateFiles,[contracts.CONTRACT_PATH]:contract};
@@ -118,7 +122,7 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
        return baseline.status!==candidate.status||baseline.actualReturn!==candidate.actualReturn||
         baseline.argumentsAfter!==candidate.argumentsAfter?[{label,args:contracts.canonical(args),baseline,candidate}]:[];
       });
-      return{status:200,body:{probe:{count:probeCases.length,differences}}};
+      return{status:200,body:{probe:{count:probeCases.length,differences,replay:probeReplay??null}}};
      }
      const {cases}=contracts.parseContractSource(files.baselineFiles[contracts.CONTRACT_PATH]);
      const checkLabels=Object.fromEntries(cases.map(({id,label})=>[id,label]));

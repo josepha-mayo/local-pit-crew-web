@@ -58,6 +58,8 @@ pre{font-size:12px}
 .comparison-evidence pre{margin:0;max-height:150px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 .boundary-probe{margin:18px 0;padding:12px;border:1px solid var(--border);border-radius:8px}
 .boundary-probe h3{margin:0;font-size:16px}
+#probe-example-editor h4{margin:0 0 8px}
+#probe-example-args{max-height:140px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 #function-draft-disclosure,#cloud-disclosure{font-size:13px;font-weight:650}
 #function-draft-data,#cloud-data{max-height:210px}
 #function-draft-exact,#cloud-exact{margin:8px 0;padding-top:0}
