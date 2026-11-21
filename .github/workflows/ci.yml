@@ -60,10 +60,11 @@ jobs:
           test "$status" -eq 1
           node -e '
             const assert = require("node:assert/strict");
-            const {checks, status} = require("./checkout-draft-result.json");
+            const {checks, failures, status} = require("./checkout-draft-result.json");
             assert.equal(status, "checked");
             assert.deepEqual(checks.filter(check => !check.ok).map(check => check.id), ["case-05"]);
-            console.log("The recorded draft was rejected on case-05.");
+            assert.deepEqual(failures, [{id:"case-05",reasons:["return-mismatch"]}]);
+            console.log("The recorded draft was rejected on case-05 for a return mismatch.");
           '
       - name: Attempt the gate with case-05 removed
         run: |
@@ -85,6 +86,23 @@ jobs:
         run: |
           test "$GATE_OUTCOME" = failure
           test "$GATE_EXIT_CODE" = 2
+      - name: Distinguish correct returns from changed inputs
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const source = fs.readFileSync("examples/checkout/shipping-quote.js", "utf8");
+            const mutation = "const reviewed = exports.shippingQuote; exports.shippingQuote = (quotes, currency) => { const result = reviewed(quotes, currency); quotes.reverse(); return result; };";
+            fs.writeFileSync("checkout-mutates.cjs", source + "\n" + mutation, {flag: "wx"});
+          '
+          status=0
+          node scripts/replay-function.cjs --contract examples/checkout/function.contract.json --source checkout-mutates.cjs > checkout-mutations.json || status=$?
+          test "$status" -eq 1
+          node -e '
+            const assert = require("node:assert/strict");
+            const {failures} = require("./checkout-mutations.json");
+            assert.deepEqual(failures, ["case-01","case-02","case-03"].map(id => ({id,reasons:["inputs-changed"]})));
+            console.log("The checkout returned the expected values but changed input arguments in three cases.");
+          '
       - name: Verify the validator's expected error code
         uses: ./
         with:

@@ -97,6 +97,7 @@ test('repeated CLI runs detect changing clock returns under identical failing sc
   assert.equal(report.status,'checked');
   assert.deepEqual(report.repeat,{runs:3,passingPerRun:[0,0,0],changedVerdicts:[],changedFailures:['case-01']});
   assert.deepEqual(report.checks,[{id:'case-01',ok:false}]);
+  assert.deepEqual(report.failures,[{id:'case-01',reasons:['return-mismatch']}]);
   assert.equal(report.modelCalls,0);
   assert.doesNotMatch(outcome.stdout,/Private|Date\.now/);
   const xml=await fs.readFile(junit,'utf8');
@@ -152,10 +153,29 @@ test('JUnit reports bind fresh passing or failing observations and keep unavaila
   const command=path.resolve(__dirname,'../../../scripts/replay-function.cjs');
   const invoke=args=>new Promise(resolve=>execFile(process.execPath,[command,...args],{timeout:5000},(error,stdout,stderr)=>resolve({code:error?.code??0,stdout,stderr})));
   const mixed=createFunctionReplay(createFunctionTask({schema:TASK_SCHEMA,title:'Private transform',instructions:'Preserve falsy inputs.',exportName:'identity',source:'module.exports={identity:x=>x||7};',cases:[{label:'Private zero',args:[0],expected:0},{label:'Private false',args:[false],expected:false},{label:'Private positive',args:[7],expected:7}]}).files);
+  const outcomes=createFunctionReplay(createFunctionTask({
+   schema:TASK_SCHEMA,title:'Private outcome tests',instructions:'Preserve input and observe the expected outcome.',exportName:'evaluate',
+   source:`exports.evaluate = input => {
+    if (input.mode === 'wrong') { input.value = 'PRIVATE_VALUE'; return false; }
+    if (input.mode === 'throws') throw Object.assign(new Error('PRIVATE_MESSAGE'), {code:'PRIVATE_WRONG_CODE'});
+    if (input.mode === 'bad-result') return undefined;
+    if (input.mode === 'bad-arguments') input.value = () => 0;
+    return true;
+   };`,
+   cases:[
+    {label:'Private return mismatch and mutation',args:[{mode:'wrong'}],expected:true},
+    {label:'Private wrong error code',args:[{mode:'throws'}],throws:'PRIVATE_EXPECTED_CODE'},
+    {label:'Private missing error',args:[{mode:'returns'}],throws:'PRIVATE_EXPECTED_CODE'},
+    {label:'Private unexpected error',args:[{mode:'throws'}],expected:true},
+    {label:'Private unsupported return',args:[{mode:'bad-result'}],expected:true},
+    {label:'Private unsupported arguments',args:[{mode:'bad-arguments'}],expected:true},
+   ],
+  }).files);
   for(const [name,packet,exit,failures,errors,total]of [
    ['pass',createFunctionReplay(files()),0,0,0,1],
    ['mutation',createFunctionReplay(files('module.exports={sortCopy:values=>values.sort()};')),1,1,0,1],
    ['mixed',mixed,1,2,0,3],
+   ['outcomes',outcomes,1,6,0,6],
    ['unavailable',createFunctionReplay(files('module.exports={sortCopy(){while(true){}}};')),2,0,1,1],
    ['invalid',{schema:'made-up',source:'PRIVATE_SOURCE_NEVER_EXECUTED'},2,0,1,1]
   ]){
@@ -164,10 +184,27 @@ test('JUnit reports bind fresh passing or failing observations and keep unavaila
    assert.equal(result.code,exit);assert.match(xml,new RegExp('<testsuite name="Local Pit Crew function replay" tests="'+total+'" failures="'+failures+'" errors="'+errors+'" skipped="0">'));
    assert.equal((xml.match(/<testcase /g)||[]).length,total);assert.equal((xml.match(/<failure /g)||[]).length,failures);assert.equal((xml.match(/<error /g)||[]).length,errors);
    assert.match(xml,/<property name="modelCalls" value="0"\/>/);
-   for(const secret of ['Private','PRIVATE_SOURCE','sortCopy','values.sort','["b","a"]',file,output])assert.equal((xml+result.stdout+result.stderr).includes(secret),false);
+   for(const secret of ['Private','PRIVATE_','sortCopy','values.sort','["b","a"]',file,output])assert.equal((xml+result.stdout+result.stderr).includes(secret),false);
    if(!errors){
     assert.equal(xml.includes('<testcase classname="local-pit-crew.function.'+packet.files[1].sha256+'" name="case-01">'),true);
     const report=JSON.parse(result.stdout);assert.equal(report.total,total);assert.equal(report.passed,total-failures);assert.equal(report.modelCalls,0);
+    if(name==='mutation'){
+     assert.deepEqual(report.failures,[{id:'case-01',reasons:['inputs-changed']}]);
+     assert.match(xml,/The function changed its input arguments\./);
+     assert.doesNotMatch(xml,/returned value differs/);
+    }
+    if(name==='outcomes'){
+     assert.deepEqual(report.failures,[
+      {id:'case-01',reasons:['return-mismatch','inputs-changed']},
+      {id:'case-02',reasons:['error-code-mismatch']},
+      {id:'case-03',reasons:['expected-error-not-thrown']},
+      {id:'case-04',reasons:['unexpected-throw']},
+      {id:'case-05',reasons:['unsupported-return']},
+      {id:'case-06',reasons:['unsupported-inputs']},
+     ]);
+     assert.match(xml,/The returned value differs from the expected value\. The function changed its input arguments\./);
+     assert.match(xml,/The thrown error code differs from the expected code\./);
+    }
    }else{assert.match(xml,/<testcase classname="local-pit-crew.replay(?:\.[a-f0-9]{64})?" name="verification">/);assert.equal(xml.includes('name="case-01"'),false);}
    if(name!=='invalid')for(const file of packet.files)assert.equal(xml.includes(file.sha256),true);
    else assert.equal(xml.includes('.sha256'),false);

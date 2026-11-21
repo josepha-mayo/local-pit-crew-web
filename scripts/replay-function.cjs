@@ -4,20 +4,46 @@ const {createHash}=require('node:crypto');
 const {parseFunctionReplay,prepareReplayComparison,prepareSourceComparison,MAX_REPLAY_BYTES}=require('../local-pit-crew/src/function-replay.cjs');
 const {workspaceHash}=require('../local-pit-crew/src/controller.cjs');
 const {comparePublicChecks,changedWhileFailing,compareSameReplay}=require('../local-pit-crew/src/public-check-changes.cjs');
-const {FUNCTION_SUITE,FUNCTION_ENTRY,CONTRACT_PATH,LIMITS,validateFunctionFiles,inspectFunctionObservations}=require('../local-pit-crew/runner/function-contract.cjs');
+const {FUNCTION_SUITE,FUNCTION_ENTRY,CONTRACT_PATH,LIMITS,parseContractSource,validateFunctionFiles,inspectFunctionObservations}=require('../local-pit-crew/runner/function-contract.cjs');
 const {runCandidateProbe}=require('../local-pit-crew/runner/probe.cjs');
 const USAGE='npm run replay:function -- BASELINE.replay.json [--against CANDIDATE.replay.json | --source FUNCTION.js | --compare-source FUNCTION.js] [--runs 2-5] [--junit NEW_REPORT.xml]\n'+
  'npm run replay:function -- --contract TESTS.contract.json --source FUNCTION.js [--contract-sha256 SHA256] [--runs 2-5] [--junit NEW_REPORT.xml]';
+const FAILURE_MESSAGES={
+ 'return-mismatch':'The returned value differs from the expected value.',
+ 'unexpected-throw':'The function threw instead of returning.',
+ 'unsupported-return':'The return value is outside the supported JSON limits.',
+ 'expected-error-not-thrown':'The function did not throw the required error.',
+ 'error-code-mismatch':'The thrown error code differs from the expected code.',
+ 'inputs-changed':'The function changed its input arguments.',
+ 'unsupported-inputs':'The arguments after the call are outside the supported JSON limits.',
+};
+function describeFailure(observation,example){
+ const reasons=[];
+ if(!observation.returnMatches){
+  if(example.throws!==undefined)reasons.push(observation.status==='threw'?'error-code-mismatch':'expected-error-not-thrown');
+  else if(observation.status==='threw')reasons.push('unexpected-throw');
+  else if(observation.status==='unserializable')reasons.push('unsupported-return');
+  else reasons.push('return-mismatch');
+ }
+ if(!observation.inputPreserved)reasons.push(observation.argumentsAfter===null?'unsupported-inputs':'inputs-changed');
+ return{id:observation.id,reasons};
+}
 async function checkFiles(files,{captureDiagnostics=false}={}){
  const result=await runCandidateProbe({suiteId:FUNCTION_SUITE,files});
  const observed=result.status==='observed'&&result.cleanupConfirmed===true;
  const checks=observed?result.checks.map(({id,ok})=>({id,ok})):[];
+ const failed=checks.some(check=>!check.ok);
+ const diagnostics=observed&&(captureDiagnostics||failed)?inspectFunctionObservations(result.observations,files):[];
  const report={schema:'local-pit-crew/function-replay-result/v1',status:observed?'checked':'unavailable',
   files:Object.entries(files).map(([path,content])=>({path,sha256:createHash('sha256').update(content).digest('hex')})),
   checks,passed:checks.filter(c=>c.ok).length,total:checks.length,modelCalls:0,
   verification:{boundary:'node-worker-quickjs',qualifiedDocker:false,cleanupConfirmed:result.cleanupConfirmed===true},
   heldOutCorrectness:false};
- return{report,diagnostics:observed&&captureDiagnostics?inspectFunctionObservations(result.observations,files):[]};
+ if(failed){
+  const {cases}=parseContractSource(files[CONTRACT_PATH]);
+  report.failures=diagnostics.flatMap((observation,index)=>observation.ok?[]:[describeFailure(observation,cases[index])]);
+ }
+ return{report,diagnostics};
 }
 async function replay(text){return (await checkFiles(parseFunctionReplay(text))).report;}
 async function repeatFiles(files,runs){
@@ -36,7 +62,15 @@ async function repeatFiles(files,runs){
  }
  const first=attempts[0].report;
  const checks=first.checks.map(({id,ok},index)=>({id,ok:ok&&attempts.every(({report})=>report.checks[index].ok)}));
- return{...first,checks,passed:checks.filter(c=>c.ok).length,
+ const reasonsByCase=new Map();
+ for(const {report} of attempts){
+  for(const {id,reasons} of report.failures??[]){
+   if(!reasonsByCase.has(id))reasonsByCase.set(id,new Set());
+   for(const reason of reasons)reasonsByCase.get(id).add(reason);
+  }
+ }
+ const failures=checks.filter(check=>!check.ok).map(({id})=>({id,reasons:[...reasonsByCase.get(id)]}));
+ return{...first,checks,passed:checks.filter(c=>c.ok).length,...(failures.length&&{failures}),
   repeat:{runs,passingPerRun:attempts.map(({report})=>report.passed),changedVerdicts:[...changedVerdicts],changedFailures:[...changedFailures]}};
 }
 async function compareReplays(baselineText,candidateText){
@@ -73,7 +107,13 @@ function writeJUnit(file,result){
   ...(result?[['verification.boundary',result.verification.boundary],['verification.qualifiedDocker',false],['verification.cleanupConfirmed',result.verification.cleanupConfirmed],...result.files.map(f=>[f.path+'.sha256',f.sha256])]:[]),
   ...(result?.repeat?[['replay.runs',result.repeat.runs],['replay.changedVerdicts',result.repeat.changedVerdicts.length],
    ['replay.changedFailures',result.repeat.changedFailures.length]]:[])];
- const cases=checked?checks.map(c=>`    <testcase classname="local-pit-crew.function${suffix}" name="${xml(c.id)}">${c.ok?'':'<failure message="Fixed example failed">The example requires the expected outcome and input preservation.</failure>'}</testcase>`):
+ const reasonsByCase=new Map((result?.failures??[]).map(({id,reasons})=>[id,reasons]));
+ const cases=checked?checks.map(({id,ok})=>{
+  const reasons=reasonsByCase.get(id)??[];
+  const description=reasons.map(reason=>FAILURE_MESSAGES[reason]).join(' ')||'The example requires the expected outcome and input preservation.';
+  const failure=ok?'':`<failure message="Fixed example failed">${xml(description)}</failure>`;
+  return `    <testcase classname="local-pit-crew.function${suffix}" name="${xml(id)}">${failure}</testcase>`;
+ }):
   [`    <testcase classname="local-pit-crew.replay${suffix}" name="verification"><error message="Replay invalid or execution unavailable">No candidate verdict is available. No example results were fabricated.</error></testcase>`];
  const report=['<?xml version="1.0" encoding="UTF-8"?>',`<testsuites ${counts}>`,`  <testsuite name="Local Pit Crew function replay" ${counts}>`,'    <properties>',
   ...properties.map(([name,value])=>`      <property name="${xml(name)}" value="${xml(value)}"/>`),'    </properties>',...cases,'  </testsuite>','</testsuites>',''].join('\n');
