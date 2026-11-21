@@ -433,6 +433,48 @@ test('intake explains malformed examples next to the form and a rejected contrac
   assert.equal(cases.attributes.get('aria-invalid'),'false');
  }finally{await f.close();}
 });
+test('expected error codes survive repair, cloud preview, replay and the repeat-call editor',async()=>{
+ const cloud=cloudFixture(),f=await setup({cloud});
+ try{
+  await f.el('bring-function').click();
+  f.el('function-title').value='Normalize a project slug';
+  f.el('function-instructions').value='Normalize valid slugs. Reject a slash with INVALID_SLUG.';
+  f.el('function-export').value='normalizeSlug';
+  f.el('function-source').value="exports.normalizeSlug=value=>value.includes('/')?null:value.trim().toLowerCase();";
+  f.el('function-cases').value=JSON.stringify([
+   {label:'Normalize a valid slug',args:[' Demo-1 '],expected:'demo-1'},
+   {label:'Reject a slash',args:['demo/1'],throws:'INVALID_SLUG'},
+  ]);
+  await f.el('open-function').click();await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'1/2');
+  assert.equal(f.el('failure-preview-reason').textContent,'The function did not throw');
+  const expected=f.el('checks').children[0].children[2].children[1].children[0];
+  assert.equal(expected.children[0].textContent,'Expected error code');
+  assert.equal(expected.children[1].textContent,'"INVALID_SLUG"');
+  await f.el('preview-function-draft').click();
+  const payload=JSON.parse(f.el('function-draft-data').textContent);
+  assert.equal(payload.contract.cases[1].throws,'INVALID_SLUG');
+  assert.equal(payload.failedFunctionExamples[0].expectation,'throw-code');
+  assert.equal(JSON.parse(payload.failedFunctionExamples[0].expected),'INVALID_SLUG');
+  assert.equal(cloud.calls.prompts.length,0);
+  await f.el('cancel-function-draft').click();
+  f.el('function-replacement').value="exports.normalizeSlug=value=>{if(value.includes('/'))throw Object.assign(new TypeError('PRIVATE_MESSAGE'),{code:'INVALID_SLUG'});return value.trim().toLowerCase();};";
+  await f.el('load').click();await f.el('apply').click();await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'2/2');
+  assert.equal(f.el('checks').children[1].children[2].children[0].textContent,'Expected error code matched; inputs unchanged');
+  assert.equal((await replayModule.replay(f.el('replay-json').textContent)).passed,2);
+  await f.el('replay-download-contract').click();
+  assert.equal(JSON.parse(await f.downloads[0].blob.text()).cases[1].throws,'INVALID_SLUG');
+  f.el('repeat-example-case').value='case-02';
+  await f.el('fill-repeat-example').click();
+  assert.equal(f.el('challenge-throws').checked,true);
+  assert.equal(f.el('challenge-expected').value,'INVALID_SLUG');
+  await f.el('extend-function').click();await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'3/3');
+  const replay=JSON.parse(f.el('replay-json').textContent);
+  assert.equal(JSON.parse(replay.files[1].content).cases[2].throws,'INVALID_SLUG');
+ }finally{await f.close();}
+});
 test('an explicit draft download preserves incomplete text and a verified run survives draft loading',async()=>{
  const f=await setup();try{
   await passFunction(f);

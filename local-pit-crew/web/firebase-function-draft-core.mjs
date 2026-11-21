@@ -23,7 +23,9 @@ function capture(snapshot,hint){
  const failures=localClient.failureContext(s);
  for(const row of failures.failedFunctionExamples??[]){
   const expected=contract.cases.find(c=>c.id===row.id);
-  if(JSON.stringify(JSON.parse(row.args))!==JSON.stringify(expected.args)||JSON.stringify(JSON.parse(row.expected))!==JSON.stringify(expected.expected))throw Error('failure-contract-mismatch');
+  const expectation=expected.throws===undefined?undefined:'throw-code';
+  if(JSON.stringify(JSON.parse(row.args))!==JSON.stringify(expected.args)||row.expectation!==expectation||
+   JSON.stringify(JSON.parse(row.expected))!==JSON.stringify(expected.throws??expected.expected))throw Error('failure-contract-mismatch');
  }
  const binding={revision:s.revision,beforeSourceSha256:reads.get(contracts.FUNCTION_ENTRY).sha256,contractSha256:reads.get(contracts.CONTRACT_PATH).sha256};
  return{data:{task:s.originalTask,source:reads.get(contracts.FUNCTION_ENTRY),contract:{path:contracts.CONTRACT_PATH,sha256:binding.contractSha256,exportName:contract.exportName,cases:contract.cases},

@@ -41,14 +41,19 @@ function canonical(value){
  if(Array.isArray(value))return'['+value.map(canonical).join(',')+']';
  return'{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}';
 }
+const validErrorCode=value=>typeof value==='string'&&/^[A-Z][A-Z0-9_]{0,63}$/.test(value);
+function validateFunctionExample(value,id){
+ const throws=!!value&&Object.hasOwn(value,'throws');
+ const row=fields(value,[...(id===undefined?[]:['id']),'label','args',throws?'throws':'expected']);
+ if(id!==undefined&&row.id!==id||typeof row.label!=='string'||!row.label.trim()||row.label.length>80||
+  throws&&!validErrorCode(row.throws))fail();
+ return{...(id===undefined?{}:{id}),label:row.label,args:jsonValue(dense(row.args,LIMITS.args)),
+  ...(throws?{throws:row.throws}:{expected:jsonValue(row.expected)})};
+}
 function validateContract(value){
  const x=fields(value,['schema','exportName','cases']);
  if(x.schema!==CONTRACT_SCHEMA||typeof x.exportName!=='string'||!/^[A-Za-z_$][A-Za-z0-9_$]{0,63}$/.test(x.exportName)||['__proto__','constructor','prototype'].includes(x.exportName))fail();
- const cases=dense(x.cases,LIMITS.cases).map((c,i)=>{
-  const row=fields(c,['id','label','args','expected']);
-  if(row.id!=='case-'+String(i+1).padStart(2,'0')||typeof row.label!=='string'||!row.label.trim()||row.label.length>80)fail();
-  return{id:row.id,label:row.label,args:jsonValue(dense(row.args,LIMITS.args)),expected:jsonValue(row.expected)};
- });
+ const cases=dense(x.cases,LIMITS.cases).map((c,i)=>validateFunctionExample(c,'case-'+String(i+1).padStart(2,'0')));
  if(!cases.length)fail();const result={schema:CONTRACT_SCHEMA,exportName:x.exportName,cases};
  if(size(JSON.stringify(result))>LIMITS.contractBytes)fail();return result;
 }
@@ -64,11 +69,13 @@ function validateFunctionFiles(value){
 function createFunctionTask(value){
  const x=fields(value,['schema','title','instructions','exportName','source','cases']);
  if(x.schema!==TASK_SCHEMA||typeof x.title!=='string'||!x.title.trim()||x.title.length>80||typeof x.instructions!=='string'||!x.instructions.trim()||size(x.instructions)>1000)fail();
- const declared=dense(x.cases,LIMITS.cases).map((c,i)=>({id:'case-'+String(i+1).padStart(2,'0'),...fields(c,['label','args','expected'])}));
+ const declared=dense(x.cases,LIMITS.cases).map((c,i)=>({id:'case-'+String(i+1).padStart(2,'0'),...validateFunctionExample(c)}));
  const contract=validateContract({schema:CONTRACT_SCHEMA,exportName:x.exportName,cases:declared});
  const files=validateFunctionFiles({[FUNCTION_ENTRY]:x.source,[CONTRACT_PATH]:JSON.stringify(contract)});
  const prompt='Repair the synchronous CommonJS export '+contract.exportName+' in '+FUNCTION_ENTRY+'. '+
-  'Return the expected JSON value for each example in the read-only '+CONTRACT_PATH+' and preserve the JSON-visible input arguments. '+
+  (contract.cases.some(c=>c.throws)
+   ?'Match the expected JSON return or throw an error with the specified own code for each example in the read-only '
+   :'Return the expected JSON value for each example in the read-only ')+CONTRACT_PATH+' and preserve the JSON-visible input arguments. '+
   'Imports, asynchronous results and non-JSON return values are unsupported. Do not change the contract.\nUser requirement: '+x.instructions;
  // Reserve room for source identities, check feedback and lifecycle metadata.
  if(size(JSON.stringify({files,prompt}))+3500>16000)throw Error('function-context-budget-exceeded');
@@ -80,17 +87,21 @@ function inspectFunctionObservations(value,files){
  const source=validateFunctionFiles(files),contract=parseContractSource(source[CONTRACT_PATH]),ids=checkIds(contract);
  const observations=dense(value,ids.length);if(observations.length!==ids.length)fail();
  return observations.map((row,i)=>{
-  const x=fields(row,['id','status','output','argsAfter']);
+  const coded=!!row&&Object.hasOwn(row,'errorCode');
+  const x=fields(row,['id','status','output','argsAfter',...(coded?['errorCode']:[])]);
   if(x.id!==ids[i]||!['returned','threw','unserializable'].includes(x.status)||
    !(x.argsAfter===null||typeof x.argsAfter==='string')||!(x.output===null||typeof x.output==='string')||
-   x.status==='returned'&&x.output===null||x.status!=='returned'&&x.output!==null)fail();
+   x.status==='returned'&&x.output===null||x.status!=='returned'&&x.output!==null||
+   coded&&(x.status!=='threw'||!validErrorCode(x.errorCode)))fail();
   const parse=raw=>{if(size(raw)>LIMITS.observationBytes)fail();let v;try{v=JSON.parse(raw);}catch{fail();}return jsonValue(v,{allowNegativeZero:true});};
   const returned=x.output===null?null:parse(x.output),after=x.argsAfter===null?null:parse(x.argsAfter);
-  const returnMatches=x.status==='returned'&&canonical(returned)===canonical(contract.cases[i].expected);
-  const inputPreserved=x.argsAfter!==null&&canonical(after)===canonical(contract.cases[i].args);
+  const example=contract.cases[i];
+  const returnMatches=example.throws!==undefined?x.status==='threw'&&x.errorCode===example.throws:
+   x.status==='returned'&&canonical(returned)===canonical(example.expected);
+  const inputPreserved=x.argsAfter!==null&&canonical(after)===canonical(example.args);
   return{id:ids[i],ok:returnMatches&&inputPreserved,status:x.status,returnMatches,inputPreserved,
    actualReturn:x.status==='returned'?canonical(returned):null,argumentsAfter:x.argsAfter===null?null:canonical(after)};
  });
 }
 function gradeFunctionObservations(value,files){return inspectFunctionObservations(value,files).map(({id,ok})=>({id,ok}));}
-module.exports={FUNCTION_SUITE,FUNCTION_ENTRY,CONTRACT_PATH,CONTRACT_SCHEMA,TASK_SCHEMA,LIMITS,fields,dense,jsonValue,canonical,validateContract,parseContractSource,checkIds,validateFunctionFiles,createFunctionTask,gradeFunctionObservations,inspectFunctionObservations};
+module.exports={FUNCTION_SUITE,FUNCTION_ENTRY,CONTRACT_PATH,CONTRACT_SCHEMA,TASK_SCHEMA,LIMITS,fields,dense,jsonValue,canonical,validateFunctionExample,validateContract,parseContractSource,checkIds,validateFunctionFiles,createFunctionTask,gradeFunctionObservations,inspectFunctionObservations};

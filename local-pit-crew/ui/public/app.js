@@ -153,7 +153,7 @@ module.exports = { uniqueTags };`;
    const detail=functionCheckDetails(state,id),diagnostic=state.checkDiagnostics?.find(c=>c.id===id);
    return detail?[{id,status:diagnostic.status,args:detail.args,expected:detail.expected,
     actual:diagnostic.status==='returned'?diagnostic.actualReturn:null,inputPreserved:diagnostic.inputPreserved,
-    argumentsAfter:detail.argumentsAfter}]:[];
+    argumentsAfter:detail.argumentsAfter,...(detail.expectation?{expectation:detail.expectation}:{})}]:[];
   }):[];
   return{...s,evidence,events:state.events??[],publicChecks:state.checks.map(({id,ok})=>({id,ok})),
    ...(failedFunctionExamples.length?{failedFunctionExamples}:{}),
@@ -229,8 +229,10 @@ module.exports = { uniqueTags };`;
   const check=state.checks?.find(c=>c.id===id),d=state.checkDiagnostics?.find(c=>c.id===id),example=state.task.counterexamples?.find(c=>c.id===id);
   if(!check||!d||!example||d.ok!==check.ok||!['returned','threw','unserializable'].includes(d.status)||
    typeof d.returnMatches!=='boolean'||typeof d.inputPreserved!=='boolean'||d.ok!==(d.returnMatches&&d.inputPreserved))return null;
+  const expectsThrow=typeof example.throws==='string';
   const reasons=[];
-  if(d.status==='threw')reasons.push('The function threw an error');
+  if(expectsThrow&&!d.returnMatches)reasons.push(d.status==='threw'?'The thrown error code did not match':'The function did not throw');
+  else if(!expectsThrow&&d.status==='threw')reasons.push('The function threw an error');
   else if(d.status==='unserializable')reasons.push('The return value is outside the supported JSON data limits');
   else if(!d.returnMatches)reasons.push('The return value differs');
   let changedInput=null;
@@ -243,11 +245,18 @@ module.exports = { uniqueTags };`;
     }
    }catch{/* An unavailable comparison never supplies a guessed path. */}
   }
-  return{summary:check.ok?'Return matched; inputs unchanged':reasons.join('. '),
-   args:JSON.stringify(example.args,null,2),expected:JSON.stringify(example.expected,null,2),
-   actual:d.status==='returned'?d.actualReturn:d.status==='threw'?'No return value. Error contents are withheld.':'Unsupported JSON return value.',
+  let actual='Unsupported JSON return value.';
+  if(d.status==='returned')actual=d.actualReturn;
+  else if(d.status==='threw'){
+   actual=expectsThrow
+    ?(d.returnMatches?'Threw the expected code.':'Threw without the expected code.')
+    :'No return value. Error contents are withheld.';
+  }
+  return{summary:check.ok?(expectsThrow?'Expected error code matched; inputs unchanged':'Return matched; inputs unchanged'):reasons.join('. '),
+   args:JSON.stringify(example.args,null,2),expected:JSON.stringify(example.throws??example.expected,null,2),
+   actual,
    argumentsAfter:d.inputPreserved?null:d.argumentsAfter??'Input arguments are no longer supported JSON data.',
-   changedInput,returnMatches:d.returnMatches};
+   changedInput,returnMatches:d.returnMatches,expectation:expectsThrow?'throw-code':undefined};
  }
  function checkedFunctionForDownload(state){
   const s=state?.snapshot,file=state?.checkedFunction,checks=state?.checks,examples=state?.task?.counterexamples;
@@ -454,9 +463,9 @@ module.exports = { uniqueTags };`;
    if(!cases)return '';
    const current=cases.findIndex(example=>example.id===id);
    if(current<1)return '';
-   const {args,expected}=cases[current];
-   const key=JSON.stringify([args,expected]);
-   const earlier=cases.slice(0,current).findIndex(example=>JSON.stringify([example.args,example.expected])===key&&
+   const outcomeKey=({args,expected,throws})=>JSON.stringify({args,expected,throws});
+   const key=outcomeKey(cases[current]);
+   const earlier=cases.slice(0,current).findIndex(example=>outcomeKey(example)===key&&
     state.checks.some(check=>check.id===example.id&&check.ok));
    return earlier<0?'':'Call '+(earlier+1)+' passed with these same arguments. Call '+(current+1)+' failed.';
   }
@@ -617,7 +626,7 @@ module.exports = { uniqueTags };`;
    el('pass-label').textContent=state?.checks?.length?(s?.publicChecksCurrent?'PUBLIC CHECKS PASS':'FAILURE TO INVESTIGATE'):'NO CHECKS RUN';
    el('coder-calls').textContent=String(state?.providerInvocations?.coder??0);
    el('planner-calls').textContent=String((state?.providerInvocations?.planner??0)+advisorCalls);
-   el('advisor-copy').textContent=view.ownFunction?'Nano receives the current source and failed examples, including expected and actual returns and observed input changes. It reasons on-device; review its hint before editing.':'A failed check and the source give Nano something specific to reason about. Its hint stays separate from the patch.';
+   el('advisor-copy').textContent=view.ownFunction?'Nano receives the current source, expected behavior, and observed failures. It reasons on-device; review its hint before editing.':'A failed check and the source give Nano something specific to reason about. Its hint stays separate from the patch.';
    if(showHybridReview)el('advisor-copy').textContent='Nano reads the source and failed examples on this device.';
    el('diagnose').disabled=blocked||view.live||!firebaseAvailable(liveClient)||!!nanoSetupMessage()||!repairSnapshot(state);
    el('stop-diagnosis').hidden=!advisorBusy;
@@ -710,8 +719,8 @@ module.exports = { uniqueTags };`;
     const label=state.task.checkLabels?.[firstFailure.id]??firstFailure.id;
     modelEvidence.append(node('h3','Observed in the browser'),
      node('p',passed+'/'+total+' passing · '+label),
-     observedPair('counterexample-returns','Expected return',firstDiagnostic.expected.replace(/\n\s*/g,' '),
-      'Observed return',firstDiagnostic.actual.replace(/\n\s*/g,' '),!firstDiagnostic.returnMatches));
+     observedPair('counterexample-returns',firstDiagnostic.expectation?'Expected error code':'Expected return',firstDiagnostic.expected.replace(/\n\s*/g,' '),
+      firstDiagnostic.expectation?'Observed behavior':'Observed return',firstDiagnostic.actual.replace(/\n\s*/g,' '),!firstDiagnostic.returnMatches));
    }
    el('inspect-failed-example').hidden=!firstDiagnostic;
    el('failure-preview').hidden=!firstDiagnostic;
@@ -728,7 +737,8 @@ module.exports = { uniqueTags };`;
     if(diagnostic){
      const detail=node('details',undefined,'counterexample-detail');detail.open=!check.ok;
      detail.append(node('summary',diagnostic.summary),observedPair('counterexample-returns',
-      'Expected return',diagnostic.expected,'Observed return',diagnostic.actual,!diagnostic.returnMatches));
+      diagnostic.expectation?'Expected error code':'Expected return',diagnostic.expected,
+      diagnostic.expectation?'Observed behavior':'Observed return',diagnostic.actual,!diagnostic.returnMatches));
      if(!check.ok){
       const earlier=earlierPassingCall(state,check.id);
       if(earlier)detail.append(node('p',earlier,'repeat-call-evidence'));
@@ -902,11 +912,27 @@ module.exports = { uniqueTags };`;
     output.append(block);
    }
   }
-  function fillChallengeExample({label,args,expected},message){
+  const errorCodePattern=/^[A-Z][A-Z0-9_]{0,63}$/;
+  function syncExampleOutcome(prefix){
+   const throws=!!el(prefix+'-throws').checked;
+   el(prefix+'-expected-label').textContent=throws?'Expected error code':'Expected return · JSON';
+   el(prefix+'-expected').placeholder=throws?'INVALID_SLUG':'null';
+   return throws;
+  }
+  function readExampleOutcome(throws,text){
+   if(!throws)return{expected:JSON.parse(text)};
+   const code=text.trim();
+   if(!errorCodePattern.test(code))throw Error('invalid-error-code');
+   return{throws:code};
+  }
+  for(const prefix of ['challenge','probe-example'])el(prefix+'-throws').addEventListener('change',()=>syncExampleOutcome(prefix));
+  function fillChallengeExample({label,args,expected,throws},message){
    el('challenge-function').open=true;
    el('challenge-label').value=label;
    el('challenge-args').value=JSON.stringify(args,null,2);
-   el('challenge-expected').value=expected===undefined?'':JSON.stringify(expected,null,2);
+   el('challenge-throws').checked=throws!==undefined;
+   syncExampleOutcome('challenge');
+   el('challenge-expected').value=throws??(expected===undefined?'':JSON.stringify(expected,null,2));
    el('challenge-status').textContent=message;
    const expectedInput=el('challenge-expected');
    expectedInput.focus?.({preventScroll:true});
@@ -1404,12 +1430,15 @@ module.exports = { uniqueTags };`;
   const comparisonInputs=[el('comparison-baseline-file'),el('comparison-candidate-file')];
   const probePanel=el('boundary-probe'),probeButton=el('run-boundary-probe'),probeStatus=el('boundary-probe-status'),probeResults=el('boundary-probe-results');
   const probeEditor=el('probe-example-editor'),probeLabel=el('probe-example-label'),probeExpected=el('probe-example-expected');
+  const probeThrows=el('probe-example-throws');
   const probeTestStatus=el('probe-example-status');
   let comparisonSummary=null,comparisonFailureReplay=null,comparedRequest=null;
   let probeDraft=null;
   function clearProbeEditor(){
    probeDraft=null;
    probeEditor.hidden=true;
+   probeThrows.checked=false;
+   syncExampleOutcome('probe-example');
    probeExpected.value='';
    probeTestStatus.textContent='';
   }
@@ -1470,10 +1499,13 @@ module.exports = { uniqueTags };`;
    compareExample.disabled=comparisonBusy||!token;
    probeButton.disabled=comparisonBusy||!token||!comparedRequest;
   }
-  function appendVersionObservations(item,baseline,candidate){
+  function appendVersionObservations(item,baseline,candidate,expectation){
    for(const [name,observation] of [['Baseline',baseline],['Candidate',candidate]]){
-    const outcome=observation.status==='returned'?observation.actualReturn:
-     observation.status==='threw'?'The function threw.':'The return could not be represented as JSON.';
+    let outcome='The return could not be represented as JSON.';
+    if(observation.status==='returned')outcome=observation.actualReturn;
+    else if(observation.status==='threw'){
+     outcome=expectation?'Threw '+(observation.returnMatches?'the expected code.':'without the expected code.'):'The function threw.';
+    }
     item.append(node('p',name+(observation.inputPreserved?' · Input preserved':' · Input preservation failed')),node('pre',outcome));
     if(!observation.inputPreserved)item.append(node('p',name+' arguments after the call'),
      node('pre',observation.argumentsAfter??'The arguments could not be represented as JSON.'));
@@ -1482,19 +1514,19 @@ module.exports = { uniqueTags };`;
   el('load-probe-example').addEventListener('click',async()=>{
    const draft=probeDraft;
    if(!draft||busy||inspection||cloudBusy||pageLeaving||!token)return;
-   const expectedText=probeExpected.value,label=probeLabel.value;
-   let expected;
-   try{expected=JSON.parse(expectedText);}catch{
-    probeTestStatus.textContent='Enter the expected return as JSON. Use null for a null return.';
+   const expectedText=probeExpected.value,label=probeLabel.value,expectsThrow=probeThrows.checked;
+   let outcome;
+   try{outcome=readExampleOutcome(expectsThrow,expectedText);}catch{
+    probeTestStatus.textContent=expectsThrow?'Enter an uppercase error code like INVALID_SLUG.':'Enter the expected return as JSON. Use null for a null return.';
     probeExpected.focus?.();
     return;
    }
    const before=intakeFields.map(input=>input.value);
-   const example={label,args:JSON.parse(draft.args),expected};
+   const example={label,args:JSON.parse(draft.args),...outcome};
    probeTestStatus.textContent='Checking the extended contract…';
    const result=await request('/api/function/replay',{packet:draft.replay,example});
    if(pageLeaving||draft!==probeDraft)return;
-   if(probeExpected.value!==expectedText||probeLabel.value!==label||intakeFields.some((input,index)=>input.value!==before[index])){
+   if(probeExpected.value!==expectedText||probeLabel.value!==label||probeThrows.checked!==expectsThrow||intakeFields.some((input,index)=>input.value!==before[index])){
     probeTestStatus.textContent='Your draft changed during validation and was kept. Load again to replace it.';
     return;
    }
@@ -1569,6 +1601,8 @@ module.exports = { uniqueTags };`;
         probeLabel.value='Boundary test · '+label;
         el('probe-example-args').textContent=args;
         probeExpected.value='';
+        probeThrows.checked=false;
+        syncExampleOutcome('probe-example');
         probeTestStatus.textContent='';
         probeEditor.hidden=false;
         probeExpected.focus?.();
@@ -1601,12 +1635,12 @@ module.exports = { uniqueTags };`;
     el('compare-replay-changes').append(node('li','Repaired: '+labels(repaired),'comparison-repaired'),
      node('li','Regressed: '+labels(regressed),regressed.length?'comparison-regressed':''));
     if(changedFailures.length)el('compare-replay-changes').append(node('li','Still failing, result changed: '+labels(changedFailures)));
-    for(const {id,args,expected,baseline,candidate} of result.observations){
+    for(const {id,args,expected,expectation,baseline,candidate} of result.observations){
      const detail=node('details');
      const change=baseline.ok?'Regressed':candidate.ok?'Repaired':'Still failing, result changed';
      detail.append(node('summary',change+' · '+(result.checkLabels[id]??id)),
-      node('p','Input arguments'),node('pre',args),node('p','Expected return'),node('pre',expected));
-     appendVersionObservations(detail,baseline,candidate);
+      node('p','Input arguments'),node('pre',args),node('p',expectation?'Expected error code':'Expected return'),node('pre',expected));
+     appendVersionObservations(detail,baseline,candidate,expectation);
      comparisonEvidence.append(detail);
     }
     comparisonSummary={schema:'local-pit-crew/browser-comparison-summary/v1',boundary:'browser-worker-quickjs',
@@ -1675,11 +1709,18 @@ module.exports = { uniqueTags };`;
   }
   el('extend-function').addEventListener('click',async()=>{
    if(el('extend-function').disabled)return;
-   let args,expected;try{args=JSON.parse(el('challenge-args').value);expected=JSON.parse(el('challenge-expected').value);}catch{el('challenge-status').textContent='Enter valid JSON for the arguments array and expected return.';return;}
-   const result=await extendCheckedFunction({label:el('challenge-label').value,args,expected});
+   const expectsThrow=el('challenge-throws').checked;
+   let args,outcome;
+   try{args=JSON.parse(el('challenge-args').value);}catch{el('challenge-status').textContent='Enter a valid JSON arguments array.';return;}
+   try{outcome=readExampleOutcome(expectsThrow,el('challenge-expected').value);}catch{
+    el('challenge-status').textContent=expectsThrow?'Enter an uppercase error code like INVALID_SLUG.':'Enter the expected return as valid JSON.';return;
+   }
+   const result=await extendCheckedFunction({label:el('challenge-label').value,args,...outcome});
    if(result?.error)el('challenge-status').textContent='The example could not be added. Check its label, JSON limits and the current checked run.';
    else if(result?.openedFunctionSessionId&&current?.sessionId===result.openedFunctionSessionId){
     for(const id of ['challenge-label','challenge-args','challenge-expected'])el(id).value='';
+    el('challenge-throws').checked=false;
+    syncExampleOutcome('challenge');
     el('next-action').focus?.();
    }
   });
@@ -1744,8 +1785,12 @@ module.exports = { uniqueTags };`;
    if(!Array.isArray(cases)||!cases.length){reportExamples('Provide a JSON array with at least one example.');return null;}
    if(cases.length>8){reportExamples('Use at most eight examples per function.');return null;}
    for(const [index,example] of cases.entries()){
-    if(!example||Object.keys(example).length!==3||!['label','args','expected'].every(key=>Object.hasOwn(example,key))){
-     reportExamples('Example '+(index+1)+' needs exactly three fields: label, args and expected.');return null;
+    const expectsThrow=!!example&&Object.hasOwn(example,'throws');
+    if(!example||Object.keys(example).length!==3||!['label','args',expectsThrow?'throws':'expected'].every(key=>Object.hasOwn(example,key))){
+     reportExamples('Example '+(index+1)+' needs exactly three fields. Use label, args and either expected or throws.');return null;
+    }
+    if(expectsThrow&&(typeof example.throws!=='string'||!errorCodePattern.test(example.throws))){
+     reportExamples('Example '+(index+1)+' needs an uppercase error code in throws, such as INVALID_SLUG.');return null;
     }
     if(typeof example.label!=='string'||!example.label.trim()){
      reportExamples('Give example '+(index+1)+' a nonempty text label.');return null;
@@ -1860,7 +1905,7 @@ module.exports = { uniqueTags };`;
    const example=current.task.counterexamples.find(item=>item.id===selected);
    if(!example)return;
    const label=('Repeat · '+example.label).slice(0,80);
-   fillChallengeExample({...example,label},'Review the expected return. The repeated call runs after the existing examples in the same interpreter.');
+   fillChallengeExample({...example,label},'Review the expected outcome. The repeated call runs after the existing examples in the same interpreter.');
   });
   el('fill-numeric-boundary').addEventListener('click',()=>{
    if(el('fill-numeric-boundary').disabled||current?.sessionId!==boundarySession)return;

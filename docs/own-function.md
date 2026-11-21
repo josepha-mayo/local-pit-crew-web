@@ -40,7 +40,28 @@ Verify again. The comparison shows repaired and regressed check IDs, including a
 
 Each checked example can also be inspected directly. Failing examples expand to show the original arguments, expected return, observed return and, when changed, arguments after the call. A correct sorted result can still fail because it changed the caller's array. The bench distinguishes a different return, a thrown error, unsupported JSON output and input mutation; more than one condition can fail at once. Exception contents stay withheld. These details come from runtime observations, independently checked against the same source and contract, rather than a model's explanation. Applying another patch clears the old details until the changed source is checked.
 
-The function must be synchronous, accept and return bounded plain JSON data, and preserve the JSON-visible input arguments. There are up to eight examples, eight arguments per example, 6,000 UTF-8 source bytes and 5,000 contract bytes; nested values have additional depth, size and type limits. Imports, promises, classes, cycles, accessors and non-JSON results are unsupported. Exceptions fail an example; resource exhaustion or a runner failure makes verification unavailable and does not fabricate a candidate verdict. Passing examples do not prove correctness for other inputs. This is a small function repair tool, not a general repository executor.
+For a validator that rejects bad input, give the example a `throws` field with the error’s own string `code`. An example takes exactly one outcome. Use `expected` for a JSON return and `throws` for an uppercase error code of up to 64 characters. The verifier checks that the code matches and that the call preserves its inputs. Diagnostic payloads report match status and omit observed exception contents. A reviewed model request can still include source code.
+
+```js
+exports.normalizeSlug = input => {
+  const value = input?.slug;
+  if (typeof value !== 'string' || !/^[a-z0-9-]+$/i.test(value.trim())) {
+    throw Object.assign(new TypeError('Enter a project slug'), {code: 'INVALID_SLUG'});
+  }
+  return value.trim().toLowerCase();
+};
+```
+
+```json
+[
+  {"label":"Normalize a valid slug","args":[{"slug":" Demo-1 "}],"expected":"demo-1"},
+  {"label":"Reject a slash","args":[{"slug":"demo/1"}],"throws":"INVALID_SLUG"}
+]
+```
+
+When extending a run or turning a probe into a test, use **Expect a thrown error code** to specify the required code. The replay and CI contract retain that assertion. [Runnable validator example](../examples/validation)
+
+The function must be synchronous, accept bounded plain JSON data, and preserve the JSON-visible input arguments. There are up to eight examples, eight arguments per example, 6,000 UTF-8 source bytes and 5,000 contract bytes. Nested values have additional depth, size and type limits. Imports, promises, classes, cycles, accessors and non-JSON results are unsupported. A runner failure makes verification unavailable. Passing examples cover the fixed calls you supplied.
 
 The contract is a read-only manifest file. Its hash and the source hash bind every accepted verdict. Expected answers stay in the trusted grader and are not passed to the candidate's QuickJS context. Public examples are visible to the developer and, when requested, the coding model and advisor. They are not held-out evaluation data.
 

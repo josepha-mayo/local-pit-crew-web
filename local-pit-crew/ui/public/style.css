@@ -110,3 +110,5 @@ pre{font-size:12px}
 #model-review-evidence{border-block:1px solid var(--border);margin:12px 0 16px;padding:8px 0 12px}
 #model-review-evidence h3{font-size:14px;margin:0}
 #model-review-evidence p{margin:4px 0 8px;overflow-wrap:anywhere}
+.function-intake .inline-option,.function-challenge .inline-option{display:flex;gap:9px;align-items:center;min-height:44px;margin-block:6px 0}
+.inline-option input[type=checkbox]{width:16px;min-height:16px;height:16px;padding:0;margin:0;accent-color:#526844}

@@ -60,6 +60,34 @@ test('normal throws and non-data returns fail examples without exposing error co
  assert.throws(()=>gradeFunctionObservations([{id:'made-up',status:'returned',output:'1',argsAfter:'[1]'}],task.files));
 });
 
+test('an expected application error code still requires an actual throw and unchanged inputs',async()=>{
+ const source=`module.exports.fn=input=>{
+  if(input==='SLUG')return 'slug';
+  if(input.mode==='returned')return{code:'INVALID_SLUG'};
+  if(input.mode==='inherited')throw Object.create({code:'INVALID_SLUG'});
+  const error=new TypeError('PRIVATE_ERROR_MESSAGE');
+  if(input.mode==='getter')Object.defineProperty(error,'code',{get(){input.touched=true;return 'INVALID_SLUG';}});
+  else if(input.mode!=='uncoded')error.code=input.mode==='wrong'?'PRIVATE_WRONG_CODE':'INVALID_SLUG';
+  if(input.mode==='mutated')input.changed=true;
+  throw error;
+ };`;
+ const modes=['matching','mutated','wrong','getter','inherited','returned','uncoded'];
+ const cases=[{args:['SLUG'],expected:'slug'},...modes.map(mode=>({args:[{mode}],throws:'INVALID_SLUG'}))];
+ const task=createFunctionTask(spec(source,cases)),result=await runCandidateProbe(input(task));
+ assert.deepEqual(check(result).map(row=>row.ok),[true,true,false,false,false,false,false,false]);
+ const diagnostics=inspectFunctionObservations(result.observations,task.files);
+ assert.equal(diagnostics[2].returnMatches,true);
+ assert.equal(diagnostics[2].inputPreserved,false);
+ assert.equal(diagnostics[4].inputPreserved,true);
+ assert.equal(diagnostics[4].returnMatches,false);
+ assert.doesNotMatch(JSON.stringify(diagnostics),/PRIVATE_ERROR_MESSAGE|PRIVATE_WRONG_CODE|errorCode/);
+ for(const example of [{throws:true},{throws:'bad-code'},{throws:'A'.repeat(65)},{throws:'INVALID_SLUG',expected:null}]){
+  assert.throws(()=>createFunctionTask(spec(source,[{args:[],...example}])),/invalid-function-contract/);
+ }
+ const exhausted=await run('module.exports.fn=()=>{while(true){}};',[{args:[],throws:'INVALID_SLUG'}]);
+ assert.notEqual(exhausted.status,'observed');
+});
+
 test('untrusted function loops and allocation remain unavailable outcomes, never fabricated failed examples',async()=>{
  for(const source of ['while(true){};','module.exports={fn:()=>{while(true){}}};',
   'module.exports={fn:()=>{const xs=[];while(true)xs.push(new Array(10000).fill(1));}};']){

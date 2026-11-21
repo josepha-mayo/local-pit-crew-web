@@ -41,7 +41,9 @@ Open the exact `http://127.0.0.1:PORT` printed by the server. Expand **Practice 
 
 After your function passes its fixed examples, **Download checked function** requests a JavaScript file containing the exact checked source. It remains available after Finish. The browser verifies the UTF-8 bytes against the current source hash before requesting the download, and **View checked source** offers an in-app fallback. This separate source download does not change your project files; the default run record remains source-free.
 
-A pass can still miss a bug. **Challenge with another example** starts a separate unchecked run using that exact checked source, every existing example and one new input/expected return supplied by you. The original contract stays fixed. Fresh execution can expose a missed failure before you accept the repair; the extended contract must pass every example before Finish becomes available.
+A pass can still miss a bug. **Challenge with another example** starts a separate unchecked run using that exact checked source, every existing example and one new input and expected outcome supplied by you. The original contract stays fixed. Fresh execution can expose a missed failure before you accept the repair; the extended contract must pass every example before Finish becomes available.
+
+For validators, an example can require a thrown application error code and unchanged inputs. [See the slug validation example](examples/validation).
 
 **Repeat a passing input** copies an earlier example to the end of an extended contract. If the same input passes early and fails later, the bench points to both calls. The downloaded replay preserves their order for CI.
 
@@ -49,7 +51,7 @@ A pass can still miss a bug. **Challenge with another example** starts a separat
 
 **Download replay case** keeps that source, its requirements and fixed examples together in a separate JSON file. Reopen it in the browser with **Reopen a saved replay case → Load replay into form**, then Open and run fresh checks. Loading preserves your active run and imports no old verdict. Alternatively, after installing the pinned runner dependency, `npm run replay:function -- PATH.replay.json` checks the file hashes and reruns the case in a bounded QuickJS Node worker with zero model calls. [Replay instructions and limits](docs/own-function.md).
 
-Inside **Run these examples in CI**, **Download test contract** saves the verified example definitions and expected returns. Run the downloaded contract against the function in your checkout, or add the [GitHub Actions check](docs/own-function.md#check-the-current-function-in-ci). The checkout example’s contract rejects the recorded draft on `case-05` and accepts the correction.
+Inside **Run these examples in CI**, **Download test contract** saves the fixed examples and their expected outcomes. Run the downloaded contract against the function in your checkout, or add the [GitHub Actions check](docs/own-function.md#check-the-current-function-in-ci). The checkout example’s contract rejects the recorded draft on `case-05` and accepts the correction.
 
 To carry those regression checks into CI, add `--junit replay-results.xml` to the replay command. It writes a new JUnit report with fixed check IDs and source/contract hashes, excluding private code and example values. An unavailable verifier is reported as an error; it never becomes a fabricated pass or candidate failure. Existing report files are preserved.
 

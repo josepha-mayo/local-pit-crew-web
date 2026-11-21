@@ -73,7 +73,7 @@ function writeJUnit(file,result){
   ...(result?[['verification.boundary',result.verification.boundary],['verification.qualifiedDocker',false],['verification.cleanupConfirmed',result.verification.cleanupConfirmed],...result.files.map(f=>[f.path+'.sha256',f.sha256])]:[]),
   ...(result?.repeat?[['replay.runs',result.repeat.runs],['replay.changedVerdicts',result.repeat.changedVerdicts.length],
    ['replay.changedFailures',result.repeat.changedFailures.length]]:[])];
- const cases=checked?checks.map(c=>`    <testcase classname="local-pit-crew.function${suffix}" name="${xml(c.id)}">${c.ok?'':'<failure message="Fixed example failed">Return value and input-preservation requirements were not both satisfied.</failure>'}</testcase>`):
+ const cases=checked?checks.map(c=>`    <testcase classname="local-pit-crew.function${suffix}" name="${xml(c.id)}">${c.ok?'':'<failure message="Fixed example failed">The example requires the expected outcome and input preservation.</failure>'}</testcase>`):
   [`    <testcase classname="local-pit-crew.replay${suffix}" name="verification"><error message="Replay invalid or execution unavailable">No candidate verdict is available. No example results were fabricated.</error></testcase>`];
  const report=['<?xml version="1.0" encoding="UTF-8"?>',`<testsuites ${counts}>`,`  <testsuite name="Local Pit Crew function replay" ${counts}>`,'    <properties>',
   ...properties.map(([name,value])=>`      <property name="${xml(name)}" value="${xml(value)}"/>`),'    </properties>',...cases,'  </testsuite>','</testsuites>',''].join('\n');

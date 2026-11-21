@@ -1,0 +1,8 @@
+{
+ "schema": "local-pit-crew/function-contract/v1",
+ "exportName": "normalizeSlug",
+ "cases": [
+  {"id":"case-01","label":"Normalize a valid slug","args":[{"slug":" Demo-1 "}],"expected":"demo-1"},
+  {"id":"case-02","label":"Reject a slash","args":[{"slug":"demo/1"}],"throws":"INVALID_SLUG"}
+ ]
+}

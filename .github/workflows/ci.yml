@@ -64,3 +64,8 @@ jobs:
             assert.deepEqual(checks.filter(check => !check.ok).map(check => check.id), ["case-05"]);
             console.log("The recorded draft was rejected on case-05.");
           '
+      - name: Verify the validator's expected error code
+        uses: ./
+        with:
+          contract: examples/validation/function.contract.json
+          source: examples/validation/normalize-slug.cjs

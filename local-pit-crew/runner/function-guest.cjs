@@ -7,10 +7,11 @@ const FUNCTION_LOADER_SOURCE=`(function(){
 })()`;
 const FUNCTION_OBSERVER_SOURCE=`(function(){
  const Parse=JSON.parse,Stringify=JSON.stringify,Apply=Reflect.apply,Names=Object.getOwnPropertyNames,Symbols=Object.getOwnPropertySymbols,
-  Descriptors=Object.getOwnPropertyDescriptors,Proto=Object.getPrototypeOf,SetProto=Object.setPrototypeOf,Create=Object.create,
+  Descriptor=Object.getOwnPropertyDescriptor,Descriptors=Object.getOwnPropertyDescriptors,Proto=Object.getPrototypeOf,SetProto=Object.setPrototypeOf,Create=Object.create,
   IsArray=Array.isArray,Finite=Number.isFinite,Is=Object.is,Plain=Object.prototype,Weak=WeakSet;
  const Own=Function.prototype.call.bind(Object.prototype.hasOwnProperty),Has=Function.prototype.call.bind(WeakSet.prototype.has),
-  Add=Function.prototype.call.bind(WeakSet.prototype.add),Delete=Function.prototype.call.bind(WeakSet.prototype.delete);
+  Add=Function.prototype.call.bind(WeakSet.prototype.add),Delete=Function.prototype.call.bind(WeakSet.prototype.delete),
+  MatchCode=Function.prototype.call.bind(RegExp.prototype.exec,/^[A-Z][A-Z0-9_]{0,63}$/);
  function encode(value){
   const active=new Weak();let nodes=0;
   function copy(v,depth){
@@ -41,11 +42,19 @@ const FUNCTION_OBSERVER_SOURCE=`(function(){
   const result=serialize(copy(value,0));if(result.length>6000)throw 0;return result;
  }
  return function(fn,argsJSON){
-  const args=Parse(argsJSON);let result,status='returned',output=null,after=null;
-  try{result=Apply(fn,undefined,args);}catch{status='threw';}
+  const args=Parse(argsJSON);let result,thrown,status='returned',output=null,after=null,errorCode=null;
+  try{result=Apply(fn,undefined,args);}catch(error){status='threw';thrown=error;}
   try{after=encode(args);}catch{/* Non-data mutation is itself a failed example. */}
   if(status==='returned'){try{output=encode(result);}catch{status='unserializable';}}
-  return '{"status":'+Stringify(status)+',"output":'+(output===null?'null':Stringify(output))+',"argsAfter":'+(after===null?'null':Stringify(after))+'}';
+  // Read only an own data code. Keep messages and stack traces in the guest.
+  if(thrown!==null&&(typeof thrown==='object'||typeof thrown==='function')){
+   try{
+    const field=Descriptor(thrown,'code');
+    if(field&&Own(field,'value')&&typeof field.value==='string'&&field.value.length<=64&&MatchCode(field.value))errorCode=field.value;
+   }catch{/* An error inspecting the code cannot satisfy a throwing check. */}
+  }
+  return '{"status":'+Stringify(status)+',"output":'+(output===null?'null':Stringify(output))+',"argsAfter":'+(after===null?'null':Stringify(after))+
+   (errorCode===null?'':',"errorCode":'+Stringify(errorCode))+'}';
  };
 })()`;
 module.exports={FUNCTION_LOADER_SOURCE,FUNCTION_OBSERVER_SOURCE};

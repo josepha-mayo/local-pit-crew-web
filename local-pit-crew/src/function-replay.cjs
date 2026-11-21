@@ -2,9 +2,10 @@
 // A portable data envelope. Hash agreement binds bytes; it is not a signature
 // and never imports an earlier verdict. Replaying requires fresh execution.
 const {createHash}=require('node:crypto');
-const {fields,dense,validateFunctionFiles,validateContract,parseContractSource,createFunctionTask,TASK_SCHEMA,FUNCTION_ENTRY,CONTRACT_PATH}=require('../runner/function-contract.cjs');
+const {fields,dense,validateFunctionFiles,validateFunctionExample,validateContract,parseContractSource,createFunctionTask,TASK_SCHEMA,FUNCTION_ENTRY,CONTRACT_PATH}=require('../runner/function-contract.cjs');
 const REPLAY_SCHEMA='local-pit-crew/function-replay/v1',CONTEXT_REPLAY_SCHEMA='local-pit-crew/function-replay/v2',MAX_REPLAY_BYTES=80000;
 const hash=s=>createHash('sha256').update(s).digest('hex');
+const withoutId=({id,...example})=>example;
 function validateContext(value){
  const context=fields(value,['title','instructions']);
  if(typeof context.title!=='string'||!context.title.trim()||context.title.length>80||typeof context.instructions!=='string'||!context.instructions.trim()||new TextEncoder().encode(context.instructions).length>1000)throw Error('invalid-replay-context');
@@ -48,11 +49,11 @@ function prepareFunctionReplay(text,example){
  const {files,context}=parseReplay(text);
  let contract=parseContractSource(files[CONTRACT_PATH]);
  if(example!==undefined){
-  const row=fields(example,['label','args','expected']);
+  const row=validateFunctionExample(example);
   const id='case-'+String(contract.cases.length+1).padStart(2,'0');
   contract=validateContract({...contract,cases:[...contract.cases,{id,...row}]});
  }
- return{spec:{schema:TASK_SCHEMA,title:context?.title??'Reopened '+contract.exportName,instructions:context?.instructions??'',exportName:contract.exportName,source:files[FUNCTION_ENTRY],cases:contract.cases.map(({label,args,expected})=>({label,args,expected}))},contextRestored:context!==null};
+ return{spec:{schema:TASK_SCHEMA,title:context?.title??'Reopened '+contract.exportName,instructions:context?.instructions??'',exportName:contract.exportName,source:files[FUNCTION_ENTRY],cases:contract.cases.map(withoutId)},contextRestored:context!==null};
 }
 function createFunctionChallenge(parent,example){
  if(parent?.mode!=='function-contract'||parent.snapshot?.publicChecksCurrent!==true||parent.snapshot.pending||!parent.checkedReplay||!parent.checkedFunction)throw Error('checked-parent-required');
@@ -60,8 +61,8 @@ function createFunctionChallenge(parent,example){
  if(!context||count>=8||parent.checkedFunction.sha256!==hash(files[FUNCTION_ENTRY])||parent.checkedFunction.content!==files[FUNCTION_ENTRY]||
   !Array.isArray(parent.checks)||parent.checks.length!==count||new Set(parent.checks.map(c=>c.id)).size!==count||!parent.checks.every(c=>c.ok===true&&contract.cases.some(e=>e.id===c.id))||
   !Array.isArray(parent.snapshot.manifest)||parent.snapshot.manifest.length!==2||!Object.entries(files).every(([path,content])=>parent.snapshot.manifest.some(m=>m.path===path&&m.sha256===hash(content))))throw Error('checked-parent-required');
- const row=fields(example,['label','args','expected']);
- const task=createFunctionTask({schema:TASK_SCHEMA,...context,exportName:contract.exportName,source:files[FUNCTION_ENTRY],cases:[...contract.cases.map(({label,args,expected})=>({label,args,expected})),row]});
+ const row=validateFunctionExample(example);
+ const task=createFunctionTask({schema:TASK_SCHEMA,...context,exportName:contract.exportName,source:files[FUNCTION_ENTRY],cases:[...contract.cases.map(withoutId),row]});
  return Object.freeze({...task,challengeParent:Object.freeze({sourceSha256:hash(files[FUNCTION_ENTRY]),contractSha256:hash(files[CONTRACT_PATH]),caseCount:count})});
 }
 module.exports={REPLAY_SCHEMA,CONTEXT_REPLAY_SCHEMA,MAX_REPLAY_BYTES,createFunctionReplay,parseFunctionReplay,prepareReplayComparison,prepareSourceComparison,prepareFunctionReplay,createFunctionChallenge};

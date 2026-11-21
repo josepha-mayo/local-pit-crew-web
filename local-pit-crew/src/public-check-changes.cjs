@@ -10,7 +10,7 @@ function comparePublicChecks(before,after){
   regressed:after.checks.filter(c=>previous.get(c.id)&&!c.ok).map(c=>c.id),repaired:after.checks.filter(c=>!previous.get(c.id)&&c.ok).map(c=>c.id)};
 }
 function changedWhileFailing(before,after){
- return !before.ok&&!after.ok&&(before.status!==after.status||before.actualReturn!==after.actualReturn||
+ return !before.ok&&!after.ok&&(before.status!==after.status||before.returnMatches!==after.returnMatches||before.actualReturn!==after.actualReturn||
   before.argumentsAfter!==after.argumentsAfter);
 }
 function compareSameReplay(before,after){

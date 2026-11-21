@@ -135,10 +135,11 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
      }
      const compared=comparison.comparePublicChecks(...results);
      if(!compared)return error(503,'Run results could not be compared.');
-     const observations=cases.flatMap(({id,args,expected},index)=>{
+     const observations=cases.flatMap(({id,args,expected,throws},index)=>{
       const baseline=results[0].diagnostics[index],candidate=results[1].diagnostics[index];
       const changed=baseline.ok!==candidate.ok||comparison.changedWhileFailing(baseline,candidate);
-      return changed?[{id,args:contracts.canonical(args),expected:contracts.canonical(expected),baseline,candidate}]:[];
+      return changed?[{id,args:contracts.canonical(args),expected:contracts.canonical(throws??expected),
+       ...(throws?{expectation:'throw-code'}:{}),baseline,candidate}]:[];
      });
      const failureReplay=compared.afterPassed<compared.total
       ?replays.createFunctionReplay(files.candidateFiles,files.context):null;
