@@ -1494,11 +1494,14 @@ module.exports = { uniqueTags };`;
   }
   const comparePanel=el('compare-replay-panel'),compareButton=el('compare-replays'),compareStatus=el('compare-replay-status');
   const repeatButton=el('repeat-replay');
+  const contractCompareButton=el('compare-contract-sources');
   const comparisonEvidence=el('comparison-evidence');
   const comparisonDownload=el('download-comparison-summary'),comparisonDownloadStatus=el('comparison-summary-status');
   const comparedFailure=el('comparison-failure'),comparedFailureStatus=el('compared-failure-status');
   const compareExample=el('compare-replay-example');
   const comparisonInputs=[el('comparison-baseline-file'),el('comparison-candidate-file')];
+  const contractInputs=[el('comparison-contract-file'),el('comparison-old-source'),el('comparison-new-source')];
+  const comparisonFileInputs=[...comparisonInputs,...contractInputs];
   const probePanel=el('boundary-probe'),probeButton=el('run-boundary-probe'),probeStatus=el('boundary-probe-status'),probeResults=el('boundary-probe-results');
   const probeEditor=el('probe-example-editor'),probeLabel=el('probe-example-label'),probeExpected=el('probe-example-expected');
   const probeThrows=el('probe-example-throws');
@@ -1567,6 +1570,7 @@ module.exports = { uniqueTags };`;
   });
   function updateComparisonControls(){
    compareButton.disabled=comparisonBusy||!token||!comparisonInputs.every(input=>input.files?.[0]);
+   contractCompareButton.disabled=comparisonBusy||!token||!contractInputs.every(input=>input.files?.[0]);
    repeatButton.disabled=comparisonBusy||!token||!comparisonInputs[0].files?.[0];
    compareExample.disabled=comparisonBusy||!token;
    el('try-checkout-audit').disabled=!!(busy||inspection||cloudBusy)||!token||!functionCapability?.available;
@@ -1612,7 +1616,7 @@ module.exports = { uniqueTags };`;
     ?'Candidate loaded with your new regression test. Open my function and run fresh checks.'
     :'Candidate loaded with your new regression test. Enter Required behavior, then open and check the function.');
   });
-  for(const input of comparisonInputs)input.addEventListener('change',()=>{
+  for(const input of comparisonFileInputs)input.addEventListener('change',()=>{
    compareStatus.textContent='';
    clearComparison();
    updateComparisonControls();
@@ -1622,16 +1626,17 @@ module.exports = { uniqueTags };`;
    if(!hosted||busy||inspection||cloudBusy||comparisonBusy||!token)return;
    const example=comparisonExamples[mode],repeat=mode==='repeat',probe=mode==='probe';
    const checkoutAudit=example==='checkout-audit';
+   const fromContract=mode==='contract';
    const reviewedComparison=comparedRequest;
-   const files=comparisonInputs.map(input=>input.files?.[0]);
-   if(probe?!reviewedComparison:!example&&(!files[0]||(!repeat&&!files[1])))return;
+   const files=(fromContract?contractInputs:comparisonInputs).map(input=>input.files?.[0]);
+   if(probe?!reviewedComparison:!example&&!(repeat?files[0]:files.every(Boolean)))return;
    if(example){
     el('function-intake').open=true;comparePanel.open=true;
     comparePanel.scrollIntoView?.({block:'start'});
    }
    comparisonBusy=true;busy=true;
    if(current)render(current);
-   comparisonInputs.forEach(input=>{input.disabled=true;});updateComparisonControls();
+   comparisonFileInputs.forEach(input=>{input.disabled=true;});updateComparisonControls();
    if(probe){
     probeResults.replaceChildren();
     clearProbeEditor();
@@ -1641,11 +1646,17 @@ module.exports = { uniqueTags };`;
    feedback.textContent=probe?'Running the new inputs in separate local workers…':
     repeat?'Running the same saved examples twice in separate workers…':'Validating the files and running fresh checks in separate workers…';
    feedback.focus?.({preventScroll:true});
-   const sourceCandidate=!example&&!repeat&&!probe&&/\.(?:js|cjs)$/i.test(files[1].name??'');
+   if(fromContract)feedback.scrollIntoView?.({block:'nearest'});
+   const sourceCandidate=!example&&!repeat&&!probe&&!fromContract&&/\.(?:js|cjs)$/i.test(files[1].name??'');
    try{
     let body={example};
     if(probe)body={...reviewedComparison,probe:true};
     else if(repeat)body={repeat:JSON.parse(await readIntakeFile(files[0]))};
+    else if(fromContract){
+     const [contract,baselineSource,candidateSource]=await Promise.all(files.map((file,index)=>
+      readIntakeFile(file,{maxBytes:index?6000:5000,preserveBOM:true})));
+     body={contract,baselineSource,candidateSource};
+    }
     else if(!example){
      const [baseline,candidate]=await Promise.all([
       readIntakeFile(files[0]).then(JSON.parse),
@@ -1723,22 +1734,24 @@ module.exports = { uniqueTags };`;
      comparisonEvidence.append(detail);
     }
     comparisonSummary={schema:'local-pit-crew/browser-comparison-summary/v1',boundary:'browser-worker-quickjs',
-     beforeWorkspaceHash,afterWorkspaceHash,beforePassed,afterPassed,total,repaired,regressed,changedFailures,modelCalls:0};
+     beforeWorkspaceHash,afterWorkspaceHash,contractSha256:result.contractSha256,beforePassed,afterPassed,total,repaired,regressed,changedFailures,modelCalls:0};
     comparisonDownload.hidden=false;
     comparisonFailureReplay=result.failureReplay;
     comparedFailure.hidden=!comparisonFailureReplay;
     comparedRequest=body;
     probePanel.hidden=false;
-   }catch{if(!pageLeaving)feedback.textContent=probe?'The boundary probes could not be verified. Try again.':example?'Could not verify the saved versions. Try again.':repeat?'Could not read the replay. Choose a valid UTF-8 replay file up to 80,000 bytes.':sourceCandidate?
+   }catch{if(!pageLeaving)feedback.textContent=probe?'The boundary probes could not be verified. Try again.':example?'Could not verify the saved versions. Try again.':repeat?'Could not read the replay. Choose a valid UTF-8 replay file up to 80,000 bytes.':fromContract?
+    'Could not read the files. Use a UTF-8 contract up to 5,000 bytes and JavaScript files up to 6,000 bytes each.':sourceCandidate?
     'Could not read these files. Use a valid UTF-8 baseline replay and a UTF-8 JavaScript file up to 6,000 bytes.':
     'Could not read these replays. Use valid UTF-8 replay files up to 80,000 bytes each.';}
    finally{
     comparisonBusy=false;busy=false;
     if(current&&!pageLeaving)render(current);
-    comparisonInputs.forEach(input=>{input.disabled=false;});updateComparisonControls();
+    comparisonFileInputs.forEach(input=>{input.disabled=false;});updateComparisonControls();
    }
   }
   compareButton.addEventListener('click',()=>runComparison('compare'));
+  contractCompareButton.addEventListener('click',()=>runComparison('contract'));
   repeatButton.addEventListener('click',()=>runComparison('repeat'));
   compareExample.addEventListener('click',()=>runComparison('example'));
   el('try-checkout-audit').addEventListener('click',()=>runComparison('checkout-audit'));

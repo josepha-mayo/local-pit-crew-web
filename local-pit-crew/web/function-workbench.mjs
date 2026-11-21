@@ -79,7 +79,8 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
     const recordedTags=example&&body.example==='recorded-tags';
     const repeat=exact(body,['repeat']);
     const source=exact(body,['baseline','source']);
-    if(!example&&!repeat&&!source&&!exact(body,['baseline','candidate']))return error(400,'Choose a saved replay to repeat or compare it with a candidate source file.');
+    const contractOnly=exact(body,['contract','baselineSource','candidateSource']);
+    if(!example&&!repeat&&!source&&!contractOnly&&!exact(body,['baseline','candidate']))return error(400,'Choose a replay, or a test contract and two JavaScript files.');
     if(lifetime.signal.aborted||comparing||pendingStart||state()?.snapshot?.pending)
      return error(409,'Wait for the current operation to finish and try again.');
     let files;
@@ -91,6 +92,8 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
       files=replays.prepareReplayComparison(JSON.stringify(recordedTagRun.baseline),JSON.stringify(recordedTagRun.corrected));
      }else if(example&&body.example==='checkout-audit'){
       files=replays.prepareReplayComparison(JSON.stringify(checkoutDraft),JSON.stringify(checkoutReviewed));
+     }else if(contractOnly){
+      files=replays.prepareContractComparison(body.contract,body.baselineSource,body.candidateSource);
      }else files=example?{
       baselineFiles:contracts.createFunctionTask({...paginationExample,source:boundaryDemo?'exports.pageQuery = cursor => cursor == null ? {} : {cursor};':'exports.pageQuery = cursor => cursor ? {cursor} : {};'}).files,
       candidateFiles:contracts.createFunctionTask({...paginationExample,source:boundaryDemo?'exports.pageQuery = cursor => cursor === 0 || cursor ? {cursor} : {};':'exports.pageQuery = cursor => cursor === undefined ? {} : {cursor};'}).files,
@@ -100,6 +103,7 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
     }
     catch(cause){return error(400,cause.message==='different-contracts'?'These replays use different contracts. Compare two versions with identical examples.':
      cause.message==='unchanged-source'?'Both versions contain the same source. Choose a different candidate.':
+     contractOnly?'Use a valid test contract up to 5,000 bytes and two nonempty JavaScript files up to 6,000 bytes each.':
      source?'Check the baseline replay hash and use a nonempty JavaScript file up to 6,000 bytes.':'Check the replay formats and file hashes.');}
     if(probe&&repeat)return error(400,'Choose two different versions for boundary probes.');
     let probeCases,probeReplay;
@@ -152,7 +156,8 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
      });
      const failureReplay=compared.afterPassed<compared.total
       ?replays.createFunctionReplay(files.candidateFiles,files.context):null;
-     return{status:200,body:{comparison:compared,checkLabels,observations,failureReplay}};
+     const contractSha256=controller.hash(files.baselineFiles[contracts.CONTRACT_PATH]);
+     return{status:200,body:{comparison:compared,checkLabels,observations,failureReplay,contractSha256}};
     }catch{return error(503,'A version could not be verified. No comparison is available.');}
     finally{comparing=false;}
    }

@@ -115,6 +115,17 @@
  <button id="repeat-replay" type="button" class="secondary" disabled>Run the same replay twice</button>
  <label for="comparison-candidate-file">Candidate JavaScript or replay</label><input id="comparison-candidate-file" type="file" accept=".js,.cjs,.json" aria-describedby="comparison-help">
  <button id="compare-replays" class="secondary" disabled>Run comparison</button>
+ <details class="restore-replay">
+  <summary>Compare local JavaScript files with a CI contract</summary>
+  <p id="comparison-contract-help" class="muted">Use the same test contract as CI with an earlier and a proposed version of the function. Both files run in this tab. The contract contains example values and expected results.</p>
+  <label for="comparison-contract-file">Test contract (.json)</label>
+  <input id="comparison-contract-file" type="file" accept=".json,application/json" aria-describedby="comparison-contract-help">
+  <label for="comparison-old-source">Earlier JavaScript file</label>
+  <input id="comparison-old-source" type="file" accept=".js,.cjs,text/javascript">
+  <label for="comparison-new-source">Proposed JavaScript file</label>
+  <input id="comparison-new-source" type="file" accept=".js,.cjs,text/javascript">
+  <button id="compare-contract-sources" type="button" class="secondary" disabled>Run the CI contract on both versions</button>
+ </details>
 </details><label for="function-title">Repair title</label><input id="function-title" aria-describedby="function-status" maxlength="80" placeholder="Keep tag names safe">
  <label for="function-instructions">Required behavior</label><textarea id="function-instructions" aria-describedby="function-status" rows="3" maxlength="1000" placeholder="What should this function do?"></textarea>
  <label for="function-export">Export name</label><input id="function-export" aria-describedby="function-status" maxlength="64" placeholder="uniqueTags">

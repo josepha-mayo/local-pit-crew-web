@@ -41,6 +41,11 @@ function prepareSourceComparison(baselineText,source){
  const candidateFiles=validateFunctionFiles({...baselineFiles,[FUNCTION_ENTRY]:source});
  return prepareFileComparison(baselineFiles,candidateFiles,context);
 }
+function prepareContractComparison(contract,baseline,candidate){
+ const baselineFiles=validateFunctionFiles({[CONTRACT_PATH]:contract,[FUNCTION_ENTRY]:baseline});
+ const candidateFiles=validateFunctionFiles({...baselineFiles,[FUNCTION_ENTRY]:candidate});
+ return prepareFileComparison(baselineFiles,candidateFiles,null);
+}
 function prepareFileComparison(baselineFiles,candidateFiles,context){
  if(baselineFiles[FUNCTION_ENTRY]===candidateFiles[FUNCTION_ENTRY])throw Error('unchanged-source');
  return{baselineFiles,candidateFiles,context};
@@ -65,4 +70,4 @@ function createFunctionChallenge(parent,example){
  const task=createFunctionTask({schema:TASK_SCHEMA,...context,exportName:contract.exportName,source:files[FUNCTION_ENTRY],cases:[...contract.cases.map(withoutId),row]});
  return Object.freeze({...task,challengeParent:Object.freeze({sourceSha256:hash(files[FUNCTION_ENTRY]),contractSha256:hash(files[CONTRACT_PATH]),caseCount:count})});
 }
-module.exports={REPLAY_SCHEMA,CONTEXT_REPLAY_SCHEMA,MAX_REPLAY_BYTES,createFunctionReplay,parseFunctionReplay,prepareReplayComparison,prepareSourceComparison,prepareFunctionReplay,createFunctionChallenge};
+module.exports={REPLAY_SCHEMA,CONTEXT_REPLAY_SCHEMA,MAX_REPLAY_BYTES,createFunctionReplay,parseFunctionReplay,prepareReplayComparison,prepareSourceComparison,prepareContractComparison,prepareFunctionReplay,createFunctionChallenge};

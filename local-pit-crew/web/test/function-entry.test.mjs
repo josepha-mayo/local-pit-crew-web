@@ -1008,6 +1008,54 @@ test('the landing-page example exposes a same-score regression without files or 
   assert.equal(f.el('finish').disabled,true);
  }finally{await f.close();}
 });
+test('the browser compares two local sources with the exact CI contract bytes',async()=>{
+ const fixture=name=>readFile(new URL('../../../examples/validation/'+name,import.meta.url),'utf8');
+ const [contract,baselineSource]=await Promise.all([fixture('function.contract.json'),fixture('normalize-slug.cjs')]);
+ const candidateSource=baselineSource.replace('code: \'INVALID_SLUG\'','code: \'WRONG_CODE\'');
+ const f=await setup();
+ try{
+  const setFile=(id,bytes)=>{
+   const input=f.el(id);
+   input.files=[new Blob([bytes])];
+   input.listeners.get('change')();
+  };
+  const run=f.el('compare-contract-sources');
+  setFile('comparison-contract-file',contract);
+  setFile('comparison-old-source',baselineSource);
+  assert.equal(run.disabled,true);
+  setFile('comparison-new-source',candidateSource);
+  assert.equal(run.disabled,false);
+  await run.click();
+  assert.equal(f.activeElement,f.el('compare-replay-status'));
+  assert.match(f.el('compare-replay-status').textContent,/2\/2 baseline → 1\/2 candidate/);
+  assert.match(f.el('comparison-evidence').children[0].children[0].textContent,/Regressed · Reject a slash/);
+  assert.deepEqual(f.calls.filter(call=>call.body),[
+   {path:'/api/function/compare-replays',body:{contract,baselineSource,candidateSource}}
+  ]);
+  await f.el('download-comparison-summary').click();
+  const summary=await f.downloads[0].blob.text();
+  assert.equal(JSON.parse(summary).contractSha256,createHash('sha256').update(contract).digest('hex'));
+  assert(!summary.includes('demo/1')&&!summary.includes('INVALID_SLUG')&&!summary.includes('WRONG_CODE'));
+  await f.el('download-compared-failure').click();
+  const packet=JSON.parse(await f.downloads[1].blob.text());
+  assert.equal(packet.files[0].content,candidateSource);
+  assert.equal(packet.files[1].content,contract);
+  assert.equal(packet.context,undefined);
+  await f.el('load-compared-failure').click();
+  assert.equal(f.el('function-instructions').value,'');
+  assert.equal(f.el('active-run').hidden,true);
+
+  setFile('comparison-new-source',baselineSource);
+  await run.click();
+  assert.match(f.el('compare-replay-status').textContent,/same source/);
+  assert.equal(f.el('download-comparison-summary').hidden,true);
+  setFile('comparison-new-source',candidateSource);
+  setFile('comparison-contract-file','{}');
+  await run.click();
+  assert.match(f.el('compare-replay-status').textContent,/valid test contract/);
+  assert.equal(f.el('comparison-failure').hidden,true);
+ }finally{await f.close();}
+});
 test('a standalone JavaScript candidate runs the saved baseline examples without changing the active repair',async()=>{
  const f=await setup();
  try{
