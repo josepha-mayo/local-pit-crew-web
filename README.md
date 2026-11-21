@@ -12,6 +12,8 @@
 
 [See the recorded Firebase run](https://local-pit-crew.web.app/#recorded-hybrid) for the local hint, the cloud explanation and the reviewed correction from the submitted video. **Compare the saved versions** reruns both versions with the same five examples in fresh local workers. The replay makes zero model calls. [Saved source and test contract](examples/tag-review/recorded-replays.json)
 
+If production App Check declines a cloud review or patch request, **Replay the recorded Firebase run** opens that evidence in the same tab. You can rerun the saved comparison and return to your repair. A declined request keeps its prompt in the current tab.
+
 To reproduce the missed case from this checkout on Node.js 24 or newer, run:
 
 ```sh

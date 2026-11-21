@@ -355,8 +355,14 @@ module.exports = { uniqueTags };`;
   if(global.location?.hash==='#function-intake')el('function-intake').open=true;
   const recordedHybrid=el('recorded-hybrid');
   const revealRecordedRun=()=>{if(global.location?.hash==='#recorded-hybrid')recordedHybrid.open=true;};
+  const focusRecordedRun=event=>{
+   if(event?.ctrlKey||event?.metaKey||event?.shiftKey||event?.altKey)return;
+   recordedHybrid.open=true;
+   el('recorded-hybrid-summary').focus?.({preventScroll:true});
+  };
   revealRecordedRun();
   global.addEventListener?.('hashchange',revealRecordedRun);
+  for(const id of ['cloud-recovery-recorded','draft-recovery-recorded'])el(id).addEventListener('click',focusRecordedRun);
   const transport=(path,options)=>(global.LocalPitCrewReferenceRequest??global.fetch.bind(global))(path,options);
   let token=null,current=null,sequence=0,busy=false,inspection=null,liveCapability=null,liveClient=null,livePump=null,liveTimer=null,liveEpoch=0,liveStarting=false;
   let startAdmissionId=null,activeStartAdmissionId=null,comparisonBusy=false;
@@ -421,6 +427,7 @@ module.exports = { uniqueTags };`;
   let cloudClient=null,cloudReview=null,cloudRecord=null,cloudBusy=false,cloudEpoch=0,cloudContext=null,cloudSession=null,cloudCalls=0;
   let cloudAttestationDenied=false;
   let draftClient=null,draftReview=null,draftResult=null,draftBusy=false,draftEpoch=0,draftContext=null,draftSession=null,draftCalls=0,draftStatus='Optional cloud generation. Review the full request before sending it to Google.';
+  let draftAttestationDenied=false;
   function node(tag,text,className){
    const element=document.createElement(tag);if(text!==undefined)element.textContent=text;if(className)element.className=className;return element;
   }
@@ -584,7 +591,7 @@ module.exports = { uniqueTags };`;
   function render(state){
    const advisorBusy=!!releaseAdvisor;
    const context=state?.sessionId+':'+state?.snapshot?.revision+':'+state?.snapshot?.closed;
-   if(context!==draftContext){draftContext=context;draftEpoch++;draftClient?.stop();draftReview=null;draftResult=null;draftBusy=false;draftStatus='Optional cloud generation. Review the full request before sending it to Google.';}
+   if(context!==draftContext){draftContext=context;draftEpoch++;draftClient?.stop();draftReview=null;draftResult=null;draftBusy=false;draftAttestationDenied=false;draftStatus='Optional cloud generation. Review the full request before sending it to Google.';}
    if(draftSession!==state?.sessionId){draftSession=state?.sessionId;draftCalls=0;}
    if(context!==cloudContext){
     cloudContext=context;cloudEpoch++;cloudClient?.stop();cloudReview=null;cloudRecord=null;cloudBusy=false;cloudAttestationDenied=false;
@@ -790,7 +797,7 @@ module.exports = { uniqueTags };`;
       firstDiagnostic.expectation?'Observed behavior':'Observed return',firstDiagnostic.actual.replace(/\n\s*/g,' '),!firstDiagnostic.returnMatches));
     const archive=node('a','See the recorded Firebase run');
     archive.href='#recorded-hybrid';
-    archive.addEventListener('click',()=>{recordedHybrid.open=true;});
+    archive.addEventListener('click',focusRecordedRun);
     modelEvidence.append(archive);
    }
    el('inspect-failed-example').hidden=!firstDiagnostic;
@@ -866,6 +873,7 @@ module.exports = { uniqueTags };`;
     'This request shares the function, its requirements, '+examples+(examples===1?' fixed example and ':' fixed examples and ')+failures+' failed check '+(failures===1?'observation.':'observations.')+
     (data.nanoHint?' The Nano hypothesis is included.':' The Nano hypothesis stays local.'):'';
    el('cancel-function-draft').hidden=!draftReview&&!draftBusy&&!draftResult;
+   el('draft-recovery').hidden=!draftAttestationDenied||draftBusy||!!draftReview;
    el('function-draft-result').hidden=!draftResult;
    el('function-draft-explanation').textContent=draftResult?.explanation??'';el('function-draft-source').textContent=draftResult?.source??'';
    el('review-function-draft').disabled=busy||!!inspection||cloudBusy||!draftResult||!allowed;
@@ -1392,6 +1400,7 @@ module.exports = { uniqueTags };`;
      return;
     }
     draftReview=draftClient.preview(repairSnapshot(current),hint);
+    draftAttestationDenied=false;
     draftStatus=hint?'This request includes the Nano hypothesis. Review the complete text before sending it to Google.':
      'Review the function, fixed examples and observations before sending them to Google.';
    }catch{if(owns()){
@@ -1406,7 +1415,9 @@ module.exports = { uniqueTags };`;
   el('send-function-draft').addEventListener('click',async()=>{
    if(busy||inspection||cloudBusy||!draftClient||!draftReview||current?.mode!=='function-contract')return;
    const client=draftClient,approved=draftReview,owner=current.sessionId,mine=++draftEpoch,callsBefore=client.state.calls;
-   draftReview=null;draftBusy=true;busy=true;draftStatus='Verifying this browser with Firebase App Check…';render(current);
+   draftReview=null;draftBusy=true;busy=true;draftAttestationDenied=false;
+   draftStatus='Verifying this browser with Firebase App Check…';render(current);
+   el('cancel-function-draft').focus?.();
    try{
     const result=await client.send(approved,()=>{
      draftCalls+=client.state.calls-callsBefore;
@@ -1415,10 +1426,19 @@ module.exports = { uniqueTags };`;
     });
     if(mine!==draftEpoch||current?.sessionId!==owner||current?.snapshot?.revision!==approved.revision||current.snapshot.closed)return;
     if(result.status==='needs-evidence'){draftStatus='Model requested more evidence: '+result.explanation;return;}
-    if(result.status!=='draft'||result.inferenceSource!=='in_cloud'){draftStatus=cloudFailureMessage(result);return;}
+    if(result.status!=='draft'||result.inferenceSource!=='in_cloud'){
+     draftAttestationDenied=result.diagnostic==='cloud-attestation-failed';
+     draftStatus=cloudFailureMessage(result);
+     return;
+    }
     draftResult=result;draftStatus='Cloud draft received. Review its diff before Apply and local verification.';
    }catch{if(mine===draftEpoch)draftStatus='Cloud generation did not finish. Check Firebase/App Check setup or quota. No replacement was applied.';}
-   finally{if(mine===draftEpoch){draftBusy=false;busy=false;}if(current)render(current);}
+   finally{
+    const showRecovery=mine===draftEpoch&&draftAttestationDenied&&document.activeElement===el('cancel-function-draft');
+    if(mine===draftEpoch){draftBusy=false;busy=false;}
+    if(current)render(current);
+    if(showRecovery&&!el('draft-recovery').hidden)el('draft-recovery-recorded').focus?.();
+   }
   });
   el('review-function-draft').addEventListener('click',async()=>{
    if(busy||inspection||cloudBusy||!draftResult||current?.mode!=='function-contract'||current.snapshot.revision!==draftResult.revision)return;

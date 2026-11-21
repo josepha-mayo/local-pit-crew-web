@@ -652,10 +652,34 @@ test('an App Check refusal returns focus to a local recovery action without send
   assert.equal(f.activeElement,f.el('continue-local-after-cloud'));
   assert.deepEqual(cloud.calls.prompts,[]);
   assert.equal(f.el('pass-count').textContent,'3/5');
+  await f.el('cloud-recovery-recorded').click();
+  assert.equal(f.el('recorded-hybrid').open,true);
+  assert.equal(f.activeElement,f.el('recorded-hybrid-summary'));
+  await f.el('recheck-recorded-hybrid').click();
+  assert.match(f.el('compare-replay-status').textContent,/3\/5 baseline → 5\/5 candidate/);
+  assert.equal(f.el('pass-count').textContent,'3/5');
+  assert.deepEqual(cloud.calls.prompts,[]);
   await f.el('continue-local-after-cloud').click();
   assert.equal(f.activeElement,f.el('next-action'));
   await f.el('review-cloud').click();
   assert.equal(f.el('cloud-recovery').hidden,true);
+ }finally{await f.close();}
+});
+test('a declined cloud patch offers the recorded comparison and leaves the repair unchanged',async()=>{
+ const cloud=cloudFixture({attestationFails:true}),f=await setup({cloud});
+ try{
+  await f.el('try-function-example').click();
+  await f.el('preview-function-draft').click();
+  await f.el('send-function-draft').click();
+  assert.equal(f.el('draft-recovery').hidden,false);
+  assert.equal(f.activeElement,f.el('draft-recovery-recorded'));
+  assert.deepEqual(cloud.calls.prompts,[]);
+  assert.equal(f.el('pass-count').textContent,'3/5');
+  await f.el('draft-recovery-recorded').click();
+  assert.equal(f.el('recorded-hybrid').open,true);
+  assert.equal(f.activeElement,f.el('recorded-hybrid-summary'));
+  await f.el('preview-function-draft').click();
+  assert.equal(f.el('draft-recovery').hidden,true);
  }finally{await f.close();}
 });
 test('a reviewed cloud example fills an editable form and only explicit checks change the verdict',async()=>{
