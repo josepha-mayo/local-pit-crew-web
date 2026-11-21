@@ -51,6 +51,13 @@
  <p id="compare-replay-status" class="comparison-status" tabindex="-1" role="status" aria-live="polite"></p>
  <ul id="compare-replay-changes" class="comparison-changes"></ul>
  <div id="comparison-evidence" class="comparison-evidence"></div>
+ <section id="boundary-probe" class="boundary-probe" aria-labelledby="boundary-probe-title" hidden>
+  <h3 id="boundary-probe-title">Find a new test</h3>
+  <p class="muted">Try up to eight new inputs by changing one string, number or boolean argument at a time.</p>
+  <button id="run-boundary-probe" type="button" class="secondary">Probe boundary inputs</button>
+  <p id="boundary-probe-status" class="comparison-status" tabindex="-1" role="status"></p>
+  <div id="boundary-probe-results" class="comparison-evidence"></div>
+ </section>
  <button id="download-comparison-summary" type="button" class="secondary" hidden>Download comparison summary</button>
  <p id="comparison-summary-status" class="muted" role="status"></p>
  <div id="comparison-failure" hidden>

@@ -1380,10 +1380,15 @@ module.exports = { uniqueTags };`;
   const comparedFailure=el('comparison-failure'),comparedFailureStatus=el('compared-failure-status');
   const compareExample=el('compare-replay-example');
   const comparisonInputs=[el('comparison-baseline-file'),el('comparison-candidate-file')];
-  let comparisonSummary=null,comparisonFailureReplay=null;
+  const probePanel=el('boundary-probe'),probeButton=el('run-boundary-probe'),probeStatus=el('boundary-probe-status'),probeResults=el('boundary-probe-results');
+  let comparisonSummary=null,comparisonFailureReplay=null,comparedRequest=null;
   function clearComparison(){
    comparisonSummary=null;
    comparisonFailureReplay=null;
+   comparedRequest=null;
+   probePanel.hidden=true;
+   probeStatus.textContent='';
+   probeResults.replaceChildren();
    comparisonDownload.hidden=true;
    comparisonDownload.textContent='Download comparison summary';
    comparisonDownloadStatus.textContent='';
@@ -1431,6 +1436,16 @@ module.exports = { uniqueTags };`;
    compareButton.disabled=comparisonBusy||!token||!comparisonInputs.every(input=>input.files?.[0]);
    repeatButton.disabled=comparisonBusy||!token||!comparisonInputs[0].files?.[0];
    compareExample.disabled=comparisonBusy||!token;
+   probeButton.disabled=comparisonBusy||!token||!comparedRequest;
+  }
+  function appendVersionObservations(item,baseline,candidate){
+   for(const [name,observation] of [['Baseline',baseline],['Candidate',candidate]]){
+    const outcome=observation.status==='returned'?observation.actualReturn:
+     observation.status==='threw'?'The function threw.':'The return could not be represented as JSON.';
+    item.append(node('p',name+(observation.inputPreserved?' · Input preserved':' · Input preservation failed')),node('pre',outcome));
+    if(!observation.inputPreserved)item.append(node('p',name+' arguments after the call'),
+     node('pre',observation.argumentsAfter??'The arguments could not be represented as JSON.'));
+   }
   }
   for(const input of comparisonInputs)input.addEventListener('change',()=>{
    compareStatus.textContent='';
@@ -1439,9 +1454,10 @@ module.exports = { uniqueTags };`;
   });
   async function runComparison(mode){
    if(!hosted||busy||inspection||cloudBusy||comparisonBusy||!token)return;
-   const example=mode==='example',repeat=mode==='repeat';
+   const example=mode==='example'||mode==='boundary-example',repeat=mode==='repeat',probe=mode==='probe';
+   const reviewedComparison=comparedRequest;
    const files=comparisonInputs.map(input=>input.files?.[0]);
-   if(!example&&(!files[0]||(!repeat&&!files[1])))return;
+   if(probe?!reviewedComparison:!example&&(!files[0]||(!repeat&&!files[1])))return;
    if(example){
     el('function-intake').open=true;comparePanel.open=true;
     comparePanel.scrollIntoView?.({block:'start'});
@@ -1449,14 +1465,16 @@ module.exports = { uniqueTags };`;
    comparisonBusy=true;busy=true;
    if(current)render(current);
    comparisonInputs.forEach(input=>{input.disabled=true;});updateComparisonControls();
-   clearComparison();
-   compareStatus.textContent=repeat?'Running the same saved examples twice in separate workers…':
-    'Validating the files and running fresh checks in separate workers…';
-   compareStatus.focus?.({preventScroll:true});
-   const sourceCandidate=!example&&!repeat&&/\.(?:js|cjs)$/i.test(files[1].name??'');
+   if(probe)probeResults.replaceChildren();else clearComparison();
+   const feedback=probe?probeStatus:compareStatus;
+   feedback.textContent=probe?'Running the new inputs in separate local workers…':
+    repeat?'Running the same saved examples twice in separate workers…':'Validating the files and running fresh checks in separate workers…';
+   feedback.focus?.({preventScroll:true});
+   const sourceCandidate=!example&&!repeat&&!probe&&/\.(?:js|cjs)$/i.test(files[1].name??'');
    try{
-    let body={example:'pagination'};
-    if(repeat)body={repeat:JSON.parse(await readIntakeFile(files[0]))};
+    let body={example:mode==='boundary-example'?'pagination-boundary':'pagination'};
+    if(probe)body={...reviewedComparison,probe:true};
+    else if(repeat)body={repeat:JSON.parse(await readIntakeFile(files[0]))};
     else if(!example){
      const [baseline,candidate]=await Promise.all([
       readIntakeFile(files[0]).then(JSON.parse),
@@ -1464,12 +1482,24 @@ module.exports = { uniqueTags };`;
      ]);
      body=sourceCandidate?{baseline,source:candidate}:{baseline,candidate};
     }
-    if(pageLeaving)return;
+    if(pageLeaving||(probe&&reviewedComparison!==comparedRequest))return;
     const response=await transport('/api/function/compare-replays',{method:'POST',credentials:'same-origin',
      headers:{'Content-Type':'application/json','X-Pitcrew-Token':token},body:JSON.stringify(body)});
     const result=await response.json();
-    if(pageLeaving)return;
-    if(!response.ok){compareStatus.textContent=result.error;return;}
+    if(pageLeaving||(probe&&reviewedComparison!==comparedRequest))return;
+    if(!response.ok){feedback.textContent=result.error;return;}
+    if(probe){
+     const {count,differences}=result.probe;
+     probeStatus.textContent=differences.length+' of '+count+' new inputs produced different behavior. Review the observations before deciding the expected result.';
+     for(const {label,args,baseline,candidate} of differences){
+      const item=node('details');
+      item.open=differences.length===1;
+      item.append(node('summary',label),node('p','Input arguments'),node('pre',args));
+      appendVersionObservations(item,baseline,candidate);
+      probeResults.append(item);
+     }
+     return;
+    }
     if(repeat){
      const {passingPerRun,total,changedVerdicts,changedFailures}=result.repeat;
      const counts=passingPerRun.map(passed=>passed+'/'+total).join(' then ');
@@ -1497,13 +1527,7 @@ module.exports = { uniqueTags };`;
      const change=baseline.ok?'Regressed':candidate.ok?'Repaired':'Still failing, result changed';
      detail.append(node('summary',change+' · '+(result.checkLabels[id]??id)),
       node('p','Input arguments'),node('pre',args),node('p','Expected return'),node('pre',expected));
-     for(const [name,observation] of [['Baseline',baseline],['Candidate',candidate]]){
-      const outcome=observation.status==='returned'?observation.actualReturn:
-       observation.status==='threw'?'The function threw.':'The return could not be represented as JSON.';
-      detail.append(node('p',name+(observation.inputPreserved?' · Input preserved':' · Input preservation failed')),node('pre',outcome));
-      if(!observation.inputPreserved)detail.append(node('p',name+' arguments after the call'),
-       node('pre',observation.argumentsAfter??'The arguments could not be represented as JSON.'));
-     }
+     appendVersionObservations(detail,baseline,candidate);
      comparisonEvidence.append(detail);
     }
     comparisonSummary={schema:'local-pit-crew/browser-comparison-summary/v1',boundary:'browser-worker-quickjs',
@@ -1511,7 +1535,9 @@ module.exports = { uniqueTags };`;
     comparisonDownload.hidden=false;
     comparisonFailureReplay=result.failureReplay;
     comparedFailure.hidden=!comparisonFailureReplay;
-   }catch{if(!pageLeaving)compareStatus.textContent=repeat?'Could not read the replay. Choose a valid UTF-8 replay file up to 80,000 bytes.':sourceCandidate?
+    comparedRequest=body;
+    probePanel.hidden=false;
+   }catch{if(!pageLeaving)feedback.textContent=probe?'The boundary probes could not be verified. Try again.':repeat?'Could not read the replay. Choose a valid UTF-8 replay file up to 80,000 bytes.':sourceCandidate?
     'Could not read these files. Use a valid UTF-8 baseline replay and a UTF-8 JavaScript file up to 6,000 bytes.':
     'Could not read these replays. Use valid UTF-8 replay files up to 80,000 bytes each.';}
    finally{
@@ -1523,6 +1549,7 @@ module.exports = { uniqueTags };`;
   compareButton.addEventListener('click',()=>runComparison('compare'));
   repeatButton.addEventListener('click',()=>runComparison('repeat'));
   compareExample.addEventListener('click',()=>runComparison('example'));
+  probeButton.addEventListener('click',()=>runComparison('probe'));
   let replayRead=0;
   replayInput.addEventListener('input',()=>{
    replayRead++;
@@ -1803,6 +1830,7 @@ module.exports = { uniqueTags };`;
     if(global.location?.hash==='#hybrid-review')return runWalkthrough(tagWalkthrough,{focusModelReview:true});
     if(global.location?.hash==='#missed-test')return runWalkthrough(shippingWalkthrough,{startWithDraft:true});
     if(global.location?.hash==='#same-score')return runComparison('example');
+    if(global.location?.hash==='#probe-boundaries')return runComparison('boundary-example');
    }
    if(!hosted&&((liveCapability?.available&&liveCapability.plannerRequired!==false)||plannerCapability?.available)){
     loadFirebaseClients().then(()=>{

@@ -361,6 +361,26 @@ test('the same-score link runs the two example workers without opening a repair 
   assert.equal(f.calls.some(c=>c.path==='/api/function/open'),false);
  }finally{await f.close();}
 });
+test('boundary probes expose a new disagreement while the original four checks still pass',async()=>{
+ const f=await setup({hash:'#probe-boundaries'});
+ try{
+  const deadline=Date.now()+3000;
+  while(f.el('boundary-probe').hidden&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));
+  const before=f.el('compare-replay-status').textContent;
+  assert.match(before,/4\/4 baseline → 4\/4 candidate/);
+  await f.el('run-boundary-probe').click();
+  assert.match(f.el('boundary-probe-status').textContent,/1 of 6 new inputs produced different behavior/);
+  assert.equal(f.el('compare-replay-status').textContent,before);
+  assert.deepEqual(f.el('boundary-probe-results').children[0].children.map(node=>node.textContent),[
+   'Argument 1 → ""','Input arguments','[""]','Baseline · Input preserved','{"cursor":""}','Candidate · Input preserved','{}'
+  ]);
+  assert.equal(f.el('active-run').hidden,true);
+  assert.equal(f.el('comparison-failure').hidden,true);
+  assert.deepEqual(f.calls.filter(c=>c.path==='/api/function/compare-replays').map(c=>c.body),[
+   {example:'pagination-boundary'},{example:'pagination-boundary',probe:true}
+  ]);
+ }finally{await f.close();}
+});
 test('intake explains malformed examples next to the form and a rejected contract preserves the current run',async()=>{
  const f=await setup();try{
   await f.el('bring-function').click();await f.el('fill-function-example').click();

@@ -93,6 +93,8 @@ If the candidate fails any example, **Download candidate failure replay** saves 
 
 To keep working in the same tab, choose **Load candidate for repair**. The bench verifies the replay hashes and fills the repair form with the candidate source, requirements and examples. Choose **Open my function** after reviewing the form, then verify the new run.
 
+After comparing versions, choose **Probe boundary inputs** to run up to eight new examples. It changes one top-level string, number or boolean argument at a time and skips input arrays already in the saved contract. Both versions receive the same sequence in fresh workers. The result shows differences in return values, thrown errors or changes to inputs. Review the requirements and supply your own expected answer before adding a probe to the fixed examples.
+
 For a CI comparison, run the command below.
 
 ```sh

@@ -15,6 +15,27 @@ const paginationExample={
   {label:'Keep a string cursor',args:['next'],expected:{cursor:'next'}}
  ]
 };
+function probeContract(source){
+ const contract=contracts.parseContractSource(source);
+ const seen=new Set(contract.cases.map(({args})=>contracts.canonical(args))),cases=[];
+ for(const example of contract.cases){
+  for(const [index,value] of example.args.entries()){
+   const variants=typeof value==='string'?['',' ']:typeof value==='number'
+    ?[0,-1,1,Number.MAX_SAFE_INTEGER,Number.MAX_SAFE_INTEGER+1]:typeof value==='boolean'?[!value]:[];
+   for(const variant of variants){
+    const args=example.args.slice();args[index]=variant;
+    const key=contracts.canonical(args);
+    if(seen.has(key))continue;
+    seen.add(key);
+    const row={id:'case-'+String(cases.length+1).padStart(2,'0'),label:'Argument '+(index+1)+' → '+JSON.stringify(variant),args,expected:null};
+    try{contracts.validateContract({...contract,cases:[...cases,row]});}catch{continue;}
+    cases.push(row);
+    if(cases.length===contracts.LIMITS.cases)return {...contract,cases};
+   }
+  }
+ }
+ return {...contract,cases};
+}
 // This is tab-local workflow authority, not a Docker admission issuer. The
 // shared controller keeps its original source/contract/revision invariants.
 export function createBrowserFunctionWorkbench({reference,verifier}){
@@ -26,7 +47,9 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
  const workflow={functionCapability:()=>verifier.capabilityFor(contracts.FUNCTION_SUITE),
   close(){epoch++;pendingStart=null;lifetime.abort();owner?.cancel();verifier.close();},
   async dispatch(request){
-   const {method,pathname,body}=request;
+   const {method,pathname,body:input}=request;
+   const probe=pathname==='/api/function/compare-replays'&&input?.probe===true;
+   const body=probe?Object.fromEntries(Object.entries(input).filter(([key])=>key!=='probe')):input;
    if(method==='GET'&&['/api/bootstrap','/api/state'].includes(pathname)){
     const result=await reference.dispatch(request);
     if(owner)result.body.state=state();
@@ -46,7 +69,8 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
    }
    if(method==='POST'&&pathname==='/api/function/compare-replays'){
     const error=(status,message)=>({status,body:{error:message}});
-    const example=exact(body,['example'])&&body.example==='pagination';
+    const example=exact(body,['example'])&&['pagination','pagination-boundary'].includes(body.example);
+    const boundaryDemo=example&&body.example==='pagination-boundary';
     const repeat=exact(body,['repeat']);
     const source=exact(body,['baseline','source']);
     if(!example&&!repeat&&!source&&!exact(body,['baseline','candidate']))return error(400,'Choose a saved replay to repeat or compare it with a candidate source file.');
@@ -58,8 +82,8 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
       const saved=replays.parseFunctionReplay(JSON.stringify(body.repeat));
       files={baselineFiles:saved,candidateFiles:saved};
      }else files=example?{
-      baselineFiles:contracts.createFunctionTask({...paginationExample,source:'exports.pageQuery = cursor => cursor ? {cursor} : {};'}).files,
-      candidateFiles:contracts.createFunctionTask({...paginationExample,source:'exports.pageQuery = cursor => cursor === undefined ? {} : {cursor};'}).files,
+      baselineFiles:contracts.createFunctionTask({...paginationExample,source:boundaryDemo?'exports.pageQuery = cursor => cursor == null ? {} : {cursor};':'exports.pageQuery = cursor => cursor ? {cursor} : {};'}).files,
+      candidateFiles:contracts.createFunctionTask({...paginationExample,source:boundaryDemo?'exports.pageQuery = cursor => cursor === 0 || cursor ? {cursor} : {};':'exports.pageQuery = cursor => cursor === undefined ? {} : {cursor};'}).files,
       context:{title:paginationExample.title,instructions:paginationExample.instructions}
      }:source?replays.prepareSourceComparison(JSON.stringify(body.baseline),body.source):
       replays.prepareReplayComparison(JSON.stringify(body.baseline),JSON.stringify(body.candidate));
@@ -67,6 +91,16 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
     catch(cause){return error(400,cause.message==='different-contracts'?'These replays use different contracts. Compare two versions with identical examples.':
      cause.message==='unchanged-source'?'Both versions contain the same source. Choose a different candidate.':
      source?'Check the baseline replay hash and use a nonempty JavaScript file up to 6,000 bytes.':'Check the replay formats and file hashes.');}
+    if(probe&&repeat)return error(400,'Choose two different versions for boundary probes.');
+    let probeCases;
+    if(probe){
+     const planned=probeContract(files.baselineFiles[contracts.CONTRACT_PATH]);
+     probeCases=planned.cases;
+     if(!probeCases.length)return error(400,'Boundary probes need a string, number or boolean directly in the saved arguments.');
+     const contract=JSON.stringify(planned);
+     files.baselineFiles={...files.baselineFiles,[contracts.CONTRACT_PATH]:contract};
+     files.candidateFiles={...files.candidateFiles,[contracts.CONTRACT_PATH]:contract};
+    }
     comparing=true;
     try{
      const results=[];
@@ -76,6 +110,15 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
       const checked=codec.parsePublicCheckOutcome(outcome,{ticketId:id,suiteId,workspaceHash},version);
       if(lifetime.signal.aborted||checked.status!=='candidate-verdict')return error(503,'A run could not be verified. No comparison is available.');
       results.push(checked);
+     }
+     if(probe){
+      const show=({status,actualReturn,inputPreserved,argumentsAfter})=>({status,actualReturn,inputPreserved,argumentsAfter});
+      const differences=probeCases.flatMap(({label,args},index)=>{
+       const baseline=show(results[0].diagnostics[index]),candidate=show(results[1].diagnostics[index]);
+       return baseline.status!==candidate.status||baseline.actualReturn!==candidate.actualReturn||
+        baseline.argumentsAfter!==candidate.argumentsAfter?[{label,args:contracts.canonical(args),baseline,candidate}]:[];
+      });
+      return{status:200,body:{probe:{count:probeCases.length,differences}}};
      }
      const {cases}=contracts.parseContractSource(files.baselineFiles[contracts.CONTRACT_PATH]);
      const checkLabels=Object.fromEntries(cases.map(({id,label})=>[id,label]));
