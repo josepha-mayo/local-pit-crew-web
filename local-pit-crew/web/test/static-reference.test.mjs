@@ -149,23 +149,25 @@ test('static preview serves the compiled app with CSP and has no task mutation e
  assert.ok(bootstrap?.includes('import("/'+entryAsset+'")'));
  const preload=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
  assert.ok(preload);
+ assert.ok(html.indexOf('<script>'+preload) < html.indexOf('<link rel="stylesheet"'));
  for(const script of [preload,bootstrap])
   assert.ok(page.headers.get('content-security-policy').includes("'sha256-"+createHash('sha256').update(script).digest('base64')+"'"));
  assert.doesNotMatch(page.headers.get('content-security-policy'),/'unsafe-inline'/);
  const asset=await fetch(origin+'/'+entryAsset);assert.equal(asset.status,200);
  assert.match(asset.headers.get('content-type'),/javascript/);
  const wasmName=Object.keys(manifest.files).find(name=>name.endsWith('.wasm'));
- for(const [hash,supported,expected] of [['#checkout-repair',true,1],['#same-score',true,1],['#hybrid-review',true,1],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
+ const workerName=Object.keys(manifest.files).find(name=>name.startsWith('function-worker-'));
+ for(const [hash,supported,expected] of [['#checkout-repair',true,2],['#missed-test',true,2],['#same-score',true,2],['#hybrid-review',true,2],['#probe-boundaries',true,2],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
   const requests=[];
   const context=vm.createContext({location:{hash},Worker:supported?class Worker{}:undefined,WebAssembly:{},AbortController,
    fetch:(url,{signal})=>{requests.push({url,signal});return Promise.resolve({ok:false});}});
   vm.runInContext(preload,context,{timeout:1000});
   assert.equal(requests.length,expected,hash);
   if(expected){
-   assert.equal(requests[0].url,'/'+wasmName);
-   assert.equal(requests[0].signal.aborted,false);
+   assert.deepEqual(requests.map(({url})=>url),['/'+workerName,'/'+wasmName]);
+   assert.ok(requests.every(({signal})=>!signal.aborted));
    vm.runInContext('cancelInterpreterPreload()',context,{timeout:1000});
-   assert.equal(requests[0].signal.aborted,true);
+   assert.ok(requests.every(({signal})=>signal.aborted));
   }
  }
  const wasm=await fetch(origin+'/'+wasmName);assert.equal(wasm.headers.get('content-type'),'application/wasm');assert.equal(wasm.headers.get('cache-control'),IMMUTABLE_CACHE);

@@ -28,16 +28,21 @@ async function main(argv){
  const compiledEntry=path.join(out,'reference-app.mjs');
  const entry=fingerprint('reference-app.mjs',fs.readFileSync(compiledEntry));
  fs.renameSync(compiledEntry,path.join(out,entry));
- const interpreters=fs.readdirSync(out).filter(name=>name.endsWith('.wasm'));
- if(interpreters.length!==1||staticCachePolicy(interpreters[0])==='no-store')throw Error('Expected one fingerprinted browser interpreter');
+ const outputFiles=fs.readdirSync(out);
+ const interpreters=outputFiles.filter(name=>name.endsWith('.wasm'));
+ const workerAssets=outputFiles.filter(name=>/^function-worker-.*\.mjs$/.test(name));
+ if(interpreters.length!==1||workerAssets.length!==1||[...interpreters,...workerAssets].some(name=>staticCachePolicy(name)==='no-store'))
+  throw Error('Expected one fingerprinted browser interpreter and worker');
  // These direct links run browser checks as soon as the app mounts.
- // Start the interpreter download alongside the app modules for those visits.
+ // Start their requests before the stylesheet can block the inline script.
  const preloadInterpreter=`const cancelInterpreterPreload=(()=>{
- if(!['#checkout-repair','#missed-test','#same-score','#hybrid-review'].includes(location.hash))return;
+ if(!['#checkout-repair','#missed-test','#same-score','#hybrid-review','#probe-boundaries'].includes(location.hash))return;
  if(typeof Worker!=='function'||typeof WebAssembly!=='object'||typeof AbortController!=='function'||typeof fetch!=='function')return;
  const controller=new AbortController();
- fetch(${JSON.stringify('/'+interpreters[0])},{signal:controller.signal,priority:'low'})
-  .then(response=>response.ok?response.arrayBuffer():undefined).catch(()=>{});
+ for(const url of ${JSON.stringify([...workerAssets,...interpreters].map(name=>'/'+name))}){
+  fetch(url,{signal:controller.signal,priority:'low'})
+   .then(response=>response.ok?response.arrayBuffer():undefined).catch(()=>{});
+ }
  return ()=>controller.abort();
 })();`;
  const bootstrap=`import("/${entry}").then(({startBrowserReferenceApp})=>startBrowserReferenceApp({cancelInterpreterPreload})).catch(()=>{
@@ -50,10 +55,9 @@ async function main(argv){
  retry.addEventListener('click',()=>location.reload(),{once:true});
 });`;
  const html=readText(path.join(source,'index.html'))
-  .replace('href="/style.css"','href="/'+style+'"')
-  .replace('<script src="/browser-planner-pump.js" defer></script>','')
-  .replace('<script src="/app.js" defer></script>',
-   '<link rel="modulepreload" href="/'+entry+'"><link rel="modulepreload" href="/'+app+'"><script>'+preloadInterpreter+'</script><script type="module">'+bootstrap+'</script>')
+  .replace('<link rel="stylesheet" href="/style.css"><script src="/browser-planner-pump.js" defer></script><script src="/app.js" defer></script>',
+   '<link rel="modulepreload" href="/'+entry+'"><link rel="modulepreload" href="/'+app+'">\n'+
+   '<script>'+preloadInterpreter+'</script>\n<link rel="stylesheet" href="/'+style+'">\n<script type="module">'+bootstrap+'</script>')
   .replace('</head>','<meta name="local-pit-crew-firebase" content="'+(config?'configured':'disabled')+'">\n<meta name="local-pit-crew-app" content="/'+app+'">\n</head>')
   .replace('127.0.0.1 / LOCAL COMPANION','BROWSER REPAIR BENCH')
   .replace('Connecting to the local service…','Opening the repair bench…')
