@@ -116,7 +116,8 @@ test('composed HTTP handler serves fixed copied bundle/pump assets without execu
  assert.match(bundle.headers['Content-Security-Policy'],/connect-src 'self'/);
 });
 class Element{
- constructor(){this.value='';this.disabled=true;this.children=[];this.listeners=new Map();this.textContent='';}
+ constructor(){this.value='';this.disabled=true;this.children=[];this.listeners=new Map();this.attributes=new Map();this.textContent='';}
+ setAttribute(name,value){this.attributes.set(name,value);}
  addEventListener(name,fn){this.listeners.set(name,fn);}append(...x){this.children.push(...x);}replaceChildren(...x){this.children=[...x];}
  emit(name){return this.listeners.get(name)?.();}
 }

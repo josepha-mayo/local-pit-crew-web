@@ -31,7 +31,8 @@ async function harness({coderOnly=false,firebaseConfigured=true}={}){
  return{app,request,reference,local,cancelReference,packets,get state(){return state;},set provider(fn){provider=fn;}};
 }
 class Element{
- constructor(){this.value='';this.disabled=true;this.children=[];this.listeners=new Map();this.textContent='';}
+ constructor(){this.value='';this.disabled=true;this.children=[];this.listeners=new Map();this.attributes=new Map();this.textContent='';}
+ setAttribute(name,value){this.attributes.set(name,value);}
  addEventListener(k,f){this.listeners.set(k,f);}append(...x){this.children.push(...x);}replaceChildren(...x){this.children=[...x];}
  emit(k){return this.listeners.get(k)?.();}
 }

@@ -53,7 +53,8 @@ test('UI review: old rejected check cannot close a newer reference session',asyn
  assert.deepEqual(h.state.checks,[]);
 });
 class Element{
- constructor(){this.disabled=true;this.value='';this.children=[];this.listeners=new Map();this.textContent='';this.className='';}
+ constructor(){this.disabled=true;this.value='';this.children=[];this.listeners=new Map();this.attributes=new Map();this.textContent='';this.className='';}
+ setAttribute(name,value){this.attributes.set(name,value);}
  addEventListener(name,fn){this.listeners.set(name,fn);}
  append(...nodes){this.children.push(...nodes);}
  replaceChildren(...nodes){this.children=[...nodes];}
