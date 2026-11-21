@@ -25,9 +25,10 @@ test('a source-free checkout contract gates the recorded draft and the current c
  try{
   const replay=JSON.parse(await fs.readFile(path.join(example,'gemini-draft.replay.json'),'utf8'));
   assert.equal(await fs.readFile(contract,'utf8'),replay.files[1].content);
+  const pin=['--contract-sha256',replay.files[1].sha256];
   await fs.writeFile(draft,replay.files[0].content);
   for(const [source,exit] of [[draft,1],[path.join(example,'shipping-quote.js'),0]]){
-   const run=await invoke(['--contract',contract,'--source',source,...(exit?[]:['--runs','2','--junit',junit])]);
+   const run=await invoke(['--contract',contract,'--source',source,...pin,...(exit?[]:['--runs','2','--junit',junit])]);
    assert.equal(run.code,exit,run.stderr);
    const result=JSON.parse(run.stdout);
    assert.equal(result.total,5);
@@ -36,6 +37,22 @@ test('a source-free checkout contract gates the recorded draft and the current c
    assert.equal(result.modelCalls,0);
    assert.doesNotMatch(run.stdout,/Reject unsafe integer|too-high|recorded draft/);
   }
+  const reduced=path.join(directory,'reduced.contract.json');
+  const changedContract=JSON.parse(replay.files[1].content);
+  changedContract.cases.pop();
+  await fs.writeFile(reduced,JSON.stringify(changedContract));
+  const unpinned=await invoke(['--contract',reduced,'--source',draft]);
+  assert.equal(unpinned.code,0,unpinned.stderr);
+  assert.equal(JSON.parse(unpinned.stdout).passed,4);
+  const drift=await invoke(['--contract',reduced,'--source',path.join(directory,'absent.cjs'),...pin]);
+  assert.equal(drift.code,2);
+  assert.equal(drift.stdout,'');
+  assert.match(drift.stderr,/differs from the pinned reviewed download/);
+  const reformatted=path.join(directory,'reformatted.contract.json');
+  await fs.writeFile(reformatted,replay.files[1].content+'\n');
+  assert.equal((await invoke(['--contract',reformatted,'--source',draft,...pin])).code,2);
+  assert.equal((await invoke(['--contract',contract,'--source',draft,'--contract-sha256','invalid'])).code,2);
+  assert.equal((await invoke([path.join(example,'gemini-draft.replay.json'),'--source',draft,...pin])).code,2);
   assert.doesNotMatch(await fs.readFile(junit,'utf8'),/Reject unsafe integer|too-high/);
   assert.equal((await invoke(['--contract',contract])).code,2);
   assert.equal((await invoke(['--contract',contract,'--compare-source',draft])).code,2);

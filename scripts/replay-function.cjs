@@ -7,7 +7,7 @@ const {comparePublicChecks,changedWhileFailing,compareSameReplay}=require('../lo
 const {FUNCTION_SUITE,FUNCTION_ENTRY,CONTRACT_PATH,LIMITS,validateFunctionFiles,inspectFunctionObservations}=require('../local-pit-crew/runner/function-contract.cjs');
 const {runCandidateProbe}=require('../local-pit-crew/runner/probe.cjs');
 const USAGE='npm run replay:function -- BASELINE.replay.json [--against CANDIDATE.replay.json | --source FUNCTION.js | --compare-source FUNCTION.js] [--runs 2-5] [--junit NEW_REPORT.xml]\n'+
- 'npm run replay:function -- --contract TESTS.contract.json --source FUNCTION.js [--runs 2-5] [--junit NEW_REPORT.xml]';
+ 'npm run replay:function -- --contract TESTS.contract.json --source FUNCTION.js [--contract-sha256 SHA256] [--runs 2-5] [--junit NEW_REPORT.xml]';
 async function checkFiles(files,{captureDiagnostics=false}={}){
  const result=await runCandidateProbe({suiteId:FUNCTION_SUITE,files});
  const observed=result.status==='observed'&&result.cleanupConfirmed===true;
@@ -85,12 +85,14 @@ async function main(argv){
  if(!input||args.length%2)throw Error('invalid-arguments');
  for(let i=0;i<args.length;i+=2){
   const [flag,file]=[args[i],args[i+1]];
-  if(!['--against','--source','--compare-source','--runs','--junit'].includes(flag)||!file||file.startsWith('--')||options.has(flag))throw Error('invalid-arguments');
+  if(!['--against','--source','--compare-source','--contract-sha256','--runs','--junit'].includes(flag)||!file||file.startsWith('--')||options.has(flag))throw Error('invalid-arguments');
   options.set(flag,file);
  }
  const report=options.get('--junit'),against=options.get('--against'),source=options.get('--source'),compareSource=options.get('--compare-source');
  if([against,source,compareSource].filter(Boolean).length>1)throw Error('invalid-arguments');
  if(contractOnly&&!source)throw Error('invalid-arguments');
+ const contractSha256=options.get('--contract-sha256');
+ if(contractSha256&&(!contractOnly||!/^[a-f0-9]{64}$/.test(contractSha256)))throw Error('invalid-arguments');
  const comparing=!!(against||compareSource);
  const runs=options.get('--runs');
  if(runs&&(comparing||!(/^[2-5]$/.test(runs))))throw Error('invalid-arguments');
@@ -98,6 +100,7 @@ async function main(argv){
  let result;
  try{
   const baseline=readBoundedUtf8(input,contractOnly?LIMITS.contractBytes:MAX_REPLAY_BYTES,{preserveBOM:contractOnly});
+  if(contractSha256&&createHash('sha256').update(baseline).digest('hex')!==contractSha256)throw Error('contract-drift');
   if(against)result=await compareReplays(baseline,readBoundedUtf8(against,MAX_REPLAY_BYTES));
   else if(compareSource)result=await compareVersions(prepareSourceComparison(baseline,
    readBoundedUtf8(compareSource,LIMITS.sourceBytes,{preserveBOM:true})));
@@ -117,6 +120,7 @@ async function main(argv){
 if(require.main===module)main(process.argv.slice(2)).then(code=>{process.exitCode=code;}).catch(error=>{
  const message=error?.message==='different-contracts'?'The replay contracts differ. Compare two source versions with byte-identical contracts.':
   error?.message==='unchanged-source'?'The source is identical in both versions. Compare two distinct versions.':
+  error?.message==='contract-drift'?'The contract file differs from the pinned reviewed download. Restore the downloaded file or review the changed examples and generate a new workflow.':
   'Replay invalid, execution unavailable or report could not be written.';
  console.error(message+' Usage: '+USAGE);process.exitCode=2;
 });

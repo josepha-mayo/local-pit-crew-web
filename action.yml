@@ -7,6 +7,9 @@ inputs:
   source:
     description: Path to the current standalone CommonJS function, relative to the checkout.
     required: true
+  contract-sha256:
+    description: Optional lowercase SHA-256 of the exact reviewed contract file.
+    required: false
 outputs:
   exit-code:
     description: Verifier exit code. 0 passes, 1 reports a failed example, and 2 reports unavailable verification.
@@ -29,8 +32,13 @@ runs:
         PIT_CREW_ACTION_ROOT: ${{ github.action_path }}
         PIT_CREW_CASE_CONTRACT: ${{ inputs.contract }}
         PIT_CREW_CHECKED_SOURCE: ${{ inputs.source }}
+        PIT_CREW_CONTRACT_SHA256: ${{ inputs.contract-sha256 }}
       run: |
+        args=(--contract "$PIT_CREW_CASE_CONTRACT" --source "$PIT_CREW_CHECKED_SOURCE")
+        if [ -n "$PIT_CREW_CONTRACT_SHA256" ]; then
+          args+=(--contract-sha256 "$PIT_CREW_CONTRACT_SHA256")
+        fi
         status=0
-        node "$PIT_CREW_ACTION_ROOT/scripts/replay-function.cjs" --contract "$PIT_CREW_CASE_CONTRACT" --source "$PIT_CREW_CHECKED_SOURCE" || status=$?
+        node "$PIT_CREW_ACTION_ROOT/scripts/replay-function.cjs" "${args[@]}" || status=$?
         printf 'exit-code=%s\n' "$status" >> "$GITHUB_OUTPUT"
         exit "$status"

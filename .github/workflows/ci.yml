@@ -51,6 +51,7 @@ jobs:
         with:
           contract: examples/checkout/function.contract.json
           source: examples/checkout/shipping-quote.js
+          contract-sha256: ae71ce4c7536324acc1bc89cb11a471f7ebe33bfa6508e5769ffb4fc34e5b139
       - name: Require the recorded draft to fail case-05
         run: |
           node -e 'const fs = require("node:fs"); const packet = JSON.parse(fs.readFileSync("examples/checkout/gemini-draft.replay.json", "utf8")); fs.writeFileSync("checkout-draft.cjs", packet.files[0].content, {flag: "wx"});'
@@ -64,6 +65,26 @@ jobs:
             assert.deepEqual(checks.filter(check => !check.ok).map(check => check.id), ["case-05"]);
             console.log("The recorded draft was rejected on case-05.");
           '
+      - name: Attempt the gate with case-05 removed
+        run: |
+          node -e 'const fs = require("node:fs"); const contract = JSON.parse(fs.readFileSync("examples/checkout/function.contract.json", "utf8")); contract.cases.pop(); fs.writeFileSync("reduced.contract.json", JSON.stringify(contract), {flag: "wx"});'
+          node scripts/replay-function.cjs --contract reduced.contract.json --source checkout-draft.cjs > reduced-result.json
+          node -e 'require("node:assert/strict").equal(require("./reduced-result.json").passed, 4);'
+      - name: Require the pinned action to reject the reduced contract
+        id: reduced
+        uses: ./
+        continue-on-error: true
+        with:
+          contract: reduced.contract.json
+          source: checkout-draft.cjs
+          contract-sha256: ae71ce4c7536324acc1bc89cb11a471f7ebe33bfa6508e5769ffb4fc34e5b139
+      - name: Confirm verification stopped with contract drift
+        env:
+          GATE_OUTCOME: ${{ steps.reduced.outcome }}
+          GATE_EXIT_CODE: ${{ steps.reduced.outputs.exit-code }}
+        run: |
+          test "$GATE_OUTCOME" = failure
+          test "$GATE_EXIT_CODE" = 2
       - name: Verify the validator's expected error code
         uses: ./
         with:
