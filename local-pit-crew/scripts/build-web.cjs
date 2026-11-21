@@ -46,20 +46,42 @@ async function main(argv){
     :Promise.resolve(null);
    attempt={controller,compiled};
   }
-  if(warmWorker&&!attempt.worker){
-   attempt.worker=fetch(${JSON.stringify('/'+workerAssets[0])},{signal:attempt.controller.signal,priority:'low'})
-    .then(response=>response.ok?response.arrayBuffer():undefined).catch(()=>{});
+  if(warmWorker&&attempt.worker===undefined){
+   attempt.worker=null;
+   try{
+    const worker=new Worker(${JSON.stringify('/'+workerAssets[0])},{type:'module'});
+    attempt.worker=worker;
+    worker.onerror=()=>{
+     if(attempt?.worker!==worker)return;
+     attempt.worker=null;
+     worker.terminate();
+    };
+   }catch{}
   }
   return attempt.compiled;
  }
- function cancel(){attempt?.controller.abort();attempt=undefined;}
- if(['#checkout-repair','#missed-test','#same-score','#hybrid-review','#recorded-hybrid','#probe-boundaries'].includes(location.hash))prepare(true);
- const warm=event=>{
-  if(event.target.closest?.('#try-missed-test, #try-shipping-example, #try-function-example, #try-hybrid-example, #recheck-recorded-hybrid'))prepare(true);
+ function takeWorker(){
+  const worker=attempt?.worker;
+  if(worker){
+   attempt.worker=null;
+   worker.onerror=null;
+  }
+  return worker;
+ }
+ function cancel(){
+  const pending=attempt;
+  attempt=undefined;
+  pending?.controller.abort();
+  pending?.worker?.terminate();
+ }
+ if(['#checkout-repair','#missed-test','#same-score','#hybrid-review','#probe-boundaries'].includes(location.hash))prepare(true);
+ const warm=(event,startWorker)=>{
+  if(event.target.closest?.('#try-missed-test, #try-shipping-example, #try-function-example, #try-hybrid-example, #recheck-recorded-hybrid'))prepare(startWorker);
  };
- document.addEventListener('pointerover',warm,{passive:true});
- document.addEventListener('focusin',warm);
- return {prepare,cancel};
+ document.addEventListener('pointerover',event=>warm(event,false),{passive:true});
+ document.addEventListener('focusin',event=>warm(event,false));
+ document.addEventListener('click',event=>warm(event,true),{capture:true});
+ return {prepare,takeWorker,cancel};
 })();`;
  const bootstrap=`import("/${entry}").then(({startBrowserReferenceApp})=>startBrowserReferenceApp({interpreterPreload})).catch(()=>{
  interpreterPreload?.cancel();

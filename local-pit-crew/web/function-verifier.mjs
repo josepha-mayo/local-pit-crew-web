@@ -38,7 +38,7 @@ export function createBrowserFunctionVerifier(environment=globalThis,createWorke
      if(active===owner)active=null;resolve(cleanup?result:unavailable('cleanup-uncertain'));
     }
     try{
-     worker=createWorker();
+     worker=interpreterPreload?.takeWorker?.()??createWorker();
      timer=schedule(()=>owner.stop('browser-setup-unavailable'),30_000);
      signal?.addEventListener('abort',abort,{once:true});
      worker.onerror=()=>owner.stop(ready?'runtime-unavailable':'browser-setup-unavailable');

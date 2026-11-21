@@ -157,26 +157,41 @@ test('static preview serves the compiled app with CSP and has no task mutation e
  assert.match(asset.headers.get('content-type'),/javascript/);
  const wasmName=Object.keys(manifest.files).find(name=>name.endsWith('.wasm'));
  const workerName=Object.keys(manifest.files).find(name=>name.startsWith('function-worker-'));
- for(const [hash,supported,expected] of [['#checkout-repair',true,2],['#missed-test',true,2],['#same-score',true,2],['#hybrid-review',true,2],['#recorded-hybrid',true,2],['#probe-boundaries',true,2],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
-  const requests=[],intent=new Map();
-  const context=vm.createContext({location:{hash},Worker:supported?class Worker{}:undefined,
+ for(const [hash,supported,expected] of [['#checkout-repair',true,1],['#missed-test',true,1],['#same-score',true,1],['#hybrid-review',true,1],['#recorded-hybrid',true,0],['#probe-boundaries',true,1],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
+  const requests=[],workers=[],intent=new Map();
+  class Worker{
+   constructor(url,options){this.url=url;this.type=options.type;workers.push(this);}
+   terminate(){this.terminated=true;}
+  }
+  const context=vm.createContext({location:{hash},Worker:supported?Worker:undefined,
    document:{addEventListener(name,listener){intent.set(name,listener);}},
    WebAssembly:{compileStreaming:response=>response.then(()=>null)},AbortController,
    fetch:(url,{signal})=>{requests.push({url,signal});return Promise.resolve({ok:false});}});
   vm.runInContext(preload,context,{timeout:1000});
   assert.equal(requests.length,expected,hash);
+  assert.equal(workers.length,expected,hash);
   if(supported){
    intent.get('pointerover')({target:{closest:()=>null}});
    assert.equal(requests.length,expected);
    if(!hash){
     for(const type of ['focusin','pointerover'])intent.get(type)({target:{closest:()=>({id:'try-missed-test'})}});
-    assert.equal(requests.length,2);
+    assert.equal(requests.length,1);
+    assert.equal(workers.length,0);
+    const click={target:{closest:()=>({id:'try-missed-test'})}};
+    intent.get('click')(click);
+    assert.equal(workers.length,1);
+    assert.equal(vm.runInContext('interpreterPreload.takeWorker()',context),workers[0]);
+    intent.get('click')(click);
+    assert.equal(workers.length,1);
    }
    if(!requests.length)continue;
-   assert.deepEqual(requests.map(({url})=>url),['/'+wasmName,'/'+workerName]);
+   assert.deepEqual(requests.map(({url})=>url),['/'+wasmName]);
+   assert.equal(workers[0].url,'/'+workerName);
+   assert.equal(workers[0].type,'module');
    assert.ok(requests.every(({signal})=>!signal.aborted));
    vm.runInContext('interpreterPreload.cancel()',context,{timeout:1000});
    assert.ok(requests.every(({signal})=>signal.aborted));
+   assert.equal(!!workers[0].terminated,!!hash);
    vm.runInContext('interpreterPreload.prepare()',context,{timeout:1000});
    assert.equal(requests.at(-1).url,'/'+wasmName);
    assert.equal(requests.at(-1).signal.aborted,false);

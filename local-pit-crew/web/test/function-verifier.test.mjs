@@ -5,10 +5,10 @@ import {createBrowserFunctionVerifier} from '../function-verifier.mjs';
 import contracts from '../../runner/function-contract.cjs';
 import controller from '../../src/controller.cjs';
 const task=()=>contracts.createFunctionTask({schema:contracts.TASK_SCHEMA,title:'Authored worker test',instructions:'Return zero.',exportName:'fn',source:'module.exports={fn:()=>0};',cases:[{label:'zero',args:[],expected:0}]});
-function fixture(interpreterPreload){
+function fixture(interpreterPreload,{warm=false}={}){
  const workers=[],timers=new Map();let serial=0;
  const env={Worker:class{},WebAssembly:{},setTimeout(fn,delay){const id=++serial;timers.set(id,{fn,delay});return id;},clearTimeout(id){timers.delete(id);}};
- const runtime=createBrowserFunctionVerifier(env,()=>{
+ const createWorker=()=>{
   const worker={
    terminate(){this.terminated=true;},
    postMessage(data){
@@ -18,13 +18,17 @@ function fixture(interpreterPreload){
    send(data){this.onmessage({data});}
   };
   workers.push(worker);return worker;
- },interpreterPreload);
+ };
+ let warmed=warm?createWorker():null;
+ const preload=warm?{takeWorker(){const worker=warmed;warmed=null;return worker;},prepare:()=>Promise.resolve(null),cancel(){}}:interpreterPreload;
+ const runtime=createBrowserFunctionVerifier(env,createWorker,preload);
  const ticket=()=>{const t=task();return{id:'authored-ticket',suiteId:t.id,workspaceHash:controller.workspaceHash(t.files),files:{...t.files}};};
  const result=()=>({status:'observed',observations:[{id:'case-01',status:'returned',output:'0',argsAfter:'[]'}]});
  return{runtime,workers,timers,ticket,result};
 }
 test('browser verifier captures exact files before preparation and independently grades observed data without claiming Docker qualification',async()=>{
- const f=fixture(),t=f.ticket(),pending=f.runtime.runPublicChecks(t);
+ const f=fixture(undefined,{warm:true}),t=f.ticket(),pending=f.runtime.runPublicChecks(t);
+ assert.equal(f.workers.length,1);
  assert.equal(f.runtime.capabilityFor(t.suiteId).qualified,false);
  assert.deepEqual([...f.timers.values()].map(t=>t.delay),[30_000]);
  t.files[contracts.FUNCTION_ENTRY]='module.exports={fn:()=>999};';
@@ -33,6 +37,10 @@ test('browser verifier captures exact files before preparation and independently
  assert.deepEqual([...f.timers.values()].map(t=>t.delay),[2000]);
  f.workers[0].send(f.result());const outcome=await pending;
  assert.equal(outcome.checks[0].ok,true);assert.equal(f.workers[0].terminated,true);assert.equal(f.timers.size,0);
+ const next=f.runtime.runPublicChecks(f.ticket());
+ assert.equal(f.workers.length,2);
+ f.runtime.close();
+ assert.equal((await next).reason,'aborted');
 });
 test('browser verifier rejects self-reported passes, extra fields, incomplete observations and early observations',async()=>{
  for(const packet of [{status:'observed',checks:[{id:'case-01',ok:true}]},{status:'observed',observations:[]},{status:'ready',extra:true}]){
