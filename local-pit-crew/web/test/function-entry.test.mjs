@@ -520,6 +520,58 @@ test('cloud draft includes a current local hypothesis only after choosing its ex
   assert.equal(f.el('preview-function-draft-with-nano').hidden,true);
  }finally{await f.close();}
 });
+test('the cloud result compares its approved Nano hypothesis even if a newer diagnosis arrives',async()=>{
+ const cloud=cloudFixture(),before='The plain object accepts inherited property names.',after='A second local hypothesis.';
+ cloud.planner={state:{prepared:false,calls:0},stop(){},async dispose(){},
+  async prepareFromUserGesture(){return{status:'prepared'};},
+  async decide(snapshot){
+   const objective=this.state.calls++===0?before:after;
+   return{status:'decision',inferenceSource:'on_device',decision:{action:'code',objective,evidenceIds:[snapshot.evidence[0].id]}};
+  }};
+ const f=await setup({cloud});
+ try{
+  await f.el('try-function-example').click();
+  await f.el('diagnose').click();
+  const preview=f.el('review-cloud-with-nano');
+  preview.focus();
+  await preview.click();
+  assert.equal(f.activeElement,f.el('cloud-preview-title'));
+  const payload=JSON.parse(f.el('cloud-data').textContent);
+  assert.equal(payload.nanoHint,before);
+  assert.equal(cloud.calls.prompts.length,0);
+  const response=Promise.withResolvers();
+  cloud.respond=()=>response.promise;
+  const pending=f.el('send-cloud').click();
+  await settle();
+  assert.equal(f.activeElement,f.el('cancel-cloud'));
+  await f.el('diagnose').click();
+  assert.equal(cloud.planner.state.calls,2);
+  const answer={assessment:'challenges',explanation:'Test the tag constructor.',nextCheck:'Include a tag named constructor.',
+   evidenceIds:[payload.evidence[0].id]};
+  const fakeReply=answer=>({response:{inferenceSource:'in_cloud',text:()=>JSON.stringify(answer)}});
+  response.resolve(fakeReply(answer));
+  await pending;
+  const result=f.el('cloud-result');
+  assert.equal(f.activeElement,result);
+  assert.equal(result.hidden,false);
+  const panels=result.children[0].children[0].children;
+  assert.equal(panels[0].children[1].textContent,before);
+  assert.equal(panels[1].children[1].textContent,answer.explanation);
+  await f.el('view-record').click();
+  const record=f.el('record-json').textContent;
+  assert.equal(JSON.parse(record).cloudReview.includedNanoHypothesis,true);
+  assert.equal(record.includes(before),false);
+  assert.equal(f.el('pass-count').textContent,'3/5');
+
+  cloud.respond=async()=>fakeReply({...answer,assessment:'uncertain'});
+  await f.el('review-cloud').click();
+  assert.equal(JSON.parse(f.el('cloud-data').textContent).nanoHint,null);
+  await f.el('send-cloud').click();
+  assert.equal(result.children[0].children[0].children[0].textContent,'Independent cloud review');
+  await f.el('try-function-example').click();
+  assert.equal(result.hidden,true);
+ }finally{await f.close();}
+});
 test('local startup and checks work without Firebase configuration and AI preview can retry its request',async()=>{
  const cloud=cloudFixture();
  let requests=0;

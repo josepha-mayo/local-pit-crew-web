@@ -844,18 +844,28 @@ module.exports = { uniqueTags };`;
     'Cloud review is available in reference runs. Finish or close this run to switch.':
     'Configure Firebase to enable cloud review.';
    el('send-cloud').disabled=busy||!!inspection||cloudBusy||!cloudReview;
-   const data=renderPromptPreview('cloud',cloudReview);
+   const data=renderPromptPreview('cloud',cloudReview?.approval);
    el('cloud-disclosure').textContent=data?.files?
     'This request shares the checked function, its requirements and its existing examples.':
     data?'This request shares the task, source evidence and failed check IDs.'+
      (data.nanoHint?' The Nano hypothesis is included.':' The Nano hypothesis stays local.'):'';
    el('cancel-cloud').hidden=!cloudReview&&!cloudBusy;
    el('cloud-calls').textContent=String(cloudCalls+draftCalls);
-   el('cloud-result').replaceChildren();
+   const output=el('cloud-result');
+   output.replaceChildren();output.hidden=!cloudRecord;
    if(cloudRecord){
     const answer=cloudRecord.answer,block=node('div',undefined,'advisor-hint');
     const {example}=answer;
-    block.append(node('strong',example?'Suggested example · expected return needs review':'Review notes'),node('p',answer.explanation),node('p','Next check: '+answer.nextCheck),
+    const opinion=node('div');
+    opinion.append(node('h3',example?'Suggested example':cloudRecord.reviewedHint?'Gemini’s second opinion':'Independent cloud review'),
+     node('p',answer.explanation));
+    if(cloudRecord.reviewedHint){
+     const hypothesis=node('div',undefined,'reviewed-hypothesis');
+     hypothesis.append(node('h3','Nano hypothesis sent to Gemini'),node('p',cloudRecord.reviewedHint));
+     const comparison=node('div',undefined,'model-opinion-comparison');
+     comparison.append(hypothesis,opinion);block.append(comparison);
+    }else block.append(opinion);
+    block.append(node('h3','Next check to try'),node('p',answer.nextCheck),
      node('small','REV '+cloudRecord.revision+' / '+cloudRecord.model+' / in_cloud (SDK-reported)'+
       (example?'':' · '+answer.evidenceIds.length+' source citations')));
     if(example&&challenge){
@@ -867,7 +877,7 @@ module.exports = { uniqueTags };`;
      });
      block.append(load);
     }
-    el('cloud-result').append(block);
+    output.append(block);
    }
   }
   function fillChallengeExample({label,args,expected},message){
@@ -1183,34 +1193,44 @@ module.exports = { uniqueTags };`;
      el('cloud-status').textContent='Nano’s hypothesis changed. Review a fresh request to choose what to share.';
      return;
     }
-    cloudReview=cloudClient.preview(snapshot,hint);cloudRecord=null;
+    cloudReview={approval:cloudClient.preview(snapshot,hint),hint:hint?.objective};cloudRecord=null;
     el('cloud-status').textContent=challenge?'Send shares this checked function, its requirements and its existing examples with Google via Firebase AI Logic.':
      hint?'Send shares the task, source evidence, failed checks and the Nano hypothesis shown below with Google.':
       'Send shares the task, source evidence and failed checks shown below with Google. Your Nano hypothesis stays local.';
    }catch{if(current?.sessionId!==session||requestEpoch!==cloudEpoch)return;cloudReview=null;el('cloud-status').textContent='Cloud review could not be prepared. Check the connection and current source evidence, then try again.';}
    renderCloud();
+   const trigger=el(includeNano?'review-cloud-with-nano':'review-cloud');
+   if(cloudReview&&document.activeElement===trigger)el('cloud-preview-title').focus?.();
   }
   el('review-cloud').addEventListener('click',()=>previewCloudReview(false));
   el('review-cloud-with-nano').addEventListener('click',()=>previewCloudReview(true));
   el('send-cloud').addEventListener('click',async()=>{
    if(busy||inspection||cloudBusy||!cloudReview||!cloudClient)return;
-   const client=cloudClient,approved=cloudReview,owner=current?.sessionId,mine=++cloudEpoch,callsBefore=client.state.calls;
+   const client=cloudClient,{approval,hint}=cloudReview,owner=current?.sessionId,mine=++cloudEpoch,callsBefore=client.state.calls;
    cloudBusy=true;cloudReview=null;renderCloud();el('cloud-status').textContent='Sending the reviewed prompt for a cloud second opinion…';
+   el('cancel-cloud').focus?.();
    try{
-    const result=await client.send(approved);
-    if(mine!==cloudEpoch||current?.sessionId!==owner||current?.snapshot?.revision!==approved.revision)return;
+    const result=await client.send(approval);
+    if(mine!==cloudEpoch||current?.sessionId!==owner||current?.snapshot?.revision!==approval.revision)return;
     if(result.status!=='review'){el('cloud-status').textContent=cloudFailureMessage(result);return;}
-    cloudRecord=result;el('cloud-status').textContent=result.answer.example?'Cloud example received. Review the expected return before starting the extended check.':
+    cloudRecord={...result,reviewedHint:result.includedNanoHypothesis?hint:undefined};
+    el('cloud-status').textContent=result.answer.example?'Cloud example received. Review the expected return before starting the extended check.':
      'Cloud opinion received. A suggested check still needs review and execution; no fix has been verified.';
    }catch{if(mine===cloudEpoch)el('cloud-status').textContent='Cloud review did not finish. Check Firebase/App Check setup or quota. No automatic retry or fallback was made.';}
    finally{
     if(current?.sessionId===owner)cloudCalls+=Math.max(0,client.state.calls-callsBefore);
-    if(mine===cloudEpoch)cloudBusy=false;renderCloud();
+    if(mine===cloudEpoch){
+     cloudBusy=false;
+     const restoreFocus=document.activeElement===el('cancel-cloud');
+     renderCloud();
+     if(restoreFocus)el(cloudRecord?'cloud-result':'review-cloud').focus?.();
+    }
    }
   });
   el('cancel-cloud').addEventListener('click',()=>{
    cloudEpoch++;cloudClient?.stop();cloudReview=null;cloudBusy=false;
    el('cloud-status').textContent='Cloud review closed. A request already sent may continue at the provider.';renderCloud();
+   el('review-cloud').focus?.();
   });
   function currentNanoHint(){
    return advisorRecord?.revision===current?.snapshot?.revision&&advisorRecord?.action==='code'&&

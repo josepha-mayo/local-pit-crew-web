@@ -328,8 +328,9 @@ test('repair bench: preview sends nothing and explicit cloud Send uses exactly t
  await f.el('send-cloud').emit('click');assert.equal(approved.prompt,shown);assert.equal(cloud.state.calls,1);
  assert.equal(f.el('cloud-preview').hidden,true);assert.equal(f.el('cloud-result').children.length,1);assert.equal(f.el('cloud-calls').textContent,'1');
  const notes=f.el('cloud-result').children[0].children;
- assert.equal(notes[0].textContent,'Review notes');assert.equal(notes[1].textContent,'Authored fake opinion');
- assert.equal(notes[2].textContent,'Next check: Authored next check');
+ assert.equal(notes[0].children[0].textContent,'Independent cloud review');
+ assert.equal(notes[0].children[1].textContent,'Authored fake opinion');
+ assert.equal(notes[1].textContent,'Next check to try');assert.equal(notes[2].textContent,'Authored next check');
  f.el('view-record').emit('click');assert.equal(JSON.parse(f.el('record-json').textContent).cloudReview.assessment,'uncertain');
  assert.equal(f.el('mode-chip').textContent,'Cloud review attempted');assert.match(f.el('scope-title').textContent,/separate model opinions/);
  assert.doesNotMatch(f.el('scope-title').textContent,/No AI is running/);

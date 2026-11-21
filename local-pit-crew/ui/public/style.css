@@ -96,3 +96,8 @@ pre{font-size:12px}
 .function-intake [aria-invalid="true"]{border-color:#9a2f16}
 #numeric-boundary-field,#repeat-example-case{width:100%;min-width:0;margin-bottom:8px}
 .repeat-call-evidence{font-weight:650;overflow-wrap:anywhere}
+.model-opinion-comparison{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
+.model-opinion-comparison>div{min-width:0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+.reviewed-hypothesis p{white-space:pre-wrap}
+.advisor-hint h3,#cloud-preview-title{font-size:14px;margin:10px 0 4px}
+#cloud-result,#cloud-preview-title{scroll-margin-block-start:16px}
