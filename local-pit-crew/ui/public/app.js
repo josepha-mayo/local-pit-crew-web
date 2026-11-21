@@ -411,9 +411,11 @@ module.exports = { uniqueTags };`;
   function node(tag,text,className){
    const element=document.createElement(tag);if(text!==undefined)element.textContent=text;if(className)element.className=className;return element;
   }
-  function renderReplayCommand(prefix,replay){
-   const command=replay?'npm run replay:function -- '+replay.fileName+' --source src/my-function.js':'';
+  const contractFileName='function.contract.json';
+  function renderReplayCommand(prefix,replay,blocked){
+   const command=replay?'npm run replay:function -- --contract '+contractFileName+' --source src/my-function.js':'';
    el(prefix+'-ci-command').textContent=command;
+   el(prefix+'-download-contract').disabled=blocked||!replay;
    el(prefix+'-ci-copy').hidden=!command||typeof global.navigator?.clipboard?.writeText!=='function';
    el(prefix+'-ci-copy-status').textContent='';
    if(!replay)el(prefix+'-ci-help').open=false;
@@ -602,13 +604,13 @@ module.exports = { uniqueTags };`;
    const replay=checkedReplayForDownload(state);
    el('download-function-replay').disabled=blocked||cloudBusy||!replay;
    el('function-replay').hidden=!replay;el('replay-json').textContent=replay?JSON.stringify(replay.packet,null,2)+'\n':'';
-   renderReplayCommand('replay',replay);
+   renderReplayCommand('replay',replay,blocked||cloudBusy);
    el('checked-function-status').textContent='';
    const failedReplay=failureReplayForDownload(state);
    el('failure-replay').hidden=!failedReplay;
    el('download-failure-replay').disabled=blocked||cloudBusy||!failedReplay;
    el('failure-replay-json').textContent=failedReplay?JSON.stringify(failedReplay.packet,null,2)+'\n':'';
-   renderReplayCommand('failure-replay',failedReplay);
+   renderReplayCommand('failure-replay',failedReplay,blocked||cloudBusy);
    el('failure-replay-status').textContent='';
    const total=state?.checks?.length??0,passed=state?.checks?.filter(c=>c.ok).length??0;
    el('pass-count').textContent=total?passed+'/'+total:'—';
@@ -1334,7 +1336,7 @@ module.exports = { uniqueTags };`;
    link.href=url;link.download=fileName;
    try{link.click();}finally{global.setTimeout(()=>global.URL.revokeObjectURL(url),1000);}
   }
-  async function downloadFunction(kind){
+  async function downloadFunction(kind,{contractOnly=false}={}){
    if(busy||inspection||cloudBusy)return;
    const status=el(kind==='failure'?'failure-replay-status':'checked-function-status');
    const select=kind==='failure'?failureReplayForDownload:kind==='replay'?checkedReplayForDownload:checkedFunctionForDownload;
@@ -1342,16 +1344,18 @@ module.exports = { uniqueTags };`;
    const replay=file.packet;
    const owner=current.sessionId,revision=current.snapshot.revision;
    try{
-    const rows=replay?replay.files:[file];
+    const contract=contractOnly?replay.files.find(row=>row.path==='contract.json'):null;
+    const rows=contract?[contract]:replay?.files??[file];
     const matches=await Promise.all(rows.map(async row=>{
      const digest=await global.crypto.subtle.digest('SHA-256',new TextEncoder().encode(row.content));
      return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')===row.sha256;
     }));
     if(pageLeaving||busy||inspection||cloudBusy||current?.sessionId!==owner||current?.snapshot?.revision!==revision||!select(current))return;
     if(matches.some(match=>!match))throw Error('source-hash-mismatch');
-    const bytes=new TextEncoder().encode(replay?JSON.stringify(replay,null,2)+'\n':file.content),fileName=file.fileName;
+    const bytes=new TextEncoder().encode(contract?.content??(replay?JSON.stringify(replay,null,2)+'\n':file.content));
+    const fileName=contract?contractFileName:file.fileName;
     downloadLocalFile(bytes,replay?'application/json;charset=utf-8':'text/javascript;charset=utf-8',fileName);
-    status.textContent='Requested '+fileName+'. Its bytes match the checked '+(replay?'source and contract hashes.':'source hash.');
+    status.textContent='Requested '+fileName+'. Its bytes match the checked '+(contract?'contract hash.':replay?'source and contract hashes.':'source hash.');
    }catch(error){
     if(current?.sessionId===owner&&current?.snapshot?.revision===revision)status.textContent=error?.message==='source-hash-mismatch'?'Source or contract bytes did not match the checked hash. No download was requested.':'Download unavailable. Open the preview to copy the contents.';
    }
@@ -1359,6 +1363,8 @@ module.exports = { uniqueTags };`;
   el('download-checked-function').addEventListener('click',()=>downloadFunction('source'));
   el('download-function-replay').addEventListener('click',()=>downloadFunction('replay'));
   el('download-failure-replay').addEventListener('click',()=>downloadFunction('failure'));
+  el('replay-download-contract').addEventListener('click',()=>downloadFunction('replay',{contractOnly:true}));
+  el('failure-replay-download-contract').addEventListener('click',()=>downloadFunction('failure',{contractOnly:true}));
   el('view-record').addEventListener('click',()=>{
    if(busy||inspection||cloudBusy)return;
    try{

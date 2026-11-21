@@ -4,9 +4,10 @@ const {createHash}=require('node:crypto');
 const {parseFunctionReplay,prepareReplayComparison,prepareSourceComparison,MAX_REPLAY_BYTES}=require('../local-pit-crew/src/function-replay.cjs');
 const {workspaceHash}=require('../local-pit-crew/src/controller.cjs');
 const {comparePublicChecks,changedWhileFailing,compareSameReplay}=require('../local-pit-crew/src/public-check-changes.cjs');
-const {FUNCTION_SUITE,FUNCTION_ENTRY,LIMITS,validateFunctionFiles,inspectFunctionObservations}=require('../local-pit-crew/runner/function-contract.cjs');
+const {FUNCTION_SUITE,FUNCTION_ENTRY,CONTRACT_PATH,LIMITS,validateFunctionFiles,inspectFunctionObservations}=require('../local-pit-crew/runner/function-contract.cjs');
 const {runCandidateProbe}=require('../local-pit-crew/runner/probe.cjs');
-const USAGE='npm run replay:function -- BASELINE.replay.json [--against CANDIDATE.replay.json | --source FUNCTION.js | --compare-source FUNCTION.js] [--runs 2-5] [--junit NEW_REPORT.xml]';
+const USAGE='npm run replay:function -- BASELINE.replay.json [--against CANDIDATE.replay.json | --source FUNCTION.js | --compare-source FUNCTION.js] [--runs 2-5] [--junit NEW_REPORT.xml]\n'+
+ 'npm run replay:function -- --contract TESTS.contract.json --source FUNCTION.js [--runs 2-5] [--junit NEW_REPORT.xml]';
 async function checkFiles(files,{captureDiagnostics=false}={}){
  const result=await runCandidateProbe({suiteId:FUNCTION_SUITE,files});
  const observed=result.status==='observed'&&result.cleanupConfirmed===true;
@@ -79,7 +80,8 @@ function writeJUnit(file,result){
  fs.writeFileSync(file,report,{flag:'wx',mode:0o600});
 }
 async function main(argv){
- const [input,...args]=argv,options=new Map();
+ const contractOnly=argv[0]==='--contract';
+ const [input,...args]=contractOnly?argv.slice(1):argv,options=new Map();
  if(!input||args.length%2)throw Error('invalid-arguments');
  for(let i=0;i<args.length;i+=2){
   const [flag,file]=[args[i],args[i+1]];
@@ -88,18 +90,19 @@ async function main(argv){
  }
  const report=options.get('--junit'),against=options.get('--against'),source=options.get('--source'),compareSource=options.get('--compare-source');
  if([against,source,compareSource].filter(Boolean).length>1)throw Error('invalid-arguments');
+ if(contractOnly&&!source)throw Error('invalid-arguments');
  const comparing=!!(against||compareSource);
  const runs=options.get('--runs');
  if(runs&&(comparing||!(/^[2-5]$/.test(runs))))throw Error('invalid-arguments');
  if(report&&fs.existsSync(report))throw Error('report-already-exists');
  let result;
  try{
-  const baseline=readBoundedUtf8(input,MAX_REPLAY_BYTES);
+  const baseline=readBoundedUtf8(input,contractOnly?LIMITS.contractBytes:MAX_REPLAY_BYTES,{preserveBOM:contractOnly});
   if(against)result=await compareReplays(baseline,readBoundedUtf8(against,MAX_REPLAY_BYTES));
   else if(compareSource)result=await compareVersions(prepareSourceComparison(baseline,
    readBoundedUtf8(compareSource,LIMITS.sourceBytes,{preserveBOM:true})));
   else if(source||runs){
-   const files=parseFunctionReplay(baseline);
+   const files=contractOnly?{[CONTRACT_PATH]:baseline}:parseFunctionReplay(baseline);
    if(source)files[FUNCTION_ENTRY]=readBoundedUtf8(source,LIMITS.sourceBytes,{preserveBOM:true});
    const validated=validateFunctionFiles(files);
    result=runs?await repeatFiles(validated,Number(runs)):(await checkFiles(validated)).report;

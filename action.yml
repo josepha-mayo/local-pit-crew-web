@@ -1,0 +1,36 @@
+name: Local Pit Crew test contract
+description: Run reviewed JSON examples against a standalone CommonJS function in the current checkout.
+inputs:
+  contract:
+    description: Path to the downloaded test contract, relative to the checkout.
+    required: true
+  source:
+    description: Path to the current standalone CommonJS function, relative to the checkout.
+    required: true
+outputs:
+  exit-code:
+    description: Verifier exit code. 0 passes, 1 reports a failed example, and 2 reports unavailable verification.
+    value: ${{ steps.verify.outputs.exit-code }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      with:
+        node-version: 24
+    - name: Install the pinned QuickJS runner
+      shell: bash
+      env:
+        PIT_CREW_ACTION_ROOT: ${{ github.action_path }}
+      run: npm ci --ignore-scripts --no-audit --no-fund --prefix "$PIT_CREW_ACTION_ROOT/local-pit-crew/runner"
+    - name: Check the current function
+      id: verify
+      shell: bash
+      env:
+        PIT_CREW_ACTION_ROOT: ${{ github.action_path }}
+        PIT_CREW_CASE_CONTRACT: ${{ inputs.contract }}
+        PIT_CREW_CHECKED_SOURCE: ${{ inputs.source }}
+      run: |
+        status=0
+        node "$PIT_CREW_ACTION_ROOT/scripts/replay-function.cjs" --contract "$PIT_CREW_CASE_CONTRACT" --source "$PIT_CREW_CHECKED_SOURCE" || status=$?
+        printf 'exit-code=%s\n' "$status" >> "$GITHUB_OUTPUT"
+        exit "$status"

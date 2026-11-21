@@ -39,3 +39,28 @@ jobs:
       - run: npm run test:runner:admission
         env:
           PITCREW_DOCKER_SOCKET: /var/run/docker.sock
+  checkout-contract-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Check the corrected checkout
+        uses: ./
+        with:
+          contract: examples/checkout/function.contract.json
+          source: examples/checkout/shipping-quote.js
+      - name: Materialize the recorded draft
+        run: |
+          node -e 'const fs = require("node:fs"); const packet = JSON.parse(fs.readFileSync("examples/checkout/gemini-draft.replay.json", "utf8")); fs.writeFileSync("checkout-draft.cjs", packet.files[0].content, {flag: "wx"});'
+      - name: Check that the original draft is blocked
+        id: draft
+        continue-on-error: true
+        uses: ./
+        with:
+          contract: examples/checkout/function.contract.json
+          source: checkout-draft.cjs
+      - name: Require a failed example from the draft check
+        if: steps.draft.outcome != 'failure' || steps.draft.outputs.exit-code != '1'
+        run: exit 1

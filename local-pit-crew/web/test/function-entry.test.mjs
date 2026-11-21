@@ -250,6 +250,11 @@ test('checkout walkthrough replays a draft and independently exposes the unsafe-
   assert.equal(f.el('pass-count').textContent,'4/5');
   const packagedDraft=JSON.parse(await readFile(new URL('../../../examples/checkout/gemini-draft.replay.json',import.meta.url),'utf8'));
   assert.deepEqual(JSON.parse(f.el('failure-replay-json').textContent),packagedDraft);
+  const contractBytes=await readFile(new URL('../../../examples/checkout/function.contract.json',import.meta.url),'utf8');
+  assert.equal(f.el('failure-replay-download-contract').disabled,false);
+  await f.el('failure-replay-download-contract').click();
+  assert.equal(f.downloads[0].fileName,'function.contract.json');
+  assert.equal(await f.downloads[0].blob.text(),contractBytes);
   const failedCheck=f.el('checks').children[0];
   assert.equal(failedCheck.children[1].textContent,'Reject unsafe integer');
   const [summary,returns,inputLabel,input]=failedCheck.children[2].children;
@@ -275,6 +280,9 @@ test('checkout walkthrough replays a draft and independently exposes the unsafe-
   const checked=JSON.parse(f.el('replay-json').textContent);
   assert.equal(checked.files[0].content,packagedFix);
   assert.deepEqual(checked.files[1],packagedDraft.files[1]);
+  await f.el('replay-download-contract').click();
+  assert.equal(f.downloads[1].fileName,'function.contract.json');
+  assert.equal(await f.downloads[1].blob.text(),contractBytes);
   assert.equal(f.el('next-action').textContent,'Finish checked repair');
   await f.el('view-record').click();assert.equal(JSON.parse(f.el('record-json').textContent).counts.modelCallsTotal,0);
   await f.el('try-function-example').click();
@@ -748,7 +756,7 @@ test('explicit replay export retains exact source and fixed cases, survives Fini
   assert.equal(f.el('function-replay').hidden,true);await f.el('test').click();await f.el('finish').click();
   assert.equal(f.el('function-replay').hidden,false);assert.equal(f.el('download-function-replay').disabled,false);
   await f.el('download-function-replay').click();assert.equal(f.downloads.length,1);assert.equal(f.downloads[0].fileName,'uniqueTags.replay.json');
-  assert.equal(f.el('replay-ci-command').textContent,'npm run replay:function -- uniqueTags.replay.json --source src/my-function.js');
+  assert.equal(f.el('replay-ci-command').textContent,'npm run replay:function -- --contract function.contract.json --source src/my-function.js');
   const text=await f.downloads[0].blob.text();assert.equal(text,f.el('replay-json').textContent);
   const fresh=await replayModule.replay(text);assert.equal(fresh.status,'checked');assert.equal(fresh.passed,5);assert.equal(fresh.total,5);assert.equal(fresh.modelCalls,0);
   await f.el('view-record').click();const record=JSON.parse(f.el('record-json').textContent);
@@ -765,7 +773,7 @@ test('a failure replay reruns a current failure without importing its verdict',a
   assert.equal(f.el('download-checked-function').disabled,true);
   await f.el('download-failure-replay').click();
   assert.equal(f.downloads[0].fileName,'function-failure.replay.json');
-  assert.equal(f.el('failure-replay-ci-command').textContent,'npm run replay:function -- function-failure.replay.json --source src/my-function.js');
+  assert.equal(f.el('failure-replay-ci-command').textContent,'npm run replay:function -- --contract function.contract.json --source src/my-function.js');
   const saved=await f.downloads[0].blob.text();
   assert.equal(saved,f.el('failure-replay-json').textContent);
   assert.deepEqual(Object.keys(JSON.parse(saved)).sort(),['context','files','schema']);
@@ -786,6 +794,7 @@ test('a failure replay reruns a current failure without importing its verdict',a
   assert.equal(f.el('failure-replay-ci-help').open,false);
   assert.equal(f.el('failure-replay-ci-command').textContent,'');
   await f.el('download-failure-replay').click();
+  await f.el('failure-replay-download-contract').click();
   assert.equal(f.downloads.length,1);
  }finally{await f.close();}
 });
@@ -801,7 +810,7 @@ test('the failure replay copies only the displayed CI command and retains it whe
   assert.equal(button.hidden,false);
   button.disabled=false;
   await button.click();
-  assert.deepEqual(copied,['npm run replay:function -- function-failure.replay.json --source src/my-function.js']);
+  assert.deepEqual(copied,['npm run replay:function -- --contract function.contract.json --source src/my-function.js']);
   assert.equal(status.textContent,'Command copied.');
   await button.click();
   assert.match(status.textContent,/Select the command/);

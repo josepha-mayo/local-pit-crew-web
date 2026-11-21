@@ -14,6 +14,34 @@ test('portable UTF-8 source and exact fixed contract replay through fresh real W
  assert.equal(result.files[0].sha256,packet.files[0].sha256);assert.equal(result.files[1].sha256,packet.files[1].sha256);
  assert.equal(JSON.stringify(result).includes('Private'),false);assert.equal(JSON.stringify(result).includes(original[FUNCTION_ENTRY]),false);
 });
+test('a source-free checkout contract gates the recorded draft and the current correction',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'pitcrew-contract-'));
+ const example=path.resolve(__dirname,'../../../examples/checkout');
+ const script=path.resolve(__dirname,'../../../scripts/replay-function.cjs');
+ const invoke=args=>new Promise(resolve=>execFile(process.execPath,[script,...args],{timeout:8000},
+  (error,stdout,stderr)=>resolve({code:error?.code??0,stdout,stderr})));
+ const contract=path.join(example,'function.contract.json');
+ const draft=path.join(directory,'recorded draft.cjs'),junit=path.join(directory,'checkout.xml');
+ try{
+  const replay=JSON.parse(await fs.readFile(path.join(example,'gemini-draft.replay.json'),'utf8'));
+  assert.equal(await fs.readFile(contract,'utf8'),replay.files[1].content);
+  await fs.writeFile(draft,replay.files[0].content);
+  for(const [source,exit] of [[draft,1],[path.join(example,'shipping-quote.js'),0]]){
+   const run=await invoke(['--contract',contract,'--source',source,...(exit?[]:['--runs','2','--junit',junit])]);
+   assert.equal(run.code,exit,run.stderr);
+   const result=JSON.parse(run.stdout);
+   assert.equal(result.total,5);
+   assert.equal(result.files.find(file=>file.path===CONTRACT_PATH).sha256,replay.files[1].sha256);
+   assert.deepEqual(result.checks.filter(check=>!check.ok).map(check=>check.id),exit?['case-05']:[]);
+   assert.equal(result.modelCalls,0);
+   assert.doesNotMatch(run.stdout,/Reject unsafe integer|too-high|recorded draft/);
+  }
+  assert.doesNotMatch(await fs.readFile(junit,'utf8'),/Reject unsafe integer|too-high/);
+  assert.equal((await invoke(['--contract',contract])).code,2);
+  assert.equal((await invoke(['--contract',contract,'--compare-source',draft])).code,2);
+  assert.equal((await invoke(['--contract',path.join(example,'gemini-draft.replay.json'),'--source',draft])).code,2);
+ }finally{await fs.rm(directory,{recursive:true,force:true});}
+});
 test('modern replay preserves requirements and legacy replay never invents missing intent or imports a verdict',async()=>{
  const original=files(),context={title:'Sort a copy',instructions:'Preserve inputs and duplicates while sorting strings.'};
  const packet=createFunctionReplay(original,context),text=JSON.stringify(packet),prepared=prepareFunctionReplay(text);
