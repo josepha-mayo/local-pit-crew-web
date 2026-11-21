@@ -91,6 +91,8 @@ On the hosted bench, open **Bring my function → Compare a function revision**.
 
 If the candidate fails any example, **Download candidate failure replay** saves its checked source with the baseline’s contract and any saved requirements. Reopen that file for a fresh repair run or rerun it in CI. The replay contains the candidate code and example values, so share it with people who should see them.
 
+To keep working in the same tab, choose **Load candidate for repair**. The bench verifies the replay hashes and fills the repair form with the candidate source, requirements and examples. Choose **Open my function** after reviewing the form, then verify the new run.
+
 For a CI comparison, run the command below.
 
 ```sh

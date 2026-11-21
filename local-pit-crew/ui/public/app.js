@@ -1406,6 +1406,27 @@ module.exports = { uniqueTags };`;
     comparedFailureStatus.textContent='Requested the candidate failure replay download.';
    }catch{comparedFailureStatus.textContent='The replay could not be downloaded. Try again.';}
   });
+  el('load-compared-failure').addEventListener('click',async()=>{
+   const packet=comparisonFailureReplay;
+   if(!packet||busy||inspection||cloudBusy||pageLeaving||!token)return;
+   const before=intakeFields.map(input=>input.value);
+   comparedFailureStatus.textContent='Checking the candidate replay before loading it…';
+   const result=await request('/api/function/replay',{packet});
+   if(pageLeaving||comparisonFailureReplay!==packet)return;
+   if(!result?.replay){
+    comparedFailureStatus.textContent='Could not load the candidate replay. Your form is unchanged.';
+    return;
+   }
+   if(intakeFields.some((input,index)=>input.value!==before[index])){
+    comparedFailureStatus.textContent='Your form changed during validation and was kept. Load again to replace it.';
+    return;
+   }
+   const restored=result.replay.contextRestored;
+   comparedFailureStatus.textContent='Candidate loaded into the repair form.';
+   fillReplayIntake(result.replay,restored
+    ?'Candidate source and fixed examples loaded. Open my function to start an unchecked repair.'
+    :'Candidate source and fixed examples loaded. Enter Required behavior, then open an unchecked repair.');
+  });
   function updateComparisonControls(){
    compareButton.disabled=comparisonBusy||!token||!comparisonInputs.every(input=>input.files?.[0]);
    repeatButton.disabled=comparisonBusy||!token||!comparisonInputs[0].files?.[0];
@@ -1528,17 +1549,13 @@ module.exports = { uniqueTags };`;
    if(busy||inspection||cloudBusy||!token)return;
    const read=++replayRead,text=replayInput.value;
    let packet;try{if(new TextEncoder().encode(text).length>maxFileBytes)throw Error('oversized');packet=JSON.parse(text);}catch{replayStatus.textContent='Choose or paste one replay JSON file, up to 80,000 UTF-8 bytes.';return;}
-   const fields=['title','instructions','export','source','cases'],before=fields.map(field=>el('function-'+field).value);
+   const before=intakeFields.map(input=>input.value);
    const result=await request('/api/function/replay',{packet});
    if(pageLeaving||read!==replayRead)return;
    if(!result?.replay){el('restore-replay-status').textContent='Replay case could not be loaded. Check its format and file hashes. Your draft is unchanged.';return;}
-   if(replayInput.value!==text||fields.some((field,i)=>el('function-'+field).value!==before[i])){replayStatus.textContent='Your draft changed during validation, so it was kept. Load again if you want to replace it.';return;}
-   const {spec,contextRestored}=result.replay;
-   for(const [field,key]of [['title','title'],['instructions','instructions'],['export','exportName'],['source','source']])el('function-'+field).value=spec[key];
-   el('function-cases').value=JSON.stringify(spec.cases,null,2);el('function-intake').open=true;
-   el('restore-replay-status').textContent=contextRestored?'Loaded the saved source, requirements and examples into the form. Review them, then Open my function and run fresh checks. Your active run is unchanged.':'Loaded the saved source and examples. This older replay has no saved requirements; enter Required behavior before opening. Your active run is unchanged.';
-   functionIntakeStatus('A saved pass result is not imported. Open this function to start a new unchecked run.');
-   el(contextRestored?'function-title':'function-instructions').focus?.();
+   if(replayInput.value!==text||intakeFields.some((input,index)=>input.value!==before[index])){replayStatus.textContent='Your draft changed during validation, so it was kept. Load again if you want to replace it.';return;}
+   replayStatus.textContent=result.replay.contextRestored?'Loaded the saved source, requirements and examples into the form. Review them, then Open my function and run fresh checks. Your active run is unchanged.':'Loaded the saved source and examples. This older replay has no saved requirements; enter Required behavior before opening. Your active run is unchanged.';
+   fillReplayIntake(result.replay,'A saved pass result is not imported. Open this function to start a new unchecked run.');
   });
   async function extendCheckedFunction(example){
    if(busy||inspection||cloudBusy||!checkedFunctionForDownload(current)||current.checkedFunction.checkedExamples>=8)return;
@@ -1562,6 +1579,13 @@ module.exports = { uniqueTags };`;
   });
   const intakeNames=['title','instructions','export','source','cases'];
   const intakeFields=intakeNames.map(name=>el('function-'+name));
+  function fillReplayIntake({spec,contextRestored},message){
+   const values=[spec.title,spec.instructions,spec.exportName,spec.source,JSON.stringify(spec.cases,null,2)];
+   intakeFields.forEach((input,index)=>{input.value=values[index];});
+   el('function-intake').open=true;
+   functionIntakeStatus(message);
+   el(contextRestored?'function-title':'function-instructions').focus?.();
+  }
   const intakeDraftSchema='local-pit-crew/intake-draft/v1';
   const draftFile=el('intake-draft-file'),loadDraft=el('load-intake-draft'),draftFileStatus=el('intake-draft-file-status');
   el('download-intake-draft').addEventListener('click',()=>{

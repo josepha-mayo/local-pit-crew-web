@@ -54,8 +54,9 @@
  <button id="download-comparison-summary" type="button" class="secondary" hidden>Download comparison summary</button>
  <p id="comparison-summary-status" class="muted" role="status"></p>
  <div id="comparison-failure" hidden>
+  <button id="load-compared-failure" type="button" class="secondary" aria-describedby="compared-failure-help">Load candidate for repair</button>
   <button id="download-compared-failure" type="button" class="secondary" aria-describedby="compared-failure-help">Download candidate failure replay</button>
-  <p id="compared-failure-help" class="muted">Rerun the candidate against these same examples in the bench or CI. The file contains the candidate code and all example values.</p>
+  <p id="compared-failure-help" class="muted">Load replaces the repair form with this candidate and its fixed examples. The active run stays open. The download contains the candidate code and all example values.</p>
   <p id="compared-failure-status" class="muted" role="status"></p>
  </div>
  <p id="comparison-help" class="muted">Run a saved replay twice to see whether its observed results change. Add a candidate JavaScript file or replay to compare versions against the same examples.</p>
