@@ -74,7 +74,7 @@ async function main(argv){
   pending?.controller.abort();
   pending?.worker?.terminate();
  }
- if(['#checkout-repair','#missed-test','#same-score','#hybrid-review','#probe-boundaries','#checkout-audit'].includes(location.hash))prepare(true);
+ if(['#checkout-repair','#missed-test','#same-score','#hybrid-review','#probe-boundaries','#checkout-audit','#checkout-boundaries'].includes(location.hash))prepare(true);
  const warm=(event,startWorker)=>{
   if(event.target.closest?.('#try-missed-test, #try-shipping-example, #try-function-example, #try-hybrid-example, #recheck-recorded-hybrid, #try-checkout-audit'))prepare(startWorker);
  };

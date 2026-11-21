@@ -80,18 +80,22 @@
   <h2>Checkout patch audit</h2>
   <p>Gemini received four examples. These eight additional examples were set aside before the request. The unsafe-price failure informed the one-line correction. This reruns the recorded draft and the reviewed fix against those same eight examples, with zero model calls.</p>
  </div>
+ <div id="checkout-probe-context" hidden>
+  <h2>Find a price the first checks missed</h2>
+  <p>These four examples were the ones Gemini saw. Both versions pass them. Choose <strong>Probe boundary inputs</strong> to look for a disagreement inside the quote data.</p>
+ </div>
  <p id="compare-replay-status" class="comparison-status" tabindex="-1" role="status" aria-live="polite"></p>
  <ul id="compare-replay-changes" class="comparison-changes"></ul>
  <div id="comparison-evidence" class="comparison-evidence"></div>
  <section id="boundary-probe" class="boundary-probe" aria-labelledby="boundary-probe-title" hidden>
   <h3 id="boundary-probe-title">Find a new test</h3>
-  <p class="muted">Try up to eight new inputs by changing one string, number or boolean argument at a time.</p>
+  <p class="muted">Try up to eight inputs. Replace nested nonnegative integers with the first unsafe integer, then try boundary values for top-level arguments.</p>
   <button id="run-boundary-probe" type="button" class="secondary">Probe boundary inputs</button>
   <p id="boundary-probe-status" class="comparison-status" tabindex="-1" role="status"></p>
   <div id="boundary-probe-results" class="comparison-evidence"></div>
   <section id="probe-example-editor" class="restore-replay" aria-labelledby="probe-example-title" hidden>
    <h4 id="probe-example-title">Add a regression test</h4>
-   <pre id="probe-example-args" aria-label="Selected input arguments"></pre>
+   <pre id="probe-example-args" aria-label="Selected input arguments" tabindex="0"></pre>
    <label for="probe-example-label">Test name</label>
    <input id="probe-example-label" maxlength="80">
    <label class="inline-option"><input id="probe-example-throws" type="checkbox"> Expect a thrown error code</label>

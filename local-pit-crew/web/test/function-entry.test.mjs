@@ -442,6 +442,36 @@ test('the checkout audit reproduces the archived result from both exact versions
   assert.equal(f.el('checkout-audit-context').hidden,true);
  }finally{await f.close();}
 });
+test('probing checkout from the original examples discovers an unsafe price inside the quote list',async()=>{
+ const f=await setup({hash:'#checkout-boundaries'});
+ try{
+  const deadline=Date.now()+3000;
+  while(f.el('boundary-probe').hidden&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(f.el('checkout-probe-context').hidden,false);
+  const before=f.el('compare-replay-status').textContent;
+  assert.match(before,/4\/4 Gemini draft → 4\/4 reviewed fix/);
+  await f.el('run-boundary-probe').click();
+  assert.match(f.el('boundary-probe-status').textContent,/1 of 8 new inputs produced different behavior/);
+  assert.equal(f.el('compare-replay-status').textContent,before);
+  const [evidence]=f.el('boundary-probe-results').children;
+  assert.equal(evidence.children[0].textContent,'Argument 1[1]["priceCents"] → 9007199254740992');
+  const args=JSON.parse(evidence.children[2].textContent);
+  assert.equal(args[0][1].id,'live');
+  assert.equal(args[0][1].priceCents,Number.MAX_SAFE_INTEGER+1);
+  assert.deepEqual(evidence.children.slice(3,7).map(item=>item.textContent),
+   ['Baseline · Input preserved','"live"','Candidate · Input preserved','null']);
+  await evidence.children.at(-1).click();
+  assert.equal(f.el('probe-example-expected').value,'');
+  f.el('probe-example-expected').value='null';
+  await f.el('load-probe-example').click();
+  assert.equal(f.el('active-run').hidden,true);
+  const cases=JSON.parse(f.el('function-cases').value);
+  assert.equal(cases.length,5);
+  assert.deepEqual(cases[4].args,args);
+  assert.equal(cases[4].expected,null);
+  assert.match(f.el('function-instructions').value,/nonnegative safe integer/);
+ }finally{await f.close();}
+});
 test('boundary probes expose a new disagreement while the original four checks still pass',async()=>{
  const f=await setup({hash:'#probe-boundaries'});
  try{

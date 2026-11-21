@@ -5,6 +5,7 @@ import controller from '../src/controller.cjs';
 import codec from '../src/public-check-codec.cjs';
 import comparison from '../src/public-check-changes.cjs';
 import recordedTagRun from '../../examples/tag-review/recorded-replays.json' with {type:'json'};
+import checkoutContract from '../../examples/checkout/function.contract.json' with {type:'json'};
 import checkoutDraft from '../../examples/checkout/gemini-audit.replay.json' with {type:'json'};
 import checkoutReviewed from '../../examples/checkout/reviewed-audit.replay.json' with {type:'json'};
 const exact=(x,keys)=>x&&typeof x==='object'&&!Array.isArray(x)&&Object.keys(x).length===keys.length&&keys.every(k=>Object.hasOwn(x,k));
@@ -18,24 +19,49 @@ const paginationExample={
   {label:'Keep a string cursor',args:['next'],expected:{cursor:'next'}}
  ]
 };
+function* nestedIntegerPaths(value,path=[]){
+ if(path.length>1&&Number.isSafeInteger(value)&&value>=0)yield path;
+ if(value&&typeof value==='object'){
+  for(const [key,item] of Object.entries(value)){
+   yield* nestedIntegerPaths(item,[...path,Array.isArray(value)?Number(key):key]);
+  }
+ }
+}
+function* boundaryInputs(examples){
+ const unsafe=Number.MAX_SAFE_INTEGER+1;
+ const change=' → '+unsafe;
+ for(const {args} of examples){
+  for(const path of nestedIntegerPaths(args)){
+   const changed=structuredClone(args);
+   const parent=path.slice(0,-1).reduce((value,key)=>value[key],changed);
+   parent[path.at(-1)]=unsafe;
+   const field='Argument '+(path[0]+1)+path.slice(1).map(key=>'['+JSON.stringify(key)+']').join('');
+   const name=field.length+change.length>80?field.slice(0,79-change.length)+'…':field;
+   yield {label:name+change,args:changed};
+  }
+ }
+ for(const example of examples){
+  for(const [index,value] of example.args.entries()){
+   const variants=typeof value==='string'?['',' ']:typeof value==='number'
+    ?[0,-1,1,Number.MAX_SAFE_INTEGER,unsafe]:typeof value==='boolean'?[!value]:[];
+   for(const variant of variants){
+    const args=example.args.slice();args[index]=variant;
+    yield {label:'Argument '+(index+1)+' → '+JSON.stringify(variant),args};
+   }
+  }
+ }
+}
 function probeContract(source){
  const contract=contracts.parseContractSource(source);
  const seen=new Set(contract.cases.map(({args})=>contracts.canonical(args))),cases=[];
- for(const example of contract.cases){
-  for(const [index,value] of example.args.entries()){
-   const variants=typeof value==='string'?['',' ']:typeof value==='number'
-    ?[0,-1,1,Number.MAX_SAFE_INTEGER,Number.MAX_SAFE_INTEGER+1]:typeof value==='boolean'?[!value]:[];
-   for(const variant of variants){
-    const args=example.args.slice();args[index]=variant;
-    const key=contracts.canonical(args);
-    if(seen.has(key))continue;
-    seen.add(key);
-    const row={id:'case-'+String(cases.length+1).padStart(2,'0'),label:'Argument '+(index+1)+' → '+JSON.stringify(variant),args,expected:null};
-    try{contracts.validateContract({...contract,cases:[...cases,row]});}catch{continue;}
-    cases.push(row);
-    if(cases.length===contracts.LIMITS.cases)return {...contract,cases};
-   }
-  }
+ for(const {label,args} of boundaryInputs(contract.cases)){
+  const key=contracts.canonical(args);
+  if(seen.has(key))continue;
+  seen.add(key);
+  const row={id:'case-'+String(cases.length+1).padStart(2,'0'),label,args,expected:null};
+  try{contracts.validateContract({...contract,cases:[...cases,row]});}catch{continue;}
+  cases.push(row);
+  if(cases.length===contracts.LIMITS.cases)break;
  }
  return {...contract,cases};
 }
@@ -74,7 +100,7 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
    }
    if(method==='POST'&&pathname==='/api/function/compare-replays'){
     const error=(status,message)=>({status,body:{error:message}});
-    const example=exact(body,['example'])&&['pagination','pagination-boundary','recorded-tags','checkout-audit'].includes(body.example);
+    const example=exact(body,['example'])&&['pagination','pagination-boundary','recorded-tags','checkout-audit','checkout-boundaries'].includes(body.example);
     const boundaryDemo=example&&body.example==='pagination-boundary';
     const recordedTags=example&&body.example==='recorded-tags';
     const repeat=exact(body,['repeat']);
@@ -92,6 +118,14 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
       files=replays.prepareReplayComparison(JSON.stringify(recordedTagRun.baseline),JSON.stringify(recordedTagRun.corrected));
      }else if(example&&body.example==='checkout-audit'){
       files=replays.prepareReplayComparison(JSON.stringify(checkoutDraft),JSON.stringify(checkoutReviewed));
+     }else if(example&&body.example==='checkout-boundaries'){
+      const draft=replays.parseFunctionReplay(JSON.stringify(checkoutDraft));
+      const reviewed=replays.parseFunctionReplay(JSON.stringify(checkoutReviewed));
+      // The fifth example records the already known counterexample. Probe from
+      // the four checks that accompanied the original request.
+      const initial=JSON.stringify({...checkoutContract,cases:checkoutContract.cases.slice(0,4)});
+      files=replays.prepareContractComparison(initial,draft[contracts.FUNCTION_ENTRY],reviewed[contracts.FUNCTION_ENTRY]);
+      files.context=checkoutDraft.context;
      }else if(contractOnly){
       files=replays.prepareContractComparison(body.contract,body.baselineSource,body.candidateSource);
      }else files=example?{
@@ -110,7 +144,7 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
     if(probe){
      const planned=probeContract(files.baselineFiles[contracts.CONTRACT_PATH]);
      probeCases=planned.cases;
-     if(!probeCases.length)return error(400,'Boundary probes need a string, number or boolean directly in the saved arguments.');
+     if(!probeCases.length)return error(400,'No new boundary inputs fit this contract. Try examples with a string, number or boolean argument or a nested nonnegative integer.');
      const original=contracts.parseContractSource(files.candidateFiles[contracts.CONTRACT_PATH]);
      if(original.cases.length<contracts.LIMITS.cases)probeReplay=replays.createFunctionReplay(files.candidateFiles,files.context);
      const contract=JSON.stringify(planned);

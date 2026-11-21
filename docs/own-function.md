@@ -116,7 +116,7 @@ If the candidate fails any example, **Download candidate failure replay** saves 
 
 To keep working in the same tab, choose **Load candidate for repair**. The bench verifies the replay hashes and fills the repair form with the candidate source, requirements and examples. Choose **Open my function** after reviewing the form, then verify the new run.
 
-After comparing versions, choose **Probe boundary inputs** to run up to eight new examples. It changes one top-level string, number or boolean argument at a time and skips input arrays already in the saved contract. Both versions receive the same sequence in fresh workers. The result shows differences in return values, thrown errors or changes to inputs.
+After comparing versions, choose **Probe boundary inputs** to run up to eight new examples. It tries replacing one nested nonnegative integer with `9007199254740992`, the first unsafe integer. If there is room, it also tries boundary values for top-level strings, numbers and booleans. It skips input arrays already in the saved contract. Both versions receive the same sequence in fresh workers. Results show which argument or field changed and how each version behaved.
 
 Choose **Use this input for a test** beside a difference. Enter the expected JSON return from your requirements, then **Load candidate with this test**. This fills the repair form with the candidate and adds the new example after the saved examples. Open and check the candidate afresh, then download its replay for CI or verify a repair. The combined contract still supports up to eight examples.
 

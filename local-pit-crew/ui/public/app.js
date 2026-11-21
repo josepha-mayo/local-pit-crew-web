@@ -1519,6 +1519,7 @@ module.exports = { uniqueTags };`;
   function clearComparison(){
    comparisonSummary=null;
    el('checkout-audit-context').hidden=true;
+   el('checkout-probe-context').hidden=true;
    comparisonFailureReplay=null;
    comparedRequest=null;
    probePanel.hidden=true;
@@ -1576,6 +1577,12 @@ module.exports = { uniqueTags };`;
    el('try-checkout-audit').disabled=!!(busy||inspection||cloudBusy)||!token||!functionCapability?.available;
    probeButton.disabled=comparisonBusy||!token||!comparedRequest;
   }
+  function comparisonValue(label,value){
+   const content=node('pre',value);
+   content.tabIndex=0;
+   content.setAttribute('aria-label',label);
+   return content;
+  }
   function appendVersionObservations(item,baseline,candidate,expectation){
    for(const [name,observation] of [['Baseline',baseline],['Candidate',candidate]]){
     let outcome='The return could not be represented as JSON.';
@@ -1583,9 +1590,9 @@ module.exports = { uniqueTags };`;
     else if(observation.status==='threw'){
      outcome=expectation?'Threw '+(observation.returnMatches?'the expected code.':'without the expected code.'):'The function threw.';
     }
-    item.append(node('p',name+(observation.inputPreserved?' · Input preserved':' · Input preservation failed')),node('pre',outcome));
+    item.append(node('p',name+(observation.inputPreserved?' · Input preserved':' · Input preservation failed')),comparisonValue(name+' result',outcome));
     if(!observation.inputPreserved)item.append(node('p',name+' arguments after the call'),
-     node('pre',observation.argumentsAfter??'The arguments could not be represented as JSON.'));
+     comparisonValue(name+' arguments after the call',observation.argumentsAfter??'The arguments could not be represented as JSON.'));
    }
   }
   el('load-probe-example').addEventListener('click',async()=>{
@@ -1621,11 +1628,12 @@ module.exports = { uniqueTags };`;
    clearComparison();
    updateComparisonControls();
   });
-  const comparisonExamples={example:'pagination','boundary-example':'pagination-boundary','recorded-tags':'recorded-tags','checkout-audit':'checkout-audit'};
+  const comparisonExamples={example:'pagination','boundary-example':'pagination-boundary','recorded-tags':'recorded-tags',
+   'checkout-audit':'checkout-audit','checkout-boundaries':'checkout-boundaries'};
   async function runComparison(mode){
    if(!hosted||busy||inspection||cloudBusy||comparisonBusy||!token)return;
    const example=comparisonExamples[mode],repeat=mode==='repeat',probe=mode==='probe';
-   const checkoutAudit=example==='checkout-audit';
+   const checkoutAudit=example==='checkout-audit',checkoutProbe=example==='checkout-boundaries';
    const fromContract=mode==='contract';
    const reviewedComparison=comparedRequest;
    const files=(fromContract?contractInputs:comparisonInputs).map(input=>input.files?.[0]);
@@ -1642,6 +1650,7 @@ module.exports = { uniqueTags };`;
     clearProbeEditor();
    }else clearComparison();
    if(checkoutAudit)el('checkout-audit-context').hidden=false;
+   if(checkoutProbe)el('checkout-probe-context').hidden=false;
    const feedback=probe?probeStatus:compareStatus;
    feedback.textContent=probe?'Running the new inputs in separate local workers…':
     repeat?'Running the same saved examples twice in separate workers…':'Validating the files and running fresh checks in separate workers…';
@@ -1677,7 +1686,7 @@ module.exports = { uniqueTags };`;
      for(const {label,args,baseline,candidate} of differences){
       const item=node('details');
       item.open=differences.length===1;
-      item.append(node('summary',label),node('p','Input arguments'),node('pre',args));
+      item.append(node('summary',label),node('p','Input arguments'),comparisonValue('Input arguments',args));
       appendVersionObservations(item,baseline,candidate);
       if(replay){
        const draft=node('button','Use this input for a test','secondary');
@@ -1685,7 +1694,7 @@ module.exports = { uniqueTags };`;
        draft.addEventListener('click',()=>{
         if(busy||pageLeaving)return;
         probeDraft={replay,args};
-        probeLabel.value='Boundary test · '+label;
+        probeLabel.value=('Boundary test · '+label).slice(0,80);
         el('probe-example-args').textContent=args;
         probeExpected.value='';
         probeThrows.checked=false;
@@ -1717,7 +1726,7 @@ module.exports = { uniqueTags };`;
     const sameScore=beforePassed===afterPassed&&(repaired.length||regressed.length);
     const changedFailures=result.observations.filter(({baseline,candidate})=>!baseline.ok&&!candidate.ok).map(({id})=>id);
     const summary=sameScore?'Same score, different failures. ':changedFailures.length&&beforePassed===afterPassed?'Same score, changed results. ':'';
-    compareStatus.textContent=checkoutAudit
+    compareStatus.textContent=checkoutAudit||checkoutProbe
      ?beforePassed+'/'+total+' Gemini draft → '+afterPassed+'/'+total+' reviewed fix. Same contract, fresh local checks.'
      :summary+beforePassed+'/'+total+' baseline → '+afterPassed+'/'+total+' candidate. Same contract, fresh local checks.';
     const labels=ids=>ids.map(id=>result.checkLabels?.[id]??id).join(', ')||'none';
@@ -1729,7 +1738,8 @@ module.exports = { uniqueTags };`;
      if(checkoutAudit&&result.observations.length===1)detail.open=true;
      const change=baseline.ok?'Regressed':candidate.ok?'Repaired':'Still failing, result changed';
      detail.append(node('summary',change+' · '+(result.checkLabels[id]??id)),
-      node('p','Input arguments'),node('pre',args),node('p',expectation?'Expected error code':'Expected return'),node('pre',expected));
+      node('p','Input arguments'),comparisonValue('Input arguments',args),
+      node('p',expectation?'Expected error code':'Expected return'),comparisonValue(expectation?'Expected error code':'Expected return',expected));
      appendVersionObservations(detail,baseline,candidate,expectation);
      comparisonEvidence.append(detail);
     }
@@ -2051,6 +2061,7 @@ module.exports = { uniqueTags };`;
     if(global.location?.hash==='#same-score')return runComparison('example');
     if(global.location?.hash==='#probe-boundaries')return runComparison('boundary-example');
     if(global.location?.hash==='#checkout-audit')return runComparison('checkout-audit');
+    if(global.location?.hash==='#checkout-boundaries')return runComparison('checkout-boundaries');
    }
    if(!hosted&&((liveCapability?.available&&liveCapability.plannerRequired!==false)||plannerCapability?.available)){
     loadFirebaseClients().then(()=>{

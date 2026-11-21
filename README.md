@@ -23,6 +23,8 @@ The command runs the recorded draft and the reviewed correction against the same
 
 [Run the full eight-case checkout audit](https://local-pit-crew.web.app/#checkout-audit). Eight synthetic examples were set aside before the recorded Gemini request. Its draft passed 7/8. The unsafe-integer case informed the one-line correction from `Number.isInteger` to `Number.isSafeInteger`. The reviewed fix passes 8/8 on the same examples. The audit performs a fresh local run of both versions and opens the repaired case.
 
+[Find a new failure from just the four original examples](https://local-pit-crew.web.app/#checkout-boundaries). Both versions start at 4/4. **Probe boundary inputs** changes one nested price at a time and finds a quote the two versions handle differently. Supply the expected return to save that new input as a regression test.
+
 ```sh
 npm run replay:function -- examples/checkout/gemini-audit.replay.json --against examples/checkout/reviewed-audit.replay.json
 ```
