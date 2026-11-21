@@ -1,0 +1,819 @@
+{
+  "trials": [
+    {
+      "id": "checkout-quote",
+      "title": "Choose a shipping quote",
+      "instructions": "Return the id of the first quote with the lowest valid priceCents in the requested currency, or null. A valid quote is a non-null object with a nonempty string id, available exactly true, currency exactly equal to the requested string, and a nonnegative safe integer priceCents. Ignore other rows. Preserve both input arguments and the order of the quotes. On price ties keep the earlier input. The first argument is an array; the second argument is a currency string.",
+      "exportName": "shippingQuote",
+      "frozenSha256": "363f3fac9a1249f79c332a7939d3aea87d2f4886e75d05da7a26af0c3c2beeff",
+      "suites": {
+        "shown": {
+          "cases": [
+            {
+              "label": "Free delivery beats a paid quote",
+              "args": [
+                [
+                  {
+                    "id": "paid",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 799
+                  },
+                  {
+                    "id": "free",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 0
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "free"
+            },
+            {
+              "label": "Ignore unavailable rates",
+              "args": [
+                [
+                  {
+                    "id": "disabled",
+                    "available": false,
+                    "currency": "USD",
+                    "priceCents": 1
+                  },
+                  {
+                    "id": "live",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 10
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "live"
+            },
+            {
+              "label": "Keep the first equal-price quote",
+              "args": [
+                [
+                  {
+                    "id": "first",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 10
+                  },
+                  {
+                    "id": "later",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 10
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "first"
+            },
+            {
+              "label": "No supported currency",
+              "args": [
+                [
+                  {
+                    "id": "eur",
+                    "available": true,
+                    "currency": "EUR",
+                    "priceCents": 1
+                  }
+                ],
+                "USD"
+              ],
+              "expected": null
+            }
+          ],
+          "sha256": "b60dae56daf192c984c4675c0f02900199cec74ad0988c4af3f3b0f35ab6ef35"
+        },
+        "reserved": {
+          "cases": [
+            {
+              "label": "Ignore null and primitives",
+              "args": [
+                [
+                  null,
+                  false,
+                  {
+                    "id": "valid",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 100
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "valid"
+            },
+            {
+              "label": "Reject negative price",
+              "args": [
+                [
+                  {
+                    "id": "bad",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": -1
+                  },
+                  {
+                    "id": "valid",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 20
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "valid"
+            },
+            {
+              "label": "Reject fractional price",
+              "args": [
+                [
+                  {
+                    "id": "bad",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 1.7
+                  },
+                  {
+                    "id": "valid",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 20
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "valid"
+            },
+            {
+              "label": "Reject coerced numeric text",
+              "args": [
+                [
+                  {
+                    "id": "bad",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": "1"
+                  },
+                  {
+                    "id": "valid",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 20
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "valid"
+            },
+            {
+              "label": "Check availability strictly",
+              "args": [
+                [
+                  {
+                    "id": "bad",
+                    "available": "yes",
+                    "currency": "USD",
+                    "priceCents": 1
+                  },
+                  {
+                    "id": "valid",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 20
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "valid"
+            },
+            {
+              "label": "Reject unsafe integer",
+              "args": [
+                [
+                  {
+                    "id": "too-high",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 9007199254740992
+                  }
+                ],
+                "USD"
+              ],
+              "expected": null
+            },
+            {
+              "label": "Reject an empty id",
+              "args": [
+                [
+                  {
+                    "id": "",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 0
+                  },
+                  {
+                    "id": "valid",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 30
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "valid"
+            },
+            {
+              "label": "Preserve order across mixed currencies",
+              "args": [
+                [
+                  {
+                    "id": "foreign",
+                    "available": true,
+                    "currency": "EUR",
+                    "priceCents": 21
+                  },
+                  {
+                    "id": "usd",
+                    "available": true,
+                    "currency": "USD",
+                    "priceCents": 5
+                  },
+                  {
+                    "id": "other",
+                    "available": true,
+                    "currency": "CAD",
+                    "priceCents": 1
+                  }
+                ],
+                "USD"
+              ],
+              "expected": "usd"
+            }
+          ],
+          "sha256": "e2db5df0a3effa7e63b5cc7cc542f45c71250f65f21da86b05dafca987a6bd5c"
+        }
+      },
+      "versions": [
+        {
+          "name": "Original",
+          "source": "exports.shippingQuote = (quotes, currency) => quotes.sort((a, b) => a.priceCents - b.priceCents).find(q => q.available && q.currency === currency && q.priceCents)?.id ?? null;",
+          "sourceSha256": "73a82b5e89f177d4f118279f7ebff693d67e5878d75f7fd4bd1726276dcf45d1",
+          "failed": {
+            "shown": [
+              "case-01"
+            ],
+            "reserved": [
+              "case-01",
+              "case-02",
+              "case-03",
+              "case-04",
+              "case-05",
+              "case-06",
+              "case-08"
+            ]
+          }
+        },
+        {
+          "name": "Gemini draft",
+          "source": "exports.shippingQuote = (quotes, currency) => { let best = null; for (const q of quotes) { if (q && typeof q.id === 'string' && q.id !== '' && q.available === true && q.currency === currency && Number.isInteger(q.priceCents) && q.priceCents >= 0) { if (!best || q.priceCents < best.priceCents) { best = q; } } } return best ? best.id : null; };",
+          "sourceSha256": "321de0a251c5b79891bde6cb98ac920dc0ab242163f3a374e5ffa773aa70acc3",
+          "failed": {
+            "shown": [],
+            "reserved": [
+              "case-06"
+            ]
+          }
+        },
+        {
+          "name": "Reviewed fix",
+          "source": "exports.shippingQuote = (quotes, currency) => { let best = null; for (const q of quotes) { if (q && typeof q.id === 'string' && q.id !== '' && q.available === true && q.currency === currency && Number.isSafeInteger(q.priceCents) && q.priceCents >= 0) { if (!best || q.priceCents < best.priceCents) { best = q; } } } return best ? best.id : null; };",
+          "sourceSha256": "e6edef3817d86cf9a40b3daf999a87c2b91026f485f5c515797fbabfcb68d1c9",
+          "failed": {
+            "shown": [],
+            "reserved": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "ticket-state",
+      "title": "Keep ticket states stable",
+      "instructions": "Given an array of ticket events, return pairs [id, state] for valid IDs in order of their first valid event. For each ID choose the state from the greatest atMs. If times tie, keep the earlier event in input order. A valid event is a non-null object with a nonempty string id, state exactly 'open' or 'closed', and nonnegative safe integer atMs. Treat all ID strings literally, including property names such as '__proto__' and numeric-looking strings. Ignore invalid rows. Preserve the input array and all its values.",
+      "exportName": "latestTicketStates",
+      "frozenSha256": "43a359eeda45927a8e3131e3d3288f0e9df71105a0f98b7e2f5a914fac4a12ac",
+      "suites": {
+        "shown": {
+          "cases": [
+            {
+              "label": "Single event",
+              "args": [
+                [
+                  {
+                    "id": "a",
+                    "state": "open",
+                    "atMs": 0
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "a",
+                  "open"
+                ]
+              ]
+            },
+            {
+              "label": "Newer state while preserving input and first ID order",
+              "args": [
+                [
+                  {
+                    "id": "a",
+                    "state": "closed",
+                    "atMs": 5
+                  },
+                  {
+                    "id": "b",
+                    "state": "open",
+                    "atMs": 1
+                  },
+                  {
+                    "id": "a",
+                    "state": "open",
+                    "atMs": 2
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "a",
+                  "closed"
+                ],
+                [
+                  "b",
+                  "open"
+                ]
+              ]
+            },
+            {
+              "label": "First event wins a timestamp tie",
+              "args": [
+                [
+                  {
+                    "id": "a",
+                    "state": "open",
+                    "atMs": 1
+                  },
+                  {
+                    "id": "a",
+                    "state": "closed",
+                    "atMs": 1
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "a",
+                  "open"
+                ]
+              ]
+            },
+            {
+              "label": "Ignore unrecognized state",
+              "args": [
+                [
+                  {
+                    "id": "a",
+                    "state": "reopened",
+                    "atMs": 1
+                  }
+                ]
+              ],
+              "expected": []
+            }
+          ],
+          "sha256": "07c1a01a97e5b19438f7a65330905768187c14efc4144ef34a96f1f1bfeead9e"
+        },
+        "reserved": {
+          "cases": [
+            {
+              "label": "Property-shaped IDs stay literal",
+              "args": [
+                [
+                  {
+                    "id": "__proto__",
+                    "state": "open",
+                    "atMs": 0
+                  },
+                  {
+                    "id": "constructor",
+                    "state": "closed",
+                    "atMs": 1
+                  },
+                  {
+                    "id": "__proto__",
+                    "state": "closed",
+                    "atMs": 2
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "__proto__",
+                  "closed"
+                ],
+                [
+                  "constructor",
+                  "closed"
+                ]
+              ]
+            },
+            {
+              "label": "Numeric-looking IDs use input order",
+              "args": [
+                [
+                  {
+                    "id": "10",
+                    "state": "open",
+                    "atMs": 0
+                  },
+                  {
+                    "id": "2",
+                    "state": "closed",
+                    "atMs": 1
+                  },
+                  {
+                    "id": "01",
+                    "state": "open",
+                    "atMs": 2
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "10",
+                  "open"
+                ],
+                [
+                  "2",
+                  "closed"
+                ],
+                [
+                  "01",
+                  "open"
+                ]
+              ]
+            },
+            {
+              "label": "Invalid first occurrence does not assign an order",
+              "args": [
+                [
+                  {
+                    "id": "a",
+                    "state": "closed",
+                    "atMs": -1
+                  },
+                  {
+                    "id": "b",
+                    "state": "open",
+                    "atMs": 2
+                  },
+                  {
+                    "id": "a",
+                    "state": "open",
+                    "atMs": 3
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "b",
+                  "open"
+                ],
+                [
+                  "a",
+                  "open"
+                ]
+              ]
+            },
+            {
+              "label": "Reject unsafe timestamp but accept upper safe boundary",
+              "args": [
+                [
+                  {
+                    "id": "a",
+                    "state": "open",
+                    "atMs": 9007199254740991
+                  },
+                  {
+                    "id": "a",
+                    "state": "closed",
+                    "atMs": 9007199254740992
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "a",
+                  "open"
+                ]
+              ]
+            },
+            {
+              "label": "Ignore fractional and numeric string times",
+              "args": [
+                [
+                  {
+                    "id": "a",
+                    "state": "open",
+                    "atMs": 0
+                  },
+                  {
+                    "id": "a",
+                    "state": "closed",
+                    "atMs": 1.5
+                  },
+                  {
+                    "id": "b",
+                    "state": "closed",
+                    "atMs": "3"
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "a",
+                  "open"
+                ]
+              ]
+            },
+            {
+              "label": "Ignore null and malformed rows",
+              "args": [
+                [
+                  null,
+                  3,
+                  {
+                    "id": "a",
+                    "state": "open"
+                  },
+                  {
+                    "id": false,
+                    "state": "closed",
+                    "atMs": 1
+                  },
+                  {
+                    "id": "b",
+                    "state": "open",
+                    "atMs": 0
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "b",
+                  "open"
+                ]
+              ]
+            },
+            {
+              "label": "Keep first equal maximum despite intervening lower state",
+              "args": [
+                [
+                  {
+                    "id": "a",
+                    "state": "closed",
+                    "atMs": 8
+                  },
+                  {
+                    "id": "a",
+                    "state": "open",
+                    "atMs": 1
+                  },
+                  {
+                    "id": "a",
+                    "state": "open",
+                    "atMs": 8
+                  }
+                ]
+              ],
+              "expected": [
+                [
+                  "a",
+                  "closed"
+                ]
+              ]
+            },
+            {
+              "label": "Empty events have no tickets",
+              "args": [
+                []
+              ],
+              "expected": []
+            }
+          ],
+          "sha256": "1ad294cf4ed7cddd320c3b86152c5566571a8e0e85e46a4b3614963ecc718cbc"
+        }
+      },
+      "versions": [
+        {
+          "name": "Original",
+          "source": "exports.latestTicketStates = function latestTicketStates(events) {\n  const latest = {};\n  for (const row of events.sort((a, b) => a.atMs - b.atMs)) {\n    if (!row || typeof row.id !== 'string' || !row.id || !['open', 'closed'].includes(row.state)) continue;\n    latest[row.id] = row;\n  }\n  return Object.values(latest).map(row => [row.id, row.state]);\n};",
+          "sourceSha256": "91a78fc267c366bdf31b1453d01eb2ce9a99cfcf9a0b38e0f75c50f314460238",
+          "failed": {
+            "shown": [
+              "case-02",
+              "case-03"
+            ],
+            "reserved": [
+              "case-01",
+              "case-02",
+              "case-03",
+              "case-04",
+              "case-05",
+              "case-06",
+              "case-07"
+            ]
+          }
+        },
+        {
+          "name": "Gemini draft",
+          "source": "exports.latestTicketStates = function latestTicketStates(events) {\n  const map = new Map();\n  for (const row of events) {\n    if (!row || typeof row.id !== 'string' || !row.id || !['open', 'closed'].includes(row.state) || typeof row.atMs !== 'number' || !Number.isInteger(row.atMs) || row.atMs < 0) continue;\n    const existing = map.get(row.id);\n    if (!existing) {\n      map.set(row.id, { state: row.state, atMs: row.atMs });\n    } else {\n      if (row.atMs > existing.atMs) {\n        existing.atMs = row.atMs;\n        existing.state = row.state;\n      }\n    }\n  }\n  return Array.from(map.entries()).map(([id, data]) => [id, data.state]);\n};",
+          "sourceSha256": "35889294ac2677687aefdae3ed356ec6c2a0adce05a5875f834b0df958bf161b",
+          "failed": {
+            "shown": [],
+            "reserved": [
+              "case-04"
+            ]
+          }
+        },
+        {
+          "name": "Reviewed fix",
+          "source": "exports.latestTicketStates = function latestTicketStates(events) {\n  const map = new Map();\n  for (const row of events) {\n    if (!row || typeof row.id !== 'string' || !row.id || !['open', 'closed'].includes(row.state) || typeof row.atMs !== 'number' || !Number.isSafeInteger(row.atMs) || row.atMs < 0) continue;\n    const existing = map.get(row.id);\n    if (!existing) {\n      map.set(row.id, { state: row.state, atMs: row.atMs });\n    } else {\n      if (row.atMs > existing.atMs) {\n        existing.atMs = row.atMs;\n        existing.state = row.state;\n      }\n    }\n  }\n  return Array.from(map.entries()).map(([id, data]) => [id, data.state]);\n};",
+          "sourceSha256": "0654a8a5bcc4bf033a576e842ee54606530f8f4320012f195c4b816cc80702fe",
+          "failed": {
+            "shown": [],
+            "reserved": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "contact-labels",
+      "title": "Deduplicate contact labels",
+      "instructions": "Accept an array. Ignore non-string items. For strings, trim surrounding JavaScript whitespace, collapse every run of JavaScript whitespace to one ordinary space, and normalize to Unicode NFC. Ignore empty results. Identify duplicates by lowercasing the cleaned string with JavaScript toLowerCase(), then normalizing that key to NFC. Return the first cleaned display spelling of each key in input order. Leave the input unchanged.",
+      "exportName": "uniqueContactLabels",
+      "frozenSha256": "0aed39888f24a35b79aa8a138df3e2c66c7d43009fb7164a77b3a36a602f94b7",
+      "suites": {
+        "shown": {
+          "cases": [
+            {
+              "label": "Keep first casing",
+              "args": [
+                [
+                  " Sales ",
+                  "sales",
+                  "SUPPORT"
+                ]
+              ],
+              "expected": [
+                "Sales",
+                "SUPPORT"
+              ]
+            },
+            {
+              "label": "Ignore invalid entries",
+              "args": [
+                [
+                  null,
+                  "  ",
+                  0,
+                  "Design"
+                ]
+              ],
+              "expected": [
+                "Design"
+              ]
+            },
+            {
+              "label": "Collapse internal whitespace",
+              "args": [
+                [
+                  "Client\t  Success",
+                  "Client Success"
+                ]
+              ],
+              "expected": [
+                "Client Success"
+              ]
+            },
+            {
+              "label": "Allow an empty list",
+              "args": [
+                []
+              ],
+              "expected": []
+            }
+          ],
+          "sha256": "d9e7ea5bae442502631821bae62acdb2996b0be4a0cab07026ceb0f5af70ab24"
+        },
+        "reserved": {
+          "cases": [
+            {
+              "label": "Compose equivalent display spellings",
+              "args": [
+                [
+                  "Café",
+                  "CAFÉ"
+                ]
+              ],
+              "expected": [
+                "Café"
+              ]
+            },
+            {
+              "label": "Normalize again after lowercase",
+              "args": [
+                [
+                  "J̌",
+                  "ǰ"
+                ]
+              ],
+              "expected": [
+                "J̌"
+              ]
+            },
+            {
+              "label": "Keep prototype-named labels",
+              "args": [
+                [
+                  "__proto__",
+                  "constructor",
+                  "Constructor",
+                  "toString"
+                ]
+              ],
+              "expected": [
+                "__proto__",
+                "constructor",
+                "toString"
+              ]
+            },
+            {
+              "label": "Combine Unicode whitespace and order",
+              "args": [
+                [
+                  " People Ops",
+                  "people ops",
+                  "Customer\r\nCare",
+                  "  People"
+                ]
+              ],
+              "expected": [
+                "People Ops",
+                "Customer Care",
+                "People"
+              ]
+            }
+          ],
+          "sha256": "71613a6fd45feb7782ed6366cda83416f949882d6b8f76a3621498dd323b59b9"
+        }
+      },
+      "versions": [
+        {
+          "name": "Original",
+          "source": "exports.uniqueContactLabels = labels => [...new Set(labels.map(label => label.trim()).filter(Boolean))];",
+          "sourceSha256": "78408ebf89b4f3cafdd7172c89dd46bcd378e506542c67038c4e23e33685c6dc",
+          "failed": {
+            "shown": [
+              "case-01",
+              "case-02",
+              "case-03"
+            ],
+            "reserved": [
+              "case-01",
+              "case-02",
+              "case-03",
+              "case-04"
+            ]
+          }
+        },
+        {
+          "name": "Gemini draft",
+          "source": "exports.uniqueContactLabels = function(labels) { const result = []; const seen = new Set(); for (const item of labels) { if (typeof item !== 'string') continue; const cleaned = item.trim().replace(/\\s+/g, ' ').normalize('NFC'); if (!cleaned) continue; const key = cleaned.toLowerCase().normalize('NFC'); if (!seen.has(key)) { seen.add(key); result.push(cleaned); } } return result; };",
+          "sourceSha256": "351e93f4f34dac585447436c9704ae3bec6dc52e8840192571d45c18d8874086",
+          "failed": {
+            "shown": [],
+            "reserved": []
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -27,6 +27,8 @@ jobs:
       - run: npm run build:web
       - run: npm run test:web
       - run: npm run test:runner
+      - name: Reproduce the recorded cloud repair trials
+        run: npm run replay:pilots
       - run: npm run audit:public -- --tree-only
   docker-admission:
     runs-on: ubuntu-latest

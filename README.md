@@ -33,6 +33,25 @@ npm run replay:function -- examples/checkout/gemini-audit.replay.json --against 
 
 The two replay files preserve the recorded source bytes and the identical eight-case contract. The CLI reports `case-06` as repaired, with zero regressions and zero model calls.
 
+## Three recorded repair trials
+
+Firebase AI Logic produced one Gemini draft for each synthetic function. Each draft passed all four examples shown to Gemini. We froze a separate set of cases before each request and kept those cases out of the request. The original functions and returned drafts were rerun on both sets in fresh Node QuickJS workers.
+
+| Function | Shown cases, original → draft | Reserved cases, original → draft | What the reserved cases showed |
+| --- | ---: | ---: | --- |
+| Checkout quote selection | 3/4 → 4/4 | 1/8 → 7/8 | The draft accepted a price outside JavaScript’s safe integer range. |
+| Ticket event ordering | 2/4 → 4/4 | 1/8 → 7/8 | The draft accepted an unsafe timestamp and picked the wrong event. |
+| Unicode contact labels | 1/4 → 4/4 | 0/4 → 4/4 | The draft passed composition, lowercase normalization, whitespace, and ordering cases. |
+
+We used the two failures to review the fixes. Each fix passes 8/8 on its now-known reserved set. The contact-label baseline on the four reserved cases was first measured during this reproduction. These results cover three synthetic functions, one model draft per function, and the examples listed in the artifact.
+
+```sh
+npm ci --ignore-scripts --prefix local-pit-crew/runner
+npm run replay:pilots
+```
+
+The command checks source and contract hashes, runs all 16 source-and-suite combinations, and reports the exact failing case IDs. It makes zero model calls. The [trial fixture](examples/repair-pilots.json) includes the synthetic inputs, expected results, exact source versions, and hashes of the original frozen case files.
+
 A repair bench for small JavaScript functions: define what should happen, inspect what actually happened, and check a replacement against the same fixed examples. It makes wrong return values, changed inputs and regressions visible before you call a repair finished. Utility functions, data transforms and validators can be checked directly in the browser.
 
 Gemini Nano through Firebase AI Logic supplies an optional source-linked repair hypothesis. You can request a cloud-proposed replacement, or ask a separate cloud reviewer to challenge a diagnosis. Both cloud actions require reviewing the exact outgoing prompt and explicitly sending it. Model output stays separate from runtime facts; replacements still need diff review, Apply and independent checks. The browser also accepts pasted replacements, and the companion can use a local coding model. Mechanical read/apply/check transitions stay deterministic.
