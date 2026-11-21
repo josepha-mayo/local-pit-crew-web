@@ -473,14 +473,14 @@ test('tab-padding suggestions derive from a user function and skip an already te
 });
 
 const corrected='/* checked é */\nmodule.exports={uniqueTags(tags){const seen=new Set();return tags.filter(tag=>{if(typeof tag!=="string")return false;const key=tag.trim().toLowerCase();if(!key||seen.has(key))return false;seen.add(key);return true;});}};';
-function cloudFixture(){
+function cloudFixture({attestationFails = false} = {}){
  const calls={init:0,prompts:[],schemas:[],native:0,factory:0},apps=[],config={firebase:{apiKey:'PUBLIC_KEY',projectId:'test-project',appId:'test-app'},appCheckSiteKey:'PUBLIC_SITE',appName:'test-ui-draft'};
  const environment={isSecureContext:true,document:{},navigator:{userActivation:{isActive:true}}};environment.window=environment;
  const reply=()=>({response:{inferenceSource:'in_cloud',text:()=>JSON.stringify({abstain:false,source:corrected,explanation:'PRIVATE_MODEL_RATIONALE'})}});
  let respond=async()=>reply();
  const sdk={SDK_VERSION:'13.3.0',InferenceMode:{ONLY_IN_CLOUD:'only_in_cloud'},InferenceSource:{IN_CLOUD:'in_cloud'},getApps:()=>apps,
   initializeApp(config,name){calls.init++;const app={name};apps.push(app);return app;},async deleteApp(app){apps.splice(apps.indexOf(app),1);},
-  initializeAppCheck(app){return {app};},async getToken(){return {token:'AUTHORED_TEST_TOKEN'};},
+  initializeAppCheck(app){return {app};},async getToken(){if(attestationFails)throw Error('rejected');return {token:'AUTHORED_TEST_TOKEN'};},
   ReCaptchaEnterpriseProvider:class{},GoogleAIBackend:class{},getAI:()=>({}),
   getGenerativeModel(_ai,params){calls.schemas.push(params.inCloudParams.generationConfig.responseJsonSchema);
    return{chromeAdapter:{mode:'only_in_cloud'},generateContent(prompt){calls.prompts.push(prompt);return respond();}};}};
@@ -488,6 +488,23 @@ function cloudFixture(){
  const reviewer=createFirebaseCloudReviewerCore({sdk,config,environment});
  return{client,reviewer,config,calls,reply,set respond(value){respond=value;}};
 }
+test('an App Check refusal returns focus to a local recovery action without sending the prompt',async()=>{
+ const cloud=cloudFixture({attestationFails:true}),f=await setup({cloud});
+ try{
+  await f.el('try-function-example').click();
+  await f.el('review-cloud').click();
+  await f.el('send-cloud').click();
+  assert.match(f.el('cloud-status').textContent,/prompt stayed in this tab/);
+  assert.equal(f.el('cloud-recovery').hidden,false);
+  assert.equal(f.activeElement,f.el('continue-local-after-cloud'));
+  assert.deepEqual(cloud.calls.prompts,[]);
+  assert.equal(f.el('pass-count').textContent,'3/5');
+  await f.el('continue-local-after-cloud').click();
+  assert.equal(f.activeElement,f.el('next-action'));
+  await f.el('review-cloud').click();
+  assert.equal(f.el('cloud-recovery').hidden,true);
+ }finally{await f.close();}
+});
 test('a reviewed cloud example fills an editable form and only explicit checks change the verdict',async()=>{
  const cloud=cloudFixture(),f=await setup({cloud});
  cloud.respond=async()=>({response:{inferenceSource:'in_cloud',text:()=>JSON.stringify({

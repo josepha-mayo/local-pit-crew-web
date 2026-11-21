@@ -63,13 +63,13 @@ module.exports = { uniqueTags };`;
   'unexpected-inference-source':'The reported inference source was unexpected. Stop and inspect possible cloud traffic.'
  };
  function cloudFailureMessage(result){
+  if(result?.diagnostic==='cloud-attestation-failed')return 'Firebase App Check could not verify this session. The prompt stayed in this tab.';
   const messages={
    'cloud-rate-limited':'Google reported a rate or quota limit. Wait before sending a new request; the project quota may also be exhausted.',
    'cloud-access-denied':'Google refused this request. Check App Check, API key restrictions and project permissions.',
    'cloud-unauthenticated':'Google could not authenticate this request. Check Firebase and App Check setup.',
    'cloud-model-unavailable':'The configured cloud model was not found or is unavailable to this project.',
    'cloud-service-not-enabled':'Firebase AI Logic is not enabled for this project. Check its project setup.',
-   'cloud-attestation-failed':'Firebase App Check could not verify this browser. You can continue with local checks.',
    'cloud-service-unavailable':'The cloud service could not complete this request. Try again later if you still need it.',
    'cloud-request-rejected':'Google rejected the request format or configuration. Check the app and model setup.',
    'cloud-source-unconfirmed':'The response did not confirm cloud inference. It was rejected.',
@@ -406,6 +406,7 @@ module.exports = { uniqueTags };`;
   let browserProbeEpoch=0;
   let browserDownload=null;
   let cloudClient=null,cloudReview=null,cloudRecord=null,cloudBusy=false,cloudEpoch=0,cloudContext=null,cloudSession=null,cloudCalls=0;
+  let cloudAttestationDenied=false;
   let draftClient=null,draftReview=null,draftResult=null,draftBusy=false,draftEpoch=0,draftContext=null,draftSession=null,draftCalls=0,draftStatus='Optional cloud generation. Review the full request before sending it to Google.';
   function node(tag,text,className){
    const element=document.createElement(tag);if(text!==undefined)element.textContent=text;if(className)element.className=className;return element;
@@ -510,7 +511,7 @@ module.exports = { uniqueTags };`;
    if(context!==draftContext){draftContext=context;draftEpoch++;draftClient?.stop();draftReview=null;draftResult=null;draftBusy=false;draftStatus='Optional cloud generation. Review the full request before sending it to Google.';}
    if(draftSession!==state?.sessionId){draftSession=state?.sessionId;draftCalls=0;}
    if(context!==cloudContext){
-    cloudContext=context;cloudEpoch++;cloudClient?.stop();cloudReview=null;cloudRecord=null;cloudBusy=false;
+    cloudContext=context;cloudEpoch++;cloudClient?.stop();cloudReview=null;cloudRecord=null;cloudBusy=false;cloudAttestationDenied=false;
     el('cloud-status').textContent='Review the complete request before sending it to Google.';
    }
    if(cloudSession!==state?.sessionId){cloudSession=state?.sessionId;cloudCalls=0;}
@@ -868,6 +869,7 @@ module.exports = { uniqueTags };`;
     data?'This request shares the task, source evidence and failed check IDs.'+
      (data.nanoHint?' The Nano hypothesis is included.':' The Nano hypothesis stays local.'):'';
    el('cancel-cloud').hidden=!cloudReview&&!cloudBusy;
+   el('cloud-recovery').hidden=!cloudAttestationDenied||cloudBusy||!!cloudReview;
    el('cloud-calls').textContent=String(cloudCalls+draftCalls);
    const output=el('cloud-result');
    output.replaceChildren();output.hidden=!cloudRecord;
@@ -1211,7 +1213,7 @@ module.exports = { uniqueTags };`;
      el('cloud-status').textContent='Nano’s hypothesis changed. Review a fresh request to choose what to share.';
      return;
     }
-    cloudReview={approval:cloudClient.preview(snapshot,hint),hint:hint?.objective};cloudRecord=null;
+    cloudReview={approval:cloudClient.preview(snapshot,hint),hint:hint?.objective};cloudRecord=null;cloudAttestationDenied=false;
     el('cloud-status').textContent=challenge?'Send shares this checked function, its requirements and its existing examples with Google via Firebase AI Logic.':
      hint?'Send shares the task, source evidence, failed checks and the Nano hypothesis shown below with Google.':
       'Send shares the task, source evidence and failed checks shown below with Google. Your Nano hypothesis stays local.';
@@ -1222,15 +1224,29 @@ module.exports = { uniqueTags };`;
   }
   el('review-cloud').addEventListener('click',()=>previewCloudReview(false));
   el('review-cloud-with-nano').addEventListener('click',()=>previewCloudReview(true));
+  el('continue-local-after-cloud').addEventListener('click',()=>{
+   if(busy||inspection||cloudBusy||!cloudAttestationDenied)return;
+   const next=el('next-action');
+   const target=next.hidden?el('test'):next;
+   target.scrollIntoView?.({block:'center',behavior:'auto'});
+   target.focus?.({preventScroll:true});
+  });
   el('send-cloud').addEventListener('click',async()=>{
    if(busy||inspection||cloudBusy||!cloudReview||!cloudClient)return;
    const client=cloudClient,{approval,hint}=cloudReview,owner=current?.sessionId,mine=++cloudEpoch,callsBefore=client.state.calls;
-   cloudBusy=true;cloudReview=null;renderCloud();el('cloud-status').textContent='Sending the reviewed prompt for a cloud second opinion…';
+   cloudBusy=true;cloudReview=null;cloudAttestationDenied=false;renderCloud();
+   el('cloud-status').textContent='Verifying this browser with Firebase App Check…';
    el('cancel-cloud').focus?.();
    try{
-    const result=await client.send(approval);
+    const result=await client.send(approval,()=>{
+     if(mine===cloudEpoch)el('cloud-status').textContent='Waiting for Gemini’s second opinion…';
+    });
     if(mine!==cloudEpoch||current?.sessionId!==owner||current?.snapshot?.revision!==approval.revision)return;
-    if(result.status!=='review'){el('cloud-status').textContent=cloudFailureMessage(result);return;}
+    if(result.status!=='review'){
+     cloudAttestationDenied=result.diagnostic==='cloud-attestation-failed';
+     el('cloud-status').textContent=cloudFailureMessage(result);
+     return;
+    }
     cloudRecord={...result,reviewedHint:result.includedNanoHypothesis?hint:undefined};
     el('cloud-status').textContent=result.answer.example?'Cloud example received. Review the expected return before starting the extended check.':
      'Cloud opinion received. A suggested check still needs review and execution; no fix has been verified.';
@@ -1241,7 +1257,7 @@ module.exports = { uniqueTags };`;
      cloudBusy=false;
      const restoreFocus=document.activeElement===el('cancel-cloud');
      renderCloud();
-     if(restoreFocus)el(cloudRecord?'cloud-result':'review-cloud').focus?.();
+     if(restoreFocus)el(cloudRecord?'cloud-result':cloudAttestationDenied?'continue-local-after-cloud':'review-cloud').focus?.();
     }
    }
   });
