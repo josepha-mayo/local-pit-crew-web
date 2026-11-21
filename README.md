@@ -6,6 +6,8 @@
 
 [Open the same-score comparison](https://local-pit-crew.web.app/#same-score) to see a patch that fixes one case and breaks another while both versions score 3/4.
 
+[Try the hybrid review from the demo video](https://local-pit-crew.web.app/#hybrid-review). The link runs the failing tag example and opens its observed result beside the Nano and cloud controls. Each model request starts with a separate action.
+
 To reproduce the missed case from this checkout on Node.js 24 or newer, run:
 
 ```sh

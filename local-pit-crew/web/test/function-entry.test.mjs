@@ -302,6 +302,28 @@ test('a pre-mount intake link opens the form after startup without opening a run
   assert.equal(f.calls.some(c=>c.path==='/api/function/open'||c.path==='/api/function/action'),false);
  }finally{await f.close();}
 });
+test('the hybrid review link opens the video example at the model panel with a browser-observed failure',async()=>{
+ const cloud=cloudFixture();
+ const f=await setup({hash:'#hybrid-review',cloud});
+ try{
+  const deadline=Date.now()+1500;
+  while(f.activeElement!==f.el('advisor-panel')&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(f.activeElement,f.el('advisor-panel'));
+  assert.equal(f.el('pass-count').textContent,'3/5');
+  const evidence=f.el('model-review-evidence');
+  assert.equal(evidence.hidden,false);
+  assert.equal(evidence.children[1].textContent,'3/5 passing · Keep special names');
+  assert.match(evidence.children[2].children[0].children[1].textContent,/constructor/);
+  assert.equal(evidence.children[2].children[1].children[1].textContent,'[]');
+  assert.equal(f.el('diagnose').disabled,false);
+  assert.equal(f.el('review-cloud').disabled,false);
+  assert.equal(cloud.calls.adapterReads,undefined);
+  assert.equal(cloud.calls.prompts.length,0);
+  await f.el('try-shipping-example').click();
+  assert.equal(evidence.hidden,true);
+  assert.equal(f.activeElement,f.el('active-run'));
+ }finally{await f.close();}
+});
 test('the missed-test link runs the recorded draft and one action reveals the unsafe-price failure',async()=>{
  const f=await setup({hash:'#missed-test'});
  try{

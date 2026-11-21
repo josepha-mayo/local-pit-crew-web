@@ -101,3 +101,7 @@ pre{font-size:12px}
 .reviewed-hypothesis p{white-space:pre-wrap}
 .advisor-hint h3,#cloud-preview-title{font-size:14px;margin:10px 0 4px}
 #cloud-result,#cloud-preview-title{scroll-margin-block-start:16px}
+#advisor-panel{scroll-margin-block-start:108px}
+#model-review-evidence{border-block:1px solid var(--border);margin:12px 0 16px;padding:8px 0 12px}
+#model-review-evidence h3{font-size:14px;margin:0}
+#model-review-evidence p{margin:4px 0 8px;overflow-wrap:anywhere}

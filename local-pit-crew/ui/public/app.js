@@ -521,6 +521,8 @@ module.exports = { uniqueTags };`;
    el('open-function').disabled=blocked||!token||!functionCapability?.available;
    el('restore-function-replay').disabled=blocked||!token;
    el('try-function-example').disabled=blocked||!token||!functionCapability?.available;
+   el('try-hybrid-example').disabled=el('try-function-example').disabled;
+   el('try-hybrid-example').hidden=!plannerCapability?.available;
    el('try-shipping-example').disabled=el('try-function-example').disabled;
    el('try-missed-test').disabled=el('try-function-example').disabled;
    el('active-run').hidden=!s;
@@ -579,6 +581,7 @@ module.exports = { uniqueTags };`;
    renderRepeatExample(state,checkedFile,el('extend-function').disabled);
    renderNumericBoundary(state,checkedFile,el('extend-function').disabled);
    const walkthrough=state?.sessionId===guidedRun?.sessionId?guidedRun?.walkthrough:null;
+   const showHybridReview=walkthrough&&guidedRun.focusModelReview;
    const startsWithRecordedDraft=walkthrough===shippingWalkthrough&&guidedRun.startWithDraft&&!state.challengeParent;
    if(startsWithRecordedDraft){
     el('scope-title').textContent='Would you ship the recorded Gemini patch?';
@@ -612,6 +615,7 @@ module.exports = { uniqueTags };`;
    el('coder-calls').textContent=String(state?.providerInvocations?.coder??0);
    el('planner-calls').textContent=String((state?.providerInvocations?.planner??0)+advisorCalls);
    el('advisor-copy').textContent=view.ownFunction?'Nano receives the current source and failed examples, including expected and actual returns and observed input changes. It reasons on-device; review its hint before editing.':'A failed check and the source give Nano something specific to reason about. Its hint stays separate from the patch.';
+   if(showHybridReview)el('advisor-copy').textContent='Nano reads the source and failed examples on this device.';
    el('diagnose').disabled=blocked||view.live||!firebaseAvailable(liveClient)||!!nanoSetupMessage()||!repairSnapshot(state);
    el('stop-diagnosis').hidden=!advisorBusy;
    el('open-browser-setup').hidden=view.live||!plannerCapability?.available;
@@ -695,6 +699,17 @@ module.exports = { uniqueTags };`;
     :null;
    const firstFailure=view.ownFunction?failing[0]:null;
    const firstDiagnostic=firstFailure?functionCheckDetails(state,firstFailure.id):null;
+   const modelEvidence=el('model-review-evidence');
+   const showModelEvidence=showHybridReview&&firstDiagnostic;
+   modelEvidence.replaceChildren();
+   modelEvidence.hidden=!showModelEvidence;
+   if(showModelEvidence){
+    const label=state.task.checkLabels?.[firstFailure.id]??firstFailure.id;
+    modelEvidence.append(node('h3','Observed in the browser'),
+     node('p',passed+'/'+total+' passing · '+label),
+     observedPair('counterexample-returns','Expected return',firstDiagnostic.expected.replace(/\n\s*/g,' '),
+      'Observed return',firstDiagnostic.actual.replace(/\n\s*/g,' '),!firstDiagnostic.returnMatches));
+   }
    el('inspect-failed-example').hidden=!firstDiagnostic;
    el('failure-preview').hidden=!firstDiagnostic;
    el('failure-preview-count').textContent=firstDiagnostic?(checks.length-failing.length)+'/'+checks.length+' passing':'';
@@ -836,6 +851,9 @@ module.exports = { uniqueTags };`;
    el('cloud-heading').textContent=challenge?'Look for a missed case':'Challenge the diagnosis';
    el('cloud-copy').textContent=challenge?'Ask Gemini to suggest one more example for this passing function. You decide the expected return and run it locally.':
     'Ask Gemini for a counterexample or a next check. Review what leaves your device first. Works without the on-device model.';
+   if(!challenge&&guidedRun?.focusModelReview&&guidedRun.sessionId===current?.sessionId){
+    el('cloud-copy').textContent='Preview what you’ll send to Gemini for a second opinion.';
+   }
    el('review-cloud').textContent=challenge?'Review request for a new example':'Review cloud payload';
    el('review-cloud').disabled=busy||!!inspection||cloudBusy||!firebaseAvailable(cloudClient)||!reviewable;
    el('review-cloud-with-nano').hidden=!!challenge||!reviewable||!currentNanoHint()||!firebaseAvailable(cloudClient);
@@ -1616,12 +1634,12 @@ module.exports = { uniqueTags };`;
   el('bring-function').addEventListener('click',event=>{
    event?.preventDefault?.();el('function-intake').open=true;el('function-intake').scrollIntoView?.({block:'start',behavior:'auto'});el('function-title').focus?.({preventScroll:true});
   });
-  async function runWalkthrough(walkthrough,{startWithDraft=false}={}){
+  async function runWalkthrough(walkthrough,{startWithDraft=false,focusModelReview=false}={}){
    if(busy||inspection||!functionCapability?.available)return;
    const source=startWithDraft?walkthrough.firstPatch:walkthrough.spec.source;
    const opened=await openFunction({schema:'local-pit-crew/function-task/v1',...walkthrough.spec,source});
    if(!opened?.openedFunctionSessionId||opened.openedFunctionSessionId!==current?.sessionId||current?.mode!=='function-contract')return;
-   guidedRun={sessionId:current.sessionId,walkthrough,startWithDraft,needsBaselineInspection:true};
+   guidedRun={sessionId:current.sessionId,walkthrough,startWithDraft,focusModelReview,needsBaselineInspection:true};
    return inspectWalkthroughBaseline();
   }
   async function runMissedShippingTest(){
@@ -1645,9 +1663,10 @@ module.exports = { uniqueTags };`;
      const read=await action('read',{path},owner);if(!ownsRun()||read?.error||!read?.state)return;
     }
     el('source-evidence').open=true;
-    el('active-run').scrollIntoView?.({block:'start',behavior:'auto'});
-    el('failure-preview').scrollIntoView?.({block:'nearest',behavior:'auto'});
-    el('active-run').focus?.({preventScroll:true});
+    const landing=el(run.focusModelReview?'advisor-panel':'active-run');
+    landing.scrollIntoView?.({block:'start',behavior:run.focusModelReview?'instant':'auto'});
+    if(!run.focusModelReview)el('failure-preview').scrollIntoView?.({block:'nearest',behavior:'auto'});
+    landing.focus?.({preventScroll:true});
    }finally{
     if(inspection===owner){
      inspection=null;if(current)render(current);
@@ -1659,6 +1678,7 @@ module.exports = { uniqueTags };`;
    }
   }
   el('try-function-example').addEventListener('click',()=>runWalkthrough(tagWalkthrough));
+  el('try-hybrid-example').addEventListener('click',()=>runWalkthrough(tagWalkthrough,{focusModelReview:true}));
   el('try-shipping-example').addEventListener('click',()=>runWalkthrough(shippingWalkthrough));
   el('try-missed-test').addEventListener('click',()=>runWalkthrough(shippingWalkthrough,{startWithDraft:true}));
   el('fill-function-example').addEventListener('click',()=>{
@@ -1736,6 +1756,7 @@ module.exports = { uniqueTags };`;
    if(current)render(current);
    if(hosted&&!current?.snapshot&&!pageLeaving&&functionCapability?.available&&!el('function-intake').open){
     if(global.location?.hash==='#checkout-repair')return runWalkthrough(shippingWalkthrough);
+    if(global.location?.hash==='#hybrid-review')return runWalkthrough(tagWalkthrough,{focusModelReview:true});
     if(global.location?.hash==='#missed-test')return runWalkthrough(shippingWalkthrough,{startWithDraft:true});
     if(global.location?.hash==='#same-score')return runComparison(true);
    }

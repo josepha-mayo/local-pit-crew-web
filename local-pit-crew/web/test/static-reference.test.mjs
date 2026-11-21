@@ -155,7 +155,7 @@ test('static preview serves the compiled app with CSP and has no task mutation e
  const asset=await fetch(origin+'/'+entryAsset);assert.equal(asset.status,200);
  assert.match(asset.headers.get('content-type'),/javascript/);
  const wasmName=Object.keys(manifest.files).find(name=>name.endsWith('.wasm'));
- for(const [hash,supported,expected] of [['#checkout-repair',true,1],['#same-score',true,1],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
+ for(const [hash,supported,expected] of [['#checkout-repair',true,1],['#same-score',true,1],['#hybrid-review',true,1],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
   const requests=[];
   const context=vm.createContext({location:{hash},Worker:supported?class Worker{}:undefined,WebAssembly:{},AbortController,
    fetch:(url,{signal})=>{requests.push({url,signal});return Promise.resolve({ok:false});}});
