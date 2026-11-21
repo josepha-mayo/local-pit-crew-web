@@ -86,6 +86,7 @@ pre{font-size:12px}
 .checkout-scores>div:last-child dd{color:var(--accent)}
 .checkout-returns code{display:block;padding:8px 10px;background:#f1f2e9;color:var(--ink);overflow-wrap:anywhere;font:12px/1.4 var(--mono)}
 .checkout-returns>div:last-child code{background:#fff3ed}
+.checkout-preview button{margin-top:16px}
 @media(max-width:800px){
  .hero{flex-direction:column;align-items:stretch;gap:24px}
  .checkout-preview{width:100%;min-width:0;max-width:480px;padding:16px}

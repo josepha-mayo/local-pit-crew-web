@@ -2,7 +2,7 @@
 
 **Find the test an AI patch missed.**
 
-[Try the checkout repair](https://local-pit-crew.web.app/#checkout-repair). A recorded Gemini patch passes all four original examples. Add one unsafe price to see it fail, review the one-line correction, then save the case as a regression test. The walkthrough runs in your browser without an account or model setup.
+[Run the missed checkout test](https://local-pit-crew.web.app/#missed-test). The recorded Gemini patch runs against the four original examples first. Select **Run the unsafe-price check** to see 4/4 become 4/5, then review the one-line correction and save the case as a regression test. The walkthrough runs in your browser without an account or model setup. [Start from the original bug](https://local-pit-crew.web.app/#checkout-repair).
 
 [Open the same-score comparison](https://local-pit-crew.web.app/#same-score) to see a patch that fixes one case and breaks another while both versions score 3/4.
 

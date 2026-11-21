@@ -302,6 +302,31 @@ test('a pre-mount intake link opens the form after startup without opening a run
   assert.equal(f.calls.some(c=>c.path==='/api/function/open'||c.path==='/api/function/action'),false);
  }finally{await f.close();}
 });
+test('the missed-test link runs the recorded draft and one action reveals the unsafe-price failure',async()=>{
+ const f=await setup({hash:'#missed-test'});
+ try{
+  const deadline=Date.now()+3000;
+  while(f.el('next-action').textContent!=='Run the unsafe-price check'&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(f.el('pass-count').textContent,'4/4');
+  assert.equal(f.el('next-action').textContent,'Run the unsafe-price check');
+  assert.equal(f.el('load-function-example-patch').hidden,true);
+  const recorded=f.calls.find(call=>call.path==='/api/function/open').body.spec;
+  assert.match(recorded.source,/Number\.isInteger/);
+  assert.equal(recorded.cases.length,4);
+  await f.el('next-action').click();
+  assert.equal(f.el('pass-count').textContent,'4/5');
+  assert.equal(f.el('failure-preview-name').textContent,'Reject unsafe integer');
+  assert.equal(f.el('finish').disabled,true);
+  const failed=JSON.parse(f.el('failure-replay-json').textContent);
+  assert.equal(failed.files[0].content,recorded.source);
+  assert.equal(f.el('load-function-example-patch').textContent,'Fill reviewed safe-integer fix');
+  await f.el('load-function-example-patch').click();
+  await f.el('load').click();await f.el('apply').click();await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'5/5');
+  await f.el('view-record').click();
+  assert.equal(JSON.parse(f.el('record-json').textContent).counts.modelCallsTotal,0);
+ }finally{await f.close();}
+});
 test('the same-score link runs the two example workers without opening a repair session',async()=>{
  const f=await setup({hash:'#same-score'});
  try{

@@ -30,10 +30,10 @@ async function main(argv){
  fs.renameSync(compiledEntry,path.join(out,entry));
  const interpreters=fs.readdirSync(out).filter(name=>name.endsWith('.wasm'));
  if(interpreters.length!==1||staticCachePolicy(interpreters[0])==='no-store')throw Error('Expected one fingerprinted browser interpreter');
- // These two direct links always run browser checks as soon as the app mounts.
+ // These direct links run browser checks as soon as the app mounts.
  // Start the interpreter download alongside the app modules for those visits.
  const preloadInterpreter=`const cancelInterpreterPreload=(()=>{
- if(location.hash!=='#checkout-repair'&&location.hash!=='#same-score')return;
+ if(!['#checkout-repair','#missed-test','#same-score'].includes(location.hash))return;
  if(typeof Worker!=='function'||typeof WebAssembly!=='object'||typeof AbortController!=='function'||typeof fetch!=='function')return;
  const controller=new AbortController();
  fetch(${JSON.stringify('/'+interpreters[0])},{signal:controller.signal,priority:'low'})

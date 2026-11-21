@@ -40,6 +40,7 @@
     <div><dt>Expected return</dt><dd><code>null</code></dd></div>
     <div><dt>Observed return</dt><dd><code>"too-high"</code></dd></div>
    </dl>
+   <button id="try-missed-test" type="button" class="secondary" disabled>Challenge the recorded patch</button>
   </figure>
  </section>
  <section class="repair-method" aria-labelledby="method-title"><div class="method-heading"><h2 id="method-title">How the bench checks a repair</h2><p>Analyze a failure, review a replacement, then run it against the same examples. Add a case if there is a requirement the examples miss.</p></div><ol class="method-cards"><li><span class="method-kind">ON-DEVICE · OPTIONAL</span><h3>Diagnose in Chrome</h3><p>Ask Nano to inspect the source and a failing example. Requires a supported browser and on-device model.</p></li><li><span class="method-kind">CLOUD · YOUR CHOICE</span><h3>Approve the cloud request</h3><p>Inspect the exact request before asking Gemini for a patch. Its draft still needs your diff review and Apply.</p></li><li><span class="method-kind">INDEPENDENT CHECKS</span><h3>Run the new counterexample</h3><p>Check actual returns and input changes. Challenge a passing repair with another example, then verify afresh.</p><button id="compare-replay-example" class="secondary" hidden disabled>Run a same-score example</button></li></ol><p class="method-limit">Try the example without a model or account. On-device advice needs a supported model; Firebase setup may contact Google. Passing your examples leaves untested behavior unknown.</p></section>

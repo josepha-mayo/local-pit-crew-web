@@ -493,6 +493,7 @@ module.exports = { uniqueTags };`;
    el('restore-function-replay').disabled=blocked||!token;
    el('try-function-example').disabled=blocked||!token||!functionCapability?.available;
    el('try-shipping-example').disabled=el('try-function-example').disabled;
+   el('try-missed-test').disabled=el('try-function-example').disabled;
    el('active-run').hidden=!s;
    el('entry-status').textContent=functionCapability?.available?(functionCapability.admissionKind==='browser-worker-quickjs'?'Checks run in this tab. Model advice is optional.':'Function checks are available. Model advice is optional.'):'Function checks are unavailable here. You can still explore the practice drills.';
    el('function-patch').hidden=!view.ownFunction;
@@ -548,8 +549,13 @@ module.exports = { uniqueTags };`;
    el('extend-function').disabled=blocked||cloudBusy||!checkedFile||checkedFile.checkedExamples>=8;
    renderNumericBoundary(state,checkedFile,el('extend-function').disabled);
    const walkthrough=state?.sessionId===guidedRun?.sessionId?guidedRun?.walkthrough:null;
-   el('load-function-example-patch').hidden=!walkthrough||!view.canLoad;
-   el('load-function-example-patch').disabled=blocked||cloudBusy||!view.canLoad;
+   const startsWithRecordedDraft=walkthrough===shippingWalkthrough&&guidedRun.startWithDraft&&!state.challengeParent;
+   if(startsWithRecordedDraft){
+    el('scope-title').textContent='Would you ship the recorded Gemini patch?';
+    el('scope-copy').textContent='The patch sees the original four examples. The extra check expects null for a price above JavaScript’s safe integer range.';
+   }
+   el('load-function-example-patch').hidden=!walkthrough||!view.canLoad||startsWithRecordedDraft;
+   el('load-function-example-patch').disabled=blocked||cloudBusy||el('load-function-example-patch').hidden;
    el('load-function-example-patch').textContent=(state?.challengeParent?walkthrough?.finalLabel:walkthrough?.firstLabel)??'Fill example patch';
    el('shipping-example-note').hidden=walkthrough!==shippingWalkthrough;
    const challengeControl=guidedChallengeControl(state,checkedFile);
@@ -607,7 +613,9 @@ module.exports = { uniqueTags };`;
    }
    el('advisor-result').replaceChildren();
    if(advisorRecord){const hint=node('div',advisorRecord.objective,'advisor-hint');hint.append(node('small','REV '+advisorRecord.revision+' / '+advisorRecord.inferenceSource+' (SDK-reported) · '+advisorRecord.evidenceIds.length+' source citations'));el('advisor-result').append(hint);}
-   const status=view.canFinish&&challengeControl?'All current examples passed. Try one more case before finishing.':view.status;
+   const status=view.canFinish&&challengeControl
+    ?startsWithRecordedDraft?'The recorded draft passed all four original checks. Run the unsafe-price check next.':'All current examples passed. Try one more case before finishing.'
+    :view.status;
    const message=view.ownFunction&&total&&!s.pending&&!view.closed?passed+' of '+total+' examples passed. '+status:status;
    if(el('status').textContent!==message)el('status').textContent=message;
    el('status').className='status';
@@ -742,6 +750,7 @@ module.exports = { uniqueTags };`;
    if(busy||inspection||cloudBusy)return{label:'Working…',waiting:true};
    if(view.canFinish){
     const challenge=guidedChallengeControl(current,checkedFunctionForDownload(current));
+    if(challenge==='fill-shipping-challenge'&&guidedRun.startWithDraft)return{label:'Run the unsafe-price check',missedTest:true};
     return challenge?{label:'Try a new counterexample',target:'challenge-function',focus:challenge}:{label:'Finish checked repair',action:'finish'};
    }
    if(view.canApply)return{label:'Review before Apply',target:'apply'};
@@ -763,6 +772,7 @@ module.exports = { uniqueTags };`;
   }
   el('next-action').addEventListener('click',()=>{
    const next=nextAction();if(!next||next.waiting)return;
+   if(next.missedTest)return runMissedShippingTest();
    if(next.action){const button=el(next.action);if(!button.disabled)return button.click();return;}
    const target=el(next.target);if(next.target==='function-intake'||next.target==='challenge-function')target.open=true;
    if(next.target==='checked-function'){const detail=target.querySelector?.('details');if(detail)detail.open=true;}
@@ -1437,16 +1447,23 @@ module.exports = { uniqueTags };`;
    functionIntakeStatus('A saved pass result is not imported. Open this function to start a new unchecked run.');
    el(contextRestored?'function-title':'function-instructions').focus?.();
   });
-  el('extend-function').addEventListener('click',async()=>{
+  async function extendCheckedFunction(example){
    if(busy||inspection||cloudBusy||!checkedFunctionForDownload(current)||current.checkedFunction.checkedExamples>=8)return;
+   const parent=current;
+   const result=await openFunction(null,{sessionId:parent.sessionId,revision:parent.snapshot.revision,example});
+   if(result?.openedFunctionSessionId&&current?.sessionId===result.openedFunctionSessionId){
+    if(guidedRun?.sessionId===parent.sessionId)guidedRun.sessionId=current.sessionId;
+    render(current);
+   }
+   return result;
+  }
+  el('extend-function').addEventListener('click',async()=>{
+   if(el('extend-function').disabled)return;
    let args,expected;try{args=JSON.parse(el('challenge-args').value);expected=JSON.parse(el('challenge-expected').value);}catch{el('challenge-status').textContent='Enter valid JSON for the arguments array and expected return.';return;}
-   const challenge={sessionId:current.sessionId,revision:current.snapshot.revision,example:{label:el('challenge-label').value,args,expected}};
-   const result=await openFunction(null,challenge);
+   const result=await extendCheckedFunction({label:el('challenge-label').value,args,expected});
    if(result?.error)el('challenge-status').textContent='The example could not be added. Check its label, JSON limits and the current checked run.';
    else if(result?.openedFunctionSessionId&&current?.sessionId===result.openedFunctionSessionId){
-    if(guidedRun?.sessionId===challenge.sessionId)guidedRun.sessionId=current.sessionId;
     for(const id of ['challenge-label','challenge-args','challenge-expected'])el(id).value='';
-    render(current);
     el('next-action').focus?.();
    }
   });
@@ -1544,11 +1561,18 @@ module.exports = { uniqueTags };`;
   el('bring-function').addEventListener('click',event=>{
    event?.preventDefault?.();el('function-intake').open=true;el('function-intake').scrollIntoView?.({block:'start',behavior:'auto'});el('function-title').focus?.({preventScroll:true});
   });
-  async function runWalkthrough(walkthrough){
+  async function runWalkthrough(walkthrough,{startWithDraft=false}={}){
    if(busy||inspection||!functionCapability?.available)return;
-   const opened=await openFunction({schema:'local-pit-crew/function-task/v1',...walkthrough.spec});
+   const source=startWithDraft?walkthrough.firstPatch:walkthrough.spec.source;
+   const opened=await openFunction({schema:'local-pit-crew/function-task/v1',...walkthrough.spec,source});
    if(!opened?.openedFunctionSessionId||opened.openedFunctionSessionId!==current?.sessionId||current?.mode!=='function-contract')return;
-   guidedRun={sessionId:current.sessionId,walkthrough,needsBaselineInspection:true};
+   guidedRun={sessionId:current.sessionId,walkthrough,startWithDraft,needsBaselineInspection:true};
+   return inspectWalkthroughBaseline();
+  }
+  async function runMissedShippingTest(){
+   const opened=await extendCheckedFunction(shippingWalkthrough.challenge);
+   if(!opened?.openedFunctionSessionId||opened.openedFunctionSessionId!==current?.sessionId||guidedRun?.sessionId!==current.sessionId)return;
+   guidedRun.needsBaselineInspection=true;
    return inspectWalkthroughBaseline();
   }
   async function inspectWalkthroughBaseline(){
@@ -1581,6 +1605,7 @@ module.exports = { uniqueTags };`;
   }
   el('try-function-example').addEventListener('click',()=>runWalkthrough(tagWalkthrough));
   el('try-shipping-example').addEventListener('click',()=>runWalkthrough(shippingWalkthrough));
+  el('try-missed-test').addEventListener('click',()=>runWalkthrough(shippingWalkthrough,{startWithDraft:true}));
   el('fill-function-example').addEventListener('click',()=>{
    for(const [field,key]of [['title','title'],['instructions','instructions'],['export','exportName'],['source','source']])el('function-'+field).value=functionExample[key];
    el('function-cases').value=JSON.stringify(functionExample.cases,null,2);
@@ -1618,7 +1643,7 @@ module.exports = { uniqueTags };`;
   el('apply').addEventListener('click',()=>guidedAction('apply','apply'));
   el('test').addEventListener('click',()=>{
    if(!busy&&!inspection&&guidedRun?.needsBaselineInspection&&guidedRun.sessionId===current?.sessionId
-    &&!current.challengeParent&&!current.proposal?.applied)return inspectWalkthroughBaseline();
+    &&!current.proposal?.applied)return inspectWalkthroughBaseline();
    return guidedAction('test','test');
   });
   function inspectFirstFailure(){
@@ -1648,6 +1673,7 @@ module.exports = { uniqueTags };`;
    if(current)render(current);
    if(hosted&&!current?.snapshot&&!pageLeaving&&functionCapability?.available&&!el('function-intake').open){
     if(global.location?.hash==='#checkout-repair')return runWalkthrough(shippingWalkthrough);
+    if(global.location?.hash==='#missed-test')return runWalkthrough(shippingWalkthrough,{startWithDraft:true});
     if(global.location?.hash==='#same-score')return runComparison(true);
    }
    if(!hosted&&((liveCapability?.available&&liveCapability.plannerRequired!==false)||plannerCapability?.available)){
