@@ -677,6 +677,7 @@ test('browser comparison reruns both saved versions locally and preserves the ac
   assert.equal(f.el('cancel').disabled,false);
   assert.match(f.el('compare-replay-status').textContent,/3\/5 baseline → 5\/5 candidate/);
   assert.deepEqual(f.el('compare-replay-changes').children.map(el=>el.textContent),['Repaired: Keep special names, Ignore non-string values','Regressed: none']);
+  assert.equal(f.el('comparison-failure').hidden,true);
   await f.el('view-record').click();assert.equal(f.el('record-json').textContent,before);
   candidateInput.files=[new Blob([baseline])];
   await f.el('compare-replays').click();
@@ -703,6 +704,23 @@ test('the landing-page example exposes a same-score regression without files or 
   assert.equal(f.el('function-title').value,'My intake draft');
   assert.equal(f.el('active-run').hidden,true);
   assert.equal(f.calls.filter(call=>call.path==='/api/function/compare-replays').length,1);
+  assert.equal(f.el('comparison-failure').hidden,false);
+  await f.el('download-compared-failure').click();
+  const [download]=f.downloads;
+  assert.equal(download.fileName,'candidate-failure.replay.json');
+  const exported=await download.blob.text(),packet=JSON.parse(exported);
+  assert.equal(packet.context.title,'Keep valid page cursors');
+  assert.match(packet.context.instructions,/Omit the cursor when it is null or absent/);
+  const replayed=await replayModule.replay(exported);
+  assert.deepEqual(replayed.checks.filter(check=>!check.ok).map(check=>check.id),['case-02']);
+  f.el('restore-replay-input').value=exported;
+  await f.el('restore-function-replay').click();
+  assert.equal(f.el('function-source').value,packet.files[0].content);
+  await f.el('open-function').click();
+  assert.equal(f.el('pass-count').textContent,'—');
+  await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'3/4');
+  assert.equal(f.el('finish').disabled,true);
  }finally{await f.close();}
 });
 test('a standalone JavaScript candidate runs the saved baseline examples without changing the active repair',async()=>{
@@ -768,11 +786,18 @@ module.exports.uniqueTags = tags => tags.some(tag => typeof tag !== 'string') ? 
   assert.equal(summary.modelCalls,0);
   assert.match(summary.beforeWorkspaceHash,/^[a-f0-9]{64}$/);
   assert.doesNotMatch(exported,/Ignore non-string values|uniqueTags|argumentsAfter|actualReturn|"API"/);
+  await f.el('download-compared-failure').click();
+  const failure=JSON.parse(await f.downloads[1].blob.text());
+  assert.deepEqual(failure.context,JSON.parse(baseline).context);
+  assert.deepEqual(failure.files[1],JSON.parse(baseline).files[1]);
+  assert.match(failure.files[0].content,/tags\.some/);
   setCandidate(JSON.parse(baseline).files[0].content);
   await f.el('compare-replays').click();
   assert.equal(f.el('download-comparison-summary').hidden,true);
+  assert.equal(f.el('comparison-failure').hidden,true);
   await f.el('download-comparison-summary').click();
-  assert.equal(f.downloads.length,1);
+  await f.el('download-compared-failure').click();
+  assert.equal(f.downloads.length,2);
  }finally{await f.close();}
 });
 test('a saved browser replay restores intent without replacing the active run, then opens unchecked and verifies afresh',async()=>{

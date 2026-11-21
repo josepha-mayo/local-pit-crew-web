@@ -52,6 +52,11 @@
  <div id="comparison-evidence" class="comparison-evidence"></div>
  <button id="download-comparison-summary" type="button" class="secondary" hidden>Download comparison summary</button>
  <p id="comparison-summary-status" class="muted" role="status"></p>
+ <div id="comparison-failure" hidden>
+  <button id="download-compared-failure" type="button" class="secondary" aria-describedby="compared-failure-help">Download candidate failure replay</button>
+  <p id="compared-failure-help" class="muted">Rerun the candidate against these same examples in the bench or CI. The file contains the candidate code and all example values.</p>
+  <p id="compared-failure-status" class="muted" role="status"></p>
+ </div>
  <p id="comparison-help" class="muted">Choose a saved baseline replay and your current CommonJS function file or another replay with the same examples. Both versions run against the saved examples in this tab.</p>
  <label for="comparison-baseline-file">Baseline replay</label><input id="comparison-baseline-file" type="file" accept=".json,application/json">
  <label for="comparison-candidate-file">Candidate JavaScript or replay</label><input id="comparison-candidate-file" type="file" accept=".js,.cjs,.json" aria-describedby="comparison-help">

@@ -1293,13 +1293,17 @@ module.exports = { uniqueTags };`;
   const comparePanel=el('compare-replay-panel'),compareButton=el('compare-replays'),compareStatus=el('compare-replay-status');
   const comparisonEvidence=el('comparison-evidence');
   const comparisonDownload=el('download-comparison-summary'),comparisonDownloadStatus=el('comparison-summary-status');
+  const comparedFailure=el('comparison-failure'),comparedFailureStatus=el('compared-failure-status');
   const compareExample=el('compare-replay-example');
   const comparisonInputs=[el('comparison-baseline-file'),el('comparison-candidate-file')];
-  let comparisonSummary=null;
+  let comparisonSummary=null,comparisonFailureReplay=null;
   function clearComparison(){
    comparisonSummary=null;
+   comparisonFailureReplay=null;
    comparisonDownload.hidden=true;
    comparisonDownloadStatus.textContent='';
+   comparedFailure.hidden=true;
+   comparedFailureStatus.textContent='';
    el('compare-replay-changes').replaceChildren();
    comparisonEvidence.replaceChildren();
   }
@@ -1309,6 +1313,13 @@ module.exports = { uniqueTags };`;
     downloadLocalFile(JSON.stringify(comparisonSummary,null,2)+'\n','application/json;charset=utf-8','pit-crew-comparison.json');
     comparisonDownloadStatus.textContent='Requested the comparison summary download.';
    }catch{comparisonDownloadStatus.textContent='The summary could not be downloaded. Try again.';}
+  });
+  el('download-compared-failure').addEventListener('click',()=>{
+   if(!comparisonFailureReplay||comparisonBusy||pageLeaving)return;
+   try{
+    downloadLocalFile(JSON.stringify(comparisonFailureReplay,null,2)+'\n','application/json;charset=utf-8','candidate-failure.replay.json');
+    comparedFailureStatus.textContent='Requested the candidate failure replay download.';
+   }catch{comparedFailureStatus.textContent='The replay could not be downloaded. Try again.';}
   });
   function updateComparisonControls(){
    compareButton.disabled=comparisonBusy||!token||!comparisonInputs.every(input=>input.files?.[0]);
@@ -1375,6 +1386,8 @@ module.exports = { uniqueTags };`;
     comparisonSummary={schema:'local-pit-crew/browser-comparison-summary/v1',boundary:'browser-worker-quickjs',
      beforeWorkspaceHash,afterWorkspaceHash,beforePassed,afterPassed,total,repaired,regressed,changedFailures,modelCalls:0};
     comparisonDownload.hidden=false;
+    comparisonFailureReplay=result.failureReplay;
+    comparedFailure.hidden=!comparisonFailureReplay;
    }catch{if(!pageLeaving)compareStatus.textContent=sourceCandidate?
     'Could not read these files. Use a valid UTF-8 baseline replay and a UTF-8 JavaScript file up to 6,000 bytes.':
     'Could not read these replays. Use valid UTF-8 replay files up to 80,000 bytes each.';}

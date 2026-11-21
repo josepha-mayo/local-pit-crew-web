@@ -87,6 +87,8 @@ The replay still has to pass its original hash validation. The runner then uses 
 
 On the hosted bench, open **Bring my function → Compare a function revision**. Select a baseline replay and either your current standalone CommonJS file (`.js` or `.cjs`, up to 6,000 UTF-8 bytes) or a second replay with the same contract. Both versions run the baseline’s fixed examples in separate workers in your tab. The bench reports changed results and preserves your active run. **Download comparison summary** saves version hashes, counts, and changed check IDs. Source, labels, inputs and return values stay out of that file. **Run a same-score example** demonstrates a pagination patch that repairs the zero-cursor case and regresses the null-cursor case.
 
+If the candidate fails any example, **Download candidate failure replay** saves its checked source with the baseline’s contract and any saved requirements. Reopen that file for a fresh repair run or rerun it in CI. The replay contains the candidate code and example values, so share it with people who should see them.
+
 For a CI comparison, run the command below.
 
 ```sh

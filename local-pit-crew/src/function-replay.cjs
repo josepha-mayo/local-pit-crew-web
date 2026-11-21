@@ -31,18 +31,18 @@ function parseReplay(text){
 }
 function parseFunctionReplay(text){return parseReplay(text).files;}
 function prepareReplayComparison(baselineText,candidateText){
- const baselineFiles=parseFunctionReplay(baselineText),candidateFiles=parseFunctionReplay(candidateText);
+ const {files:baselineFiles,context}=parseReplay(baselineText),candidateFiles=parseFunctionReplay(candidateText);
  if(baselineFiles[CONTRACT_PATH]!==candidateFiles[CONTRACT_PATH])throw Error('different-contracts');
- return prepareFileComparison(baselineFiles,candidateFiles);
+ return prepareFileComparison(baselineFiles,candidateFiles,context);
 }
 function prepareSourceComparison(baselineText,source){
- const baselineFiles=parseFunctionReplay(baselineText);
+ const {files:baselineFiles,context}=parseReplay(baselineText);
  const candidateFiles=validateFunctionFiles({...baselineFiles,[FUNCTION_ENTRY]:source});
- return prepareFileComparison(baselineFiles,candidateFiles);
+ return prepareFileComparison(baselineFiles,candidateFiles,context);
 }
-function prepareFileComparison(baselineFiles,candidateFiles){
+function prepareFileComparison(baselineFiles,candidateFiles,context){
  if(baselineFiles[FUNCTION_ENTRY]===candidateFiles[FUNCTION_ENTRY])throw Error('unchanged-source');
- return{baselineFiles,candidateFiles};
+ return{baselineFiles,candidateFiles,context};
 }
 function prepareFunctionReplay(text){
  const {files,context}=parseReplay(text),contract=parseContractSource(files[CONTRACT_PATH]);

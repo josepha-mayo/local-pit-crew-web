@@ -55,7 +55,8 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
     try{
      files=example?{
       baselineFiles:contracts.createFunctionTask({...paginationExample,source:'exports.pageQuery = cursor => cursor ? {cursor} : {};'}).files,
-      candidateFiles:contracts.createFunctionTask({...paginationExample,source:'exports.pageQuery = cursor => cursor === undefined ? {} : {cursor};'}).files
+      candidateFiles:contracts.createFunctionTask({...paginationExample,source:'exports.pageQuery = cursor => cursor === undefined ? {} : {cursor};'}).files,
+      context:{title:paginationExample.title,instructions:paginationExample.instructions}
      }:source?replays.prepareSourceComparison(JSON.stringify(body.baseline),body.source):
       replays.prepareReplayComparison(JSON.stringify(body.baseline),JSON.stringify(body.candidate));
     }
@@ -81,7 +82,9 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
       const changed=baseline.ok!==candidate.ok||comparison.changedWhileFailing(baseline,candidate);
       return changed?[{id,args:contracts.canonical(args),expected:contracts.canonical(expected),baseline,candidate}]:[];
      });
-     return{status:200,body:{comparison:compared,checkLabels,observations}};
+     const failureReplay=compared.afterPassed<compared.total
+      ?replays.createFunctionReplay(files.candidateFiles,files.context):null;
+     return{status:200,body:{comparison:compared,checkLabels,observations,failureReplay}};
     }catch{return error(503,'A version could not be verified. No comparison is available.');}
     finally{comparing=false;}
    }
