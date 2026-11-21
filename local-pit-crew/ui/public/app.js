@@ -353,6 +353,10 @@ module.exports = { uniqueTags };`;
   // The native link can be clicked while the module is still loading. Honor
   // its URL fragment when mounting instead of losing that first interaction.
   if(global.location?.hash==='#function-intake')el('function-intake').open=true;
+  const recordedHybrid=el('recorded-hybrid');
+  const revealRecordedRun=()=>{if(global.location?.hash==='#recorded-hybrid')recordedHybrid.open=true;};
+  revealRecordedRun();
+  global.addEventListener?.('hashchange',revealRecordedRun);
   const transport=(path,options)=>(global.LocalPitCrewReferenceRequest??global.fetch.bind(global))(path,options);
   let token=null,current=null,sequence=0,busy=false,inspection=null,liveCapability=null,liveClient=null,livePump=null,liveTimer=null,liveEpoch=0,liveStarting=false;
   let startAdmissionId=null,activeStartAdmissionId=null,comparisonBusy=false;
@@ -593,6 +597,7 @@ module.exports = { uniqueTags };`;
    el('try-hybrid-example').hidden=!plannerCapability?.available;
    el('try-shipping-example').disabled=el('try-function-example').disabled;
    el('try-missed-test').disabled=el('try-function-example').disabled;
+   el('recheck-recorded-hybrid').disabled=!hosted||el('try-function-example').disabled;
    el('active-run').hidden=!s;
    el('entry-status').textContent=functionCapability?.available?(functionCapability.admissionKind==='browser-worker-quickjs'?'Checks run in this tab. Model advice is optional.':'Function checks are available. Model advice is optional.'):'Function checks are unavailable here. You can still explore the practice drills.';
    el('function-patch').hidden=!view.ownFunction;
@@ -777,6 +782,10 @@ module.exports = { uniqueTags };`;
      node('p',passed+'/'+total+' passing · '+label),
      observedPair('counterexample-returns',firstDiagnostic.expectation?'Expected error code':'Expected return',firstDiagnostic.expected.replace(/\n\s*/g,' '),
       firstDiagnostic.expectation?'Observed behavior':'Observed return',firstDiagnostic.actual.replace(/\n\s*/g,' '),!firstDiagnostic.returnMatches));
+    const archive=node('a','See the recorded Firebase run');
+    archive.href='#recorded-hybrid';
+    archive.addEventListener('click',()=>{recordedHybrid.open=true;});
+    modelEvidence.append(archive);
    }
    el('inspect-failed-example').hidden=!firstDiagnostic;
    el('failure-preview').hidden=!firstDiagnostic;
@@ -1600,9 +1609,10 @@ module.exports = { uniqueTags };`;
    clearComparison();
    updateComparisonControls();
   });
+  const comparisonExamples={example:'pagination','boundary-example':'pagination-boundary','recorded-tags':'recorded-tags'};
   async function runComparison(mode){
    if(!hosted||busy||inspection||cloudBusy||comparisonBusy||!token)return;
-   const example=mode==='example'||mode==='boundary-example',repeat=mode==='repeat',probe=mode==='probe';
+   const example=comparisonExamples[mode],repeat=mode==='repeat',probe=mode==='probe';
    const reviewedComparison=comparedRequest;
    const files=comparisonInputs.map(input=>input.files?.[0]);
    if(probe?!reviewedComparison:!example&&(!files[0]||(!repeat&&!files[1])))return;
@@ -1623,7 +1633,7 @@ module.exports = { uniqueTags };`;
    feedback.focus?.({preventScroll:true});
    const sourceCandidate=!example&&!repeat&&!probe&&/\.(?:js|cjs)$/i.test(files[1].name??'');
    try{
-    let body={example:mode==='boundary-example'?'pagination-boundary':'pagination'};
+    let body={example};
     if(probe)body={...reviewedComparison,probe:true};
     else if(repeat)body={repeat:JSON.parse(await readIntakeFile(files[0]))};
     else if(!example){
@@ -1706,7 +1716,7 @@ module.exports = { uniqueTags };`;
     comparedFailure.hidden=!comparisonFailureReplay;
     comparedRequest=body;
     probePanel.hidden=false;
-   }catch{if(!pageLeaving)feedback.textContent=probe?'The boundary probes could not be verified. Try again.':repeat?'Could not read the replay. Choose a valid UTF-8 replay file up to 80,000 bytes.':sourceCandidate?
+   }catch{if(!pageLeaving)feedback.textContent=probe?'The boundary probes could not be verified. Try again.':example?'Could not verify the saved versions. Try again.':repeat?'Could not read the replay. Choose a valid UTF-8 replay file up to 80,000 bytes.':sourceCandidate?
     'Could not read these files. Use a valid UTF-8 baseline replay and a UTF-8 JavaScript file up to 6,000 bytes.':
     'Could not read these replays. Use valid UTF-8 replay files up to 80,000 bytes each.';}
    finally{
@@ -1718,6 +1728,7 @@ module.exports = { uniqueTags };`;
   compareButton.addEventListener('click',()=>runComparison('compare'));
   repeatButton.addEventListener('click',()=>runComparison('repeat'));
   compareExample.addEventListener('click',()=>runComparison('example'));
+  el('recheck-recorded-hybrid').addEventListener('click',()=>runComparison('recorded-tags'));
   probeButton.addEventListener('click',()=>runComparison('probe'));
   let replayRead=0;
   replayInput.addEventListener('input',()=>{

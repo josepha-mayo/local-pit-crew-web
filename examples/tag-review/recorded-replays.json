@@ -1,0 +1,40 @@
+{
+  "baseline": {
+    "schema": "local-pit-crew/function-replay/v2",
+    "context": {
+      "title": "Keep meaningful tag names",
+      "instructions": "Deduplicate tags by trimmed lowercase text, preserve the first original string and order, and ignore blank or non-string values. Names such as constructor and __proto__ are valid tags. Do not mutate the input."
+    },
+    "files": [
+      {
+        "path": "src/function.js",
+        "sha256": "af616e01d07affe69463e878c428b75c668989983638ba54d7db709aa2a726c2",
+        "content": "function uniqueTags(tags) {\n  const seen = {};\n  return tags.filter(tag => {\n    const key = tag.trim().toLowerCase();\n    if (!key || seen[key]) return false;\n    seen[key] = true;\n    return true;\n  });\n}\nmodule.exports = { uniqueTags };"
+      },
+      {
+        "path": "contract.json",
+        "sha256": "8347f23191ec64a486bb662f5d7adfe5365a4cb22289f9692476e8b1b189785e",
+        "content": "{\"schema\":\"local-pit-crew/function-contract/v1\",\"exportName\":\"uniqueTags\",\"cases\":[{\"id\":\"case-01\",\"label\":\"Keep special names\",\"args\":[[\"constructor\",\"__proto__\"]],\"expected\":[\"constructor\",\"__proto__\"]},{\"id\":\"case-02\",\"label\":\"Preserve first spelling\",\"args\":[[\" Ops \",\"ops\",\"API\",\"api\"]],\"expected\":[\" Ops \",\"API\"]},{\"id\":\"case-03\",\"label\":\"Ignore non-string values\",\"args\":[[\"API\",null,42,\"\",\"   \",\"api\",\"UI\"]],\"expected\":[\"API\",\"UI\"]},{\"id\":\"case-04\",\"label\":\"Accept an empty list\",\"args\":[[]],\"expected\":[]},{\"id\":\"case-05\",\"label\":\"Preserve original order\",\"args\":[[\"b\",\"a\",\"B\"]],\"expected\":[\"b\",\"a\"]}]}"
+      }
+    ]
+  },
+  "corrected": {
+    "schema": "local-pit-crew/function-replay/v2",
+    "context": {
+      "title": "Keep meaningful tag names",
+      "instructions": "Deduplicate tags by trimmed lowercase text, preserve the first original string and order, and ignore blank or non-string values. Names such as constructor and __proto__ are valid tags. Do not mutate the input."
+    },
+    "files": [
+      {
+        "path": "src/function.js",
+        "sha256": "83fa73ed43b946a38d7a09a794729bd73cd7e57f930f63f810846fafc6a16ded",
+        "content": "function uniqueTags(tags) {\n  const seen = new Set();\n  return tags.filter(tag => {\n    if (typeof tag !== 'string') return false;\n    const key = tag.replace(/^ +| +$/g, '').toLowerCase();\n    if (!key || seen.has(key)) return false;\n    seen.add(key);\n    return true;\n  });\n}\nmodule.exports = { uniqueTags };"
+      },
+      {
+        "path": "contract.json",
+        "sha256": "8347f23191ec64a486bb662f5d7adfe5365a4cb22289f9692476e8b1b189785e",
+        "content": "{\"schema\":\"local-pit-crew/function-contract/v1\",\"exportName\":\"uniqueTags\",\"cases\":[{\"id\":\"case-01\",\"label\":\"Keep special names\",\"args\":[[\"constructor\",\"__proto__\"]],\"expected\":[\"constructor\",\"__proto__\"]},{\"id\":\"case-02\",\"label\":\"Preserve first spelling\",\"args\":[[\" Ops \",\"ops\",\"API\",\"api\"]],\"expected\":[\" Ops \",\"API\"]},{\"id\":\"case-03\",\"label\":\"Ignore non-string values\",\"args\":[[\"API\",null,42,\"\",\"   \",\"api\",\"UI\"]],\"expected\":[\"API\",\"UI\"]},{\"id\":\"case-04\",\"label\":\"Accept an empty list\",\"args\":[[]],\"expected\":[]},{\"id\":\"case-05\",\"label\":\"Preserve original order\",\"args\":[[\"b\",\"a\",\"B\"]],\"expected\":[\"b\",\"a\"]}]}"
+      }
+    ]
+  }
+}

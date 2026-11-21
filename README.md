@@ -10,6 +10,8 @@
 
 [Try the hybrid review from the demo video](https://local-pit-crew.web.app/#hybrid-review). The link runs the failing tag example and opens its observed result beside the Nano and cloud controls. Each model request starts with a separate action.
 
+[See the recorded Firebase run](https://local-pit-crew.web.app/#recorded-hybrid) for the local hint, the cloud explanation and the reviewed correction from the submitted video. **Compare the saved versions** reruns both versions with the same five examples in fresh local workers. The replay makes zero model calls. [Saved source and test contract](examples/tag-review/recorded-replays.json)
+
 To reproduce the missed case from this checkout on Node.js 24 or newer, run:
 
 ```sh

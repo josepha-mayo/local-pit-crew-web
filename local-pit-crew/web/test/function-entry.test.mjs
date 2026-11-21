@@ -391,6 +391,26 @@ test('the same-score link runs the two example workers without opening a repair 
   assert.equal(f.calls.some(c=>c.path==='/api/function/open'),false);
  }finally{await f.close();}
 });
+test('the recorded Firebase run opens with zero inference and rechecks the exact saved sources',async()=>{
+ const f=await setup({hash:'#recorded-hybrid'});
+ try{
+  assert.equal(f.el('recorded-hybrid').open,true);
+  assert.equal(f.el('recheck-recorded-hybrid').disabled,false);
+  assert.deepEqual(f.calls.map(c=>c.path),['/api/bootstrap']);
+  await f.el('recheck-recorded-hybrid').click();
+  assert.match(f.el('compare-replay-status').textContent,/3\/5 baseline → 5\/5 candidate/);
+  assert.deepEqual(f.calls.filter(c=>c.path!=='/api/bootstrap'),[
+   {path:'/api/function/compare-replays',body:{example:'recorded-tags'}}
+  ]);
+  await f.el('download-comparison-summary').click();
+  const summary=JSON.parse(await f.downloads[0].blob.text());
+  assert.equal(summary.beforeWorkspaceHash,'dd23638ca26006f87da1572482172543a26ac36ce9f5e3ca81e7dc97aabd5b5c');
+  assert.equal(summary.afterWorkspaceHash,'8a93ba7699709e77ce14a463c1e46c8848623d5b468662f246ac2533981ebd5c');
+  assert.deepEqual(summary.repaired,['case-01','case-03']);
+  assert.deepEqual(summary.regressed,[]);
+  assert.equal(summary.modelCalls,0);
+ }finally{await f.close();}
+});
 test('boundary probes expose a new disagreement while the original four checks still pass',async()=>{
  const f=await setup({hash:'#probe-boundaries'});
  try{
