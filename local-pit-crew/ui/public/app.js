@@ -428,6 +428,35 @@ module.exports = { uniqueTags };`;
    finally{button.disabled=false;}
    if(current===owner)el(prefix+'-ci-copy-status').textContent=status;
   });
+  let repeatSession=null;
+  function renderRepeatExample(state,checked,blocked){
+   const session=checked&&checked.checkedExamples<8?state.sessionId:null;
+   const picker=el('repeat-example-case');
+   if(session!==repeatSession){
+    repeatSession=session;
+    picker.replaceChildren();
+    if(session){
+     for(const [index,example] of state.task.counterexamples.entries()){
+      const option=node('option',(index+1)+'. '+example.label);
+      option.value=example.id;picker.append(option);
+     }
+     picker.value=state.task.counterexamples[0].id;
+    }
+   }
+   el('repeat-example').hidden=!session;
+   picker.disabled=el('fill-repeat-example').disabled=blocked||!session;
+  }
+  function earlierPassingCall(state,id){
+   const cases=state?.task?.counterexamples;
+   if(!cases)return '';
+   const current=cases.findIndex(example=>example.id===id);
+   if(current<1)return '';
+   const {args,expected}=cases[current];
+   const key=JSON.stringify([args,expected]);
+   const earlier=cases.slice(0,current).findIndex(example=>JSON.stringify([example.args,example.expected])===key&&
+    state.checks.some(check=>check.id===example.id&&check.ok));
+   return earlier<0?'':'Call '+(earlier+1)+' passed with these same arguments. Call '+(current+1)+' failed.';
+  }
   let boundarySession=null,boundaryFields=[];
   function renderNumericBoundary(state,checked,blocked){
    const session=checked&&checked.checkedExamples<8?state.sessionId:null;
@@ -547,6 +576,7 @@ module.exports = { uniqueTags };`;
    el('download-checked-function').disabled=blocked||cloudBusy||!checkedFile;
    el('challenge-function').hidden=!checkedFile;
    el('extend-function').disabled=blocked||cloudBusy||!checkedFile||checkedFile.checkedExamples>=8;
+   renderRepeatExample(state,checkedFile,el('extend-function').disabled);
    renderNumericBoundary(state,checkedFile,el('extend-function').disabled);
    const walkthrough=state?.sessionId===guidedRun?.sessionId?guidedRun?.walkthrough:null;
    const startsWithRecordedDraft=walkthrough===shippingWalkthrough&&guidedRun.startWithDraft&&!state.challengeParent;
@@ -669,7 +699,8 @@ module.exports = { uniqueTags };`;
    el('failure-preview').hidden=!firstDiagnostic;
    el('failure-preview-count').textContent=firstDiagnostic?(checks.length-failing.length)+'/'+checks.length+' passing':'';
    el('failure-preview-name').textContent=firstDiagnostic?(state.task.checkLabels?.[firstFailure.id]??firstFailure.id):'';
-   el('failure-preview-reason').textContent=firstDiagnostic?.summary??'';
+   el('failure-preview-reason').textContent=firstDiagnostic?
+    earlierPassingCall(state,firstFailure.id)||firstDiagnostic.summary:'';
    for(const check of orderedChecks){
     const block=node('div',undefined,'check '+(check.ok?'pass':'fail'));
     const name=node('span',state.task?.checkLabels?.[check.id]??check.id);
@@ -680,6 +711,10 @@ module.exports = { uniqueTags };`;
      const detail=node('details',undefined,'counterexample-detail');detail.open=!check.ok;
      detail.append(node('summary',diagnostic.summary),observedPair('counterexample-returns',
       'Expected return',diagnostic.expected,'Observed return',diagnostic.actual,!diagnostic.returnMatches));
+     if(!check.ok){
+      const earlier=earlierPassingCall(state,check.id);
+      if(earlier)detail.append(node('p',earlier,'repeat-call-evidence'));
+     }
      if(diagnostic.argumentsAfter===null)detail.append(node('div','Input arguments','code-label'),node('pre',diagnostic.args));
      else{
       const inputs=observedPair('counterexample-inputs','Input before the call',diagnostic.args,'Input after the call',diagnostic.argumentsAfter,true);
@@ -1628,6 +1663,14 @@ module.exports = { uniqueTags };`;
   el('fill-shipping-challenge').addEventListener('click',()=>{
    if(busy||inspection||cloudBusy||guidedChallengeControl(current,checkedFunctionForDownload(current))!=='fill-shipping-challenge')return;
    fillChallengeExample(shippingWalkthrough.challenge,'This case checks the written safe-integer requirement. Review its expected return before starting.');
+  });
+  el('fill-repeat-example').addEventListener('click',()=>{
+   if(el('fill-repeat-example').disabled||current?.sessionId!==repeatSession)return;
+   const selected=el('repeat-example-case').value;
+   const example=current.task.counterexamples.find(item=>item.id===selected);
+   if(!example)return;
+   const label=('Repeat · '+example.label).slice(0,80);
+   fillChallengeExample({...example,label},'Review the expected return. The repeated call runs after the existing examples in the same interpreter.');
   });
   el('fill-numeric-boundary').addEventListener('click',()=>{
    if(el('fill-numeric-boundary').disabled||current?.sessionId!==boundarySession)return;

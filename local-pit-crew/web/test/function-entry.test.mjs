@@ -859,6 +859,38 @@ test('a human counterexample forks a passing source, exposes a previously missed
   const repaired=JSON.parse(f.el('record-json').textContent);assert.equal(f.el('pass-count').textContent,'5/5');assert.equal(repaired.counts.modelCallsTotal,0);assert.equal(repaired.closed,true);assert.deepEqual(repaired.challengeParent,fresh.challengeParent);assert.equal(JSON.stringify(repaired).includes('PRIVATE_NEW_CASE'),false);
  }finally{await f.close();}
 });
+test('a repeated passing input reveals state carried across calls and replays the same failure in Node',async()=>{
+ const f=await setup();
+ try{
+  const source='const seen = new Set(); exports.uniqueTags = tags => tags.filter(tag => { if (seen.has(tag)) return false; seen.add(tag); return true; });';
+  const cases=[{label:'Keep Ops',args:[['Ops']],expected:['Ops']},{label:'Keep Billing',args:[['Billing']],expected:['Billing']}];
+  f.el('function-title').value='Independent tag lists';
+  f.el('function-instructions').value='Return the unique tags in each list. Keep calls independent.';
+  f.el('function-export').value='uniqueTags';
+  f.el('function-source').value=source;
+  f.el('function-cases').value=JSON.stringify(cases);
+  await f.el('open-function').click();await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'2/2');
+  assert.equal(f.el('repeat-example').hidden,false);
+  assert.deepEqual(f.el('repeat-example-case').children.map(option=>option.textContent),['1. Keep Ops','2. Keep Billing']);
+  await f.el('fill-repeat-example').click();
+  assert.equal(f.el('challenge-label').value,'Repeat · Keep Ops');
+  assert.deepEqual(JSON.parse(f.el('challenge-args').value),cases[0].args);
+  assert.deepEqual(JSON.parse(f.el('challenge-expected').value),cases[0].expected);
+  await f.el('extend-function').click();await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'2/3');
+  assert.equal(f.el('finish').disabled,true);
+  assert.equal(f.el('failure-preview-reason').textContent,'Call 1 passed with these same arguments. Call 3 failed.');
+  const replay=f.el('failure-replay-json').textContent;
+  const replayed=await replayModule.replay(replay);
+  assert.deepEqual(replayed.checks.filter(check=>!check.ok).map(check=>check.id),['case-03']);
+  f.el('function-replacement').value='exports.uniqueTags = tags => [...new Set(tags)];';
+  await f.el('load').click();await f.el('apply').click();await f.el('test').click();
+  assert.equal(f.el('pass-count').textContent,'3/3');
+  await f.el('view-record').click();
+  assert.equal(JSON.parse(f.el('record-json').textContent).counts.modelCallsTotal,0);
+ }finally{await f.close();}
+});
 test('invalid saved bytes preserve the draft and current verdict, and legacy replay leaves missing requirements empty',async()=>{
  const f=await setup();try{
   await passFunction(f);const packet=JSON.parse(f.el('replay-json').textContent);
