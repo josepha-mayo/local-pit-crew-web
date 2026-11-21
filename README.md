@@ -43,6 +43,8 @@ A pass can still miss a bug. **Challenge with another example** starts a separat
 
 **Repeat a passing input** copies an earlier example to the end of an extended contract. If the same input passes early and fails later, the bench points to both calls. The downloaded replay preserves their order for CI.
 
+**Run the same replay twice** checks identical source and examples in fresh browser workers. It identifies cases with different results even when the passing totals match. Add `--runs 2` through `--runs 5` to the Node replay command for the same check in CI.
+
 **Download replay case** keeps that source, its requirements and fixed examples together in a separate JSON file. Reopen it in the browser with **Reopen a saved replay case → Load replay into form**, then Open and run fresh checks. Loading preserves your active run and imports no old verdict. Alternatively, after installing the pinned runner dependency, `npm run replay:function -- PATH.replay.json` checks the file hashes and reruns the case in a bounded QuickJS Node worker with zero model calls. [Replay instructions and limits](docs/own-function.md).
 
 To carry those regression checks into CI, add `--junit replay-results.xml` to the replay command. It writes a new JUnit report with fixed check IDs and source/contract hashes, excluding private code and example values. An unavailable verifier is reported as an error; it never becomes a fabricated pass or candidate failure. Existing report files are preserved.

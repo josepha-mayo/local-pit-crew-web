@@ -13,4 +13,14 @@ function changedWhileFailing(before,after){
  return !before.ok&&!after.ok&&(before.status!==after.status||before.actualReturn!==after.actualReturn||
   before.argumentsAfter!==after.argumentsAfter);
 }
-module.exports={comparePublicChecks,changedWhileFailing};
+function compareSameReplay(before,after){
+ if(before.length===0||before.length!==after.length||before.some((row,index)=>row.id!==after[index]?.id))return null;
+ const changedVerdicts=[],changedFailures=[];
+ for(const [index,first] of before.entries()){
+  const next=after[index];
+  if(first.ok!==next.ok)changedVerdicts.push(first.id);
+  else if(changedWhileFailing(first,next))changedFailures.push(first.id);
+ }
+ return{changedVerdicts,changedFailures};
+}
+module.exports={comparePublicChecks,changedWhileFailing,compareSameReplay};

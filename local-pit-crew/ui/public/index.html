@@ -58,8 +58,9 @@
   <p id="compared-failure-help" class="muted">Rerun the candidate against these same examples in the bench or CI. The file contains the candidate code and all example values.</p>
   <p id="compared-failure-status" class="muted" role="status"></p>
  </div>
- <p id="comparison-help" class="muted">Choose a saved baseline replay and your current CommonJS function file or another replay with the same examples. Both versions run against the saved examples in this tab.</p>
+ <p id="comparison-help" class="muted">Run a saved replay twice to see whether its observed results change. Add a candidate JavaScript file or replay to compare versions against the same examples.</p>
  <label for="comparison-baseline-file">Baseline replay</label><input id="comparison-baseline-file" type="file" accept=".json,application/json">
+ <button id="repeat-replay" type="button" class="secondary" disabled>Run the same replay twice</button>
  <label for="comparison-candidate-file">Candidate JavaScript or replay</label><input id="comparison-candidate-file" type="file" accept=".js,.cjs,.json" aria-describedby="comparison-help">
  <button id="compare-replays" class="secondary" disabled>Run comparison</button>
 </details><label for="function-title">Repair title</label><input id="function-title" aria-describedby="function-status" maxlength="80" placeholder="Keep tag names safe">

@@ -3,10 +3,10 @@ const fs=require('node:fs');
 const {createHash}=require('node:crypto');
 const {parseFunctionReplay,prepareReplayComparison,prepareSourceComparison,MAX_REPLAY_BYTES}=require('../local-pit-crew/src/function-replay.cjs');
 const {workspaceHash}=require('../local-pit-crew/src/controller.cjs');
-const {comparePublicChecks,changedWhileFailing}=require('../local-pit-crew/src/public-check-changes.cjs');
+const {comparePublicChecks,changedWhileFailing,compareSameReplay}=require('../local-pit-crew/src/public-check-changes.cjs');
 const {FUNCTION_SUITE,FUNCTION_ENTRY,LIMITS,validateFunctionFiles,inspectFunctionObservations}=require('../local-pit-crew/runner/function-contract.cjs');
 const {runCandidateProbe}=require('../local-pit-crew/runner/probe.cjs');
-const USAGE='npm run replay:function -- BASELINE.replay.json [--against CANDIDATE.replay.json | --source FUNCTION.js | --compare-source FUNCTION.js] [--junit NEW_REPORT.xml]';
+const USAGE='npm run replay:function -- BASELINE.replay.json [--against CANDIDATE.replay.json | --source FUNCTION.js | --compare-source FUNCTION.js] [--runs 2-5] [--junit NEW_REPORT.xml]';
 async function checkFiles(files,{captureDiagnostics=false}={}){
  const result=await runCandidateProbe({suiteId:FUNCTION_SUITE,files});
  const observed=result.status==='observed'&&result.cleanupConfirmed===true;
@@ -19,6 +19,25 @@ async function checkFiles(files,{captureDiagnostics=false}={}){
  return{report,diagnostics:observed&&captureDiagnostics?inspectFunctionObservations(result.observations,files):[]};
 }
 async function replay(text){return (await checkFiles(parseFunctionReplay(text))).report;}
+async function repeatFiles(files,runs){
+ const attempts=[];
+ const changedVerdicts=new Set(),changedFailures=new Set();
+ for(let i=0;i<runs;i++){
+  const checked=await checkFiles(files,{captureDiagnostics:true});
+  if(checked.report.status!=='checked')return checked.report;
+  for(const earlier of attempts){
+   const difference=compareSameReplay(earlier.diagnostics,checked.diagnostics);
+   if(!difference)throw Error('repeat-check-mismatch');
+   for(const id of difference.changedVerdicts)changedVerdicts.add(id);
+   for(const id of difference.changedFailures)changedFailures.add(id);
+  }
+  attempts.push(checked);
+ }
+ const first=attempts[0].report;
+ const checks=first.checks.map(({id,ok},index)=>({id,ok:ok&&attempts.every(({report})=>report.checks[index].ok)}));
+ return{...first,checks,passed:checks.filter(c=>c.ok).length,
+  repeat:{runs,passingPerRun:attempts.map(({report})=>report.passed),changedVerdicts:[...changedVerdicts],changedFailures:[...changedFailures]}};
+}
 async function compareReplays(baselineText,candidateText){
  return compareVersions(prepareReplayComparison(baselineText,candidateText));
 }
@@ -50,7 +69,9 @@ function writeJUnit(file,result){
  const contract=result?.files.find(f=>f.path==='contract.json')?.sha256,suffix=contract?'.'+contract:'';
  const counts=`tests="${tests}" failures="${failures}" errors="${errors}" skipped="0"`;
  const properties=[['status',checked?'checked':result?'unavailable':'invalid-or-unavailable'],['modelCalls',0],['heldOutCorrectness',false],
-  ...(result?[['verification.boundary',result.verification.boundary],['verification.qualifiedDocker',false],['verification.cleanupConfirmed',result.verification.cleanupConfirmed],...result.files.map(f=>[f.path+'.sha256',f.sha256])]:[])];
+  ...(result?[['verification.boundary',result.verification.boundary],['verification.qualifiedDocker',false],['verification.cleanupConfirmed',result.verification.cleanupConfirmed],...result.files.map(f=>[f.path+'.sha256',f.sha256])]:[]),
+  ...(result?.repeat?[['replay.runs',result.repeat.runs],['replay.changedVerdicts',result.repeat.changedVerdicts.length],
+   ['replay.changedFailures',result.repeat.changedFailures.length]]:[])];
  const cases=checked?checks.map(c=>`    <testcase classname="local-pit-crew.function${suffix}" name="${xml(c.id)}">${c.ok?'':'<failure message="Fixed example failed">Return value and input-preservation requirements were not both satisfied.</failure>'}</testcase>`):
   [`    <testcase classname="local-pit-crew.replay${suffix}" name="verification"><error message="Replay invalid or execution unavailable">No candidate verdict is available. No example results were fabricated.</error></testcase>`];
  const report=['<?xml version="1.0" encoding="UTF-8"?>',`<testsuites ${counts}>`,`  <testsuite name="Local Pit Crew function replay" ${counts}>`,'    <properties>',
@@ -62,12 +83,14 @@ async function main(argv){
  if(!input||args.length%2)throw Error('invalid-arguments');
  for(let i=0;i<args.length;i+=2){
   const [flag,file]=[args[i],args[i+1]];
-  if(!['--against','--source','--compare-source','--junit'].includes(flag)||!file||file.startsWith('--')||options.has(flag))throw Error('invalid-arguments');
+  if(!['--against','--source','--compare-source','--runs','--junit'].includes(flag)||!file||file.startsWith('--')||options.has(flag))throw Error('invalid-arguments');
   options.set(flag,file);
  }
  const report=options.get('--junit'),against=options.get('--against'),source=options.get('--source'),compareSource=options.get('--compare-source');
  if([against,source,compareSource].filter(Boolean).length>1)throw Error('invalid-arguments');
  const comparing=!!(against||compareSource);
+ const runs=options.get('--runs');
+ if(runs&&(comparing||!(/^[2-5]$/.test(runs))))throw Error('invalid-arguments');
  if(report&&fs.existsSync(report))throw Error('report-already-exists');
  let result;
  try{
@@ -75,10 +98,11 @@ async function main(argv){
   if(against)result=await compareReplays(baseline,readBoundedUtf8(against,MAX_REPLAY_BYTES));
   else if(compareSource)result=await compareVersions(prepareSourceComparison(baseline,
    readBoundedUtf8(compareSource,LIMITS.sourceBytes,{preserveBOM:true})));
-  else if(source){
+  else if(source||runs){
    const files=parseFunctionReplay(baseline);
-   files[FUNCTION_ENTRY]=readBoundedUtf8(source,LIMITS.sourceBytes,{preserveBOM:true});
-   result=(await checkFiles(validateFunctionFiles(files))).report;
+   if(source)files[FUNCTION_ENTRY]=readBoundedUtf8(source,LIMITS.sourceBytes,{preserveBOM:true});
+   const validated=validateFunctionFiles(files);
+   result=runs?await repeatFiles(validated,Number(runs)):(await checkFiles(validated)).report;
   }else result=await replay(baseline);
  }
  catch(error){if(report)writeJUnit(report,null);throw error;}

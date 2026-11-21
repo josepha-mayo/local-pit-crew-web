@@ -38,6 +38,30 @@ test('matching hashes do not import success: changed code is regraded and input 
  const unavailable=await replay(JSON.stringify(createFunctionReplay(files('module.exports={sortCopy(){while(true){}}};'))));
  assert.equal(unavailable.status,'unavailable');assert.deepEqual(unavailable.checks,[]);assert.equal(unavailable.total,0);
 });
+test('repeated CLI runs detect changing clock returns under identical failing scores',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'pitcrew-repeat-'));
+ const replayFile=path.join(directory,'clock.replay.json'),junit=path.join(directory,'results.xml');
+ const dynamic=files('module.exports={sortCopy: () => Date.now()};');
+ try{
+  await fs.writeFile(replayFile,JSON.stringify(createFunctionReplay(dynamic)));
+  const command=path.resolve(__dirname,'../../../scripts/replay-function.cjs');
+  const outcome=await new Promise(resolve=>execFile(process.execPath,[command,replayFile,'--runs','3','--junit',junit],
+   {timeout:6000},(error,stdout,stderr)=>resolve({code:error?.code??0,stdout,stderr})));
+  assert.equal(outcome.code,1,outcome.stderr);
+  const report=JSON.parse(outcome.stdout);
+  assert.equal(report.status,'checked');
+  assert.deepEqual(report.repeat,{runs:3,passingPerRun:[0,0,0],changedVerdicts:[],changedFailures:['case-01']});
+  assert.deepEqual(report.checks,[{id:'case-01',ok:false}]);
+  assert.equal(report.modelCalls,0);
+  assert.doesNotMatch(outcome.stdout,/Private|Date\.now/);
+  const xml=await fs.readFile(junit,'utf8');
+  assert.match(xml,/name="replay.changedFailures" value="1"/);
+  assert.doesNotMatch(xml,/Private|Date\.now/);
+ }finally{
+  await Promise.all([fs.unlink(replayFile).catch(()=>{}),fs.unlink(junit).catch(()=>{})]);
+  await fs.rmdir(directory);
+ }
+});
 test('replay comparison shows repaired and regressed IDs even when the passing total stays the same',async()=>{
  const packet=source=>JSON.stringify(createFunctionReplay(createFunctionTask({schema:TASK_SCHEMA,title:'Hidden title',
   instructions:'Return the provided value unchanged.',exportName:'identity',source,cases:[

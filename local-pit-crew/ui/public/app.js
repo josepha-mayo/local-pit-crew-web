@@ -1374,6 +1374,7 @@ module.exports = { uniqueTags };`;
    return new TextDecoder('utf-8',{fatal:true,ignoreBOM:preserveBOM}).decode(bytes);
   }
   const comparePanel=el('compare-replay-panel'),compareButton=el('compare-replays'),compareStatus=el('compare-replay-status');
+  const repeatButton=el('repeat-replay');
   const comparisonEvidence=el('comparison-evidence');
   const comparisonDownload=el('download-comparison-summary'),comparisonDownloadStatus=el('comparison-summary-status');
   const comparedFailure=el('comparison-failure'),comparedFailureStatus=el('compared-failure-status');
@@ -1384,6 +1385,7 @@ module.exports = { uniqueTags };`;
    comparisonSummary=null;
    comparisonFailureReplay=null;
    comparisonDownload.hidden=true;
+   comparisonDownload.textContent='Download comparison summary';
    comparisonDownloadStatus.textContent='';
    comparedFailure.hidden=true;
    comparedFailureStatus.textContent='';
@@ -1406,6 +1408,7 @@ module.exports = { uniqueTags };`;
   });
   function updateComparisonControls(){
    compareButton.disabled=comparisonBusy||!token||!comparisonInputs.every(input=>input.files?.[0]);
+   repeatButton.disabled=comparisonBusy||!token||!comparisonInputs[0].files?.[0];
    compareExample.disabled=comparisonBusy||!token;
   }
   for(const input of comparisonInputs)input.addEventListener('change',()=>{
@@ -1413,10 +1416,11 @@ module.exports = { uniqueTags };`;
    clearComparison();
    updateComparisonControls();
   });
-  async function runComparison(example){
+  async function runComparison(mode){
    if(!hosted||busy||inspection||cloudBusy||comparisonBusy||!token)return;
+   const example=mode==='example',repeat=mode==='repeat';
    const files=comparisonInputs.map(input=>input.files?.[0]);
-   if(!example&&files.some(file=>!file))return;
+   if(!example&&(!files[0]||(!repeat&&!files[1])))return;
    if(example){
     el('function-intake').open=true;comparePanel.open=true;
     comparePanel.scrollIntoView?.({block:'start'});
@@ -1425,12 +1429,14 @@ module.exports = { uniqueTags };`;
    if(current)render(current);
    comparisonInputs.forEach(input=>{input.disabled=true;});updateComparisonControls();
    clearComparison();
-   compareStatus.textContent='Validating the files and running fresh checks in separate workers…';
+   compareStatus.textContent=repeat?'Running the same saved examples twice in separate workers…':
+    'Validating the files and running fresh checks in separate workers…';
    compareStatus.focus?.({preventScroll:true});
-   const sourceCandidate=!example&&/\.(?:js|cjs)$/i.test(files[1].name??'');
+   const sourceCandidate=!example&&!repeat&&/\.(?:js|cjs)$/i.test(files[1].name??'');
    try{
     let body={example:'pagination'};
-    if(!example){
+    if(repeat)body={repeat:JSON.parse(await readIntakeFile(files[0]))};
+    else if(!example){
      const [baseline,candidate]=await Promise.all([
       readIntakeFile(files[0]).then(JSON.parse),
       sourceCandidate?readIntakeFile(files[1],{maxBytes:6000,preserveBOM:true}):readIntakeFile(files[1]).then(JSON.parse)
@@ -1443,6 +1449,19 @@ module.exports = { uniqueTags };`;
     const result=await response.json();
     if(pageLeaving)return;
     if(!response.ok){compareStatus.textContent=result.error;return;}
+    if(repeat){
+     const {passingPerRun,total,changedVerdicts,changedFailures}=result.repeat;
+     const counts=passingPerRun.map(passed=>passed+'/'+total).join(' then ');
+     const labels=ids=>ids.map(id=>result.checkLabels[id]??id).join(', ');
+     const changed=changedVerdicts.length||changedFailures.length;
+     compareStatus.textContent=counts+' passed. '+(changed?'Identical source and inputs produced different evidence.':'The observed results matched in both fresh runs.');
+     if(changedVerdicts.length)el('compare-replay-changes').append(node('li','Pass or fail changed: '+labels(changedVerdicts),'comparison-regressed'));
+     if(changedFailures.length)el('compare-replay-changes').append(node('li','Still failing, result changed: '+labels(changedFailures),'comparison-regressed'));
+     comparisonSummary={schema:'local-pit-crew/browser-repeat-summary/v1',boundary:'browser-worker-quickjs',...result.repeat,modelCalls:0};
+     comparisonDownload.textContent='Download repeat summary';
+     comparisonDownload.hidden=false;
+     return;
+    }
     const {beforeWorkspaceHash,afterWorkspaceHash,beforePassed,afterPassed,total,repaired,regressed}=result.comparison;
     const sameScore=beforePassed===afterPassed&&(repaired.length||regressed.length);
     const changedFailures=result.observations.filter(({baseline,candidate})=>!baseline.ok&&!candidate.ok).map(({id})=>id);
@@ -1471,7 +1490,7 @@ module.exports = { uniqueTags };`;
     comparisonDownload.hidden=false;
     comparisonFailureReplay=result.failureReplay;
     comparedFailure.hidden=!comparisonFailureReplay;
-   }catch{if(!pageLeaving)compareStatus.textContent=sourceCandidate?
+   }catch{if(!pageLeaving)compareStatus.textContent=repeat?'Could not read the replay. Choose a valid UTF-8 replay file up to 80,000 bytes.':sourceCandidate?
     'Could not read these files. Use a valid UTF-8 baseline replay and a UTF-8 JavaScript file up to 6,000 bytes.':
     'Could not read these replays. Use valid UTF-8 replay files up to 80,000 bytes each.';}
    finally{
@@ -1480,8 +1499,9 @@ module.exports = { uniqueTags };`;
     comparisonInputs.forEach(input=>{input.disabled=false;});updateComparisonControls();
    }
   }
-  compareButton.addEventListener('click',()=>runComparison(false));
-  compareExample.addEventListener('click',()=>runComparison(true));
+  compareButton.addEventListener('click',()=>runComparison('compare'));
+  repeatButton.addEventListener('click',()=>runComparison('repeat'));
+  compareExample.addEventListener('click',()=>runComparison('example'));
   let replayRead=0;
   replayInput.addEventListener('input',()=>{
    replayRead++;
@@ -1758,7 +1778,7 @@ module.exports = { uniqueTags };`;
     if(global.location?.hash==='#checkout-repair')return runWalkthrough(shippingWalkthrough);
     if(global.location?.hash==='#hybrid-review')return runWalkthrough(tagWalkthrough,{focusModelReview:true});
     if(global.location?.hash==='#missed-test')return runWalkthrough(shippingWalkthrough,{startWithDraft:true});
-    if(global.location?.hash==='#same-score')return runComparison(true);
+    if(global.location?.hash==='#same-score')return runComparison('example');
    }
    if(!hosted&&((liveCapability?.available&&liveCapability.plannerRequired!==false)||plannerCapability?.available)){
     loadFirebaseClients().then(()=>{

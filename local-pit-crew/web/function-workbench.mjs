@@ -47,13 +47,17 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
    if(method==='POST'&&pathname==='/api/function/compare-replays'){
     const error=(status,message)=>({status,body:{error:message}});
     const example=exact(body,['example'])&&body.example==='pagination';
+    const repeat=exact(body,['repeat']);
     const source=exact(body,['baseline','source']);
-    if(!example&&!source&&!exact(body,['baseline','candidate']))return error(400,'Choose a baseline replay and a candidate JavaScript or replay file.');
+    if(!example&&!repeat&&!source&&!exact(body,['baseline','candidate']))return error(400,'Choose a saved replay to repeat or compare it with a candidate source file.');
     if(lifetime.signal.aborted||comparing||pendingStart||state()?.snapshot?.pending)
      return error(409,'Wait for the current operation to finish and try again.');
     let files;
     try{
-     files=example?{
+     if(repeat){
+      const saved=replays.parseFunctionReplay(JSON.stringify(body.repeat));
+      files={baselineFiles:saved,candidateFiles:saved};
+     }else files=example?{
       baselineFiles:contracts.createFunctionTask({...paginationExample,source:'exports.pageQuery = cursor => cursor ? {cursor} : {};'}).files,
       candidateFiles:contracts.createFunctionTask({...paginationExample,source:'exports.pageQuery = cursor => cursor === undefined ? {} : {cursor};'}).files,
       context:{title:paginationExample.title,instructions:paginationExample.instructions}
@@ -70,13 +74,20 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
       const id=crypto.randomUUID(),suiteId=contracts.FUNCTION_SUITE,workspaceHash=controller.workspaceHash(version);
       const outcome=await verifier.runPublicChecks({id,suiteId,workspaceHash,files:version},{signal:lifetime.signal});
       const checked=codec.parsePublicCheckOutcome(outcome,{ticketId:id,suiteId,workspaceHash},version);
-      if(lifetime.signal.aborted||checked.status!=='candidate-verdict')return error(503,'A version could not be verified. No comparison is available.');
+      if(lifetime.signal.aborted||checked.status!=='candidate-verdict')return error(503,'A run could not be verified. No comparison is available.');
       results.push(checked);
+     }
+     const {cases}=contracts.parseContractSource(files.baselineFiles[contracts.CONTRACT_PATH]);
+     const checkLabels=Object.fromEntries(cases.map(({id,label})=>[id,label]));
+     if(repeat){
+      const difference=comparison.compareSameReplay(results[0].diagnostics,results[1].diagnostics);
+      if(!difference)return error(503,'The repeated runs could not be compared.');
+      const passingPerRun=results.map(run=>run.checks.filter(({ok})=>ok).length);
+      return{status:200,body:{repeat:{workspaceHash:results[0].workspaceHash,runs:2,total:cases.length,
+       passingPerRun,...difference},checkLabels}};
      }
      const compared=comparison.comparePublicChecks(...results);
      if(!compared)return error(503,'Run results could not be compared.');
-     const {cases}=contracts.parseContractSource(files.baselineFiles[contracts.CONTRACT_PATH]);
-     const checkLabels=Object.fromEntries(cases.map(({id,label})=>[id,label]));
      const observations=cases.flatMap(({id,args,expected},index)=>{
       const baseline=results[0].diagnostics[index],candidate=results[1].diagnostics[index];
       const changed=baseline.ok!==candidate.ok||comparison.changedWhileFailing(baseline,candidate);

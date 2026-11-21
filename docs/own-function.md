@@ -107,6 +107,12 @@ Both versions run the baseline's fixed contract. The `--source` mode runs only t
 
 Comparison requires different source. When comparing two replays, both packets must pass validation and contain byte-identical contracts. Each version runs in its own worker. The JSON shows which fixed check IDs improved or regressed, even when the passing totals match. The `changedFailures` list reports cases that failed in both versions but changed their return, execution outcome, or arguments after the call. It contains check IDs only. The exit code follows the candidate result when both runs are available. An invalid comparison or unavailable run returns `2` with no comparison verdict. With `--junit`, a successful comparison writes the candidate's fresh checks.
 
+For a replay that may depend on the clock or randomness, choose **Run the same replay twice** after selecting the baseline file in the browser. In CI, pass `--runs 2` through `--runs 5` to check the same source in fresh workers. The report gives each run’s passing total and the IDs whose verdict or failing observation changed. A fixed example must pass in every completed run for the repeated CLI check to pass. The result describes the runs actually observed. The summary and JUnit output omit source, input values, and observed returns.
+
+```sh
+npm run replay:function -- baseline.replay.json --runs 3 --junit replay-results.xml
+```
+
 For CI, optionally write a JUnit XML report alongside the normal JSON result:
 
 ```sh
