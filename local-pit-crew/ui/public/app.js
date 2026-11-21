@@ -493,7 +493,7 @@ module.exports = { uniqueTags };`;
     '      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803',
     '        with:',
     '          persist-credentials: false',
-    '      - uses: josepha-mayo/local-pit-crew-web@2a151de6d666d65dbd52eceafcab5e8b3135bd7e',
+    '      - uses: josepha-mayo/local-pit-crew-web@7acda9b84356748708e85a4b8d642b9ddb832eed',
     '        with:',
     '          contract: '+contractFileName,
     '          source: '+JSON.stringify(source),

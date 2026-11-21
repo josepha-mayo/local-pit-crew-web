@@ -55,7 +55,7 @@ For validators, an example can require a thrown application error code and uncha
 
 Inside **Run these examples in CI**, **Download test contract** saves the fixed examples and their expected outcomes. The generated GitHub Actions workflow can pin the exact reviewed contract so that deleting a failing case stops CI before it runs the function. The checkout example’s contract rejects the recorded draft on `case-05` and accepts the correction. [GitHub Actions setup](docs/own-function.md#check-the-current-function-in-ci)
 
-To carry those regression checks into CI, add `--junit replay-results.xml` to the replay command. It writes a new JUnit report with fixed check IDs and source/contract hashes, excluding private code and example values. An unavailable verifier is reported as an error; it never becomes a fabricated pass or candidate failure. Existing report files are preserved.
+To carry those regression checks into CI, add `--junit replay-results.xml` to the replay command. It writes a new JUnit report with fixed check IDs, failure reasons and source/contract hashes. A return mismatch and an input mutation are reported separately, even when they occur in the same call. Private code and example values stay out of the report. An unavailable verifier is reported as an error. Existing report files are preserved.
 
 Keep the downloaded examples and check your current standalone function file against them with `npm run replay:function -- CASE.replay.json --source src/my-function.js`. The runner verifies the original replay hashes, keeps its contract, and reports the hash of the current file it actually checked.
 

@@ -160,13 +160,15 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - uses: josepha-mayo/local-pit-crew-web@2a151de6d666d65dbd52eceafcab5e8b3135bd7e
+      - uses: josepha-mayo/local-pit-crew-web@7acda9b84356748708e85a4b8d642b9ddb832eed
         with:
           contract: tests/function.contract.json
           source: src/my-function.js
 ```
 
 For a hand-written workflow, set the optional `contract-sha256` input to the reviewed file’s lowercase SHA-256. Pass the same value through `--contract-sha256` when running the CLI directly. Logs identify the fixed case IDs and hashes after a run. The CLI also supports `--junit replay-results.xml` and repeats through `--runs 2` to `--runs 5`.
+
+A failed case can have more than one reason. The JSON report lists fixed reason codes under `failures`, such as `return-mismatch`, `inputs-changed` and `error-code-mismatch`. JUnit describes each reason in words. A completed repeat check reports the reasons observed across its runs. To inspect the actual values, open the replay privately in the browser.
 
 ### Repeat checks in fresh workers
 
