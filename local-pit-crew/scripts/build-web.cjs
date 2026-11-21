@@ -79,9 +79,14 @@ async function main(argv){
  const offlineSource=readText(path.join(web,'offline-worker.js'));
  const immutable=Object.keys(cachePolicies).sort();
  const publicFiles=['index.html','checkout-preview.jpg',...(config?['firebase-config.json','firebase-planner.mjs']:[])];
+ const cachedFiles=Object.fromEntries([...immutable,...publicFiles].map(name=>[name,fs.readFileSync(path.join(out,name))]));
  const release=crypto.createHash('sha256').update(offlineSource).update(JSON.stringify(headers));
- for(const name of [...immutable,...publicFiles])release.update(name).update(fs.readFileSync(path.join(out,name)));
- const offlineBuild={version:release.digest('hex').slice(0,16),immutable:immutable.map(name=>'/'+name),publicFiles:publicFiles.map(name=>'/'+name)};
+ for(const [name,bytes] of Object.entries(cachedFiles))release.update(name).update(bytes);
+ const version=release.digest('hex').slice(0,16);
+ cachedFiles['index.html']=Buffer.from(html.replace('</head>','<meta name="local-pit-crew-offline-build" content="'+version+'">\n</head>'));
+ fs.writeFileSync(path.join(out,'index.html'),cachedFiles['index.html']);
+ const offlineBuild={version,immutable:immutable.map(name=>'/'+name),publicFiles:publicFiles.map(name=>'/'+name),
+  digests:Object.fromEntries(Object.entries(cachedFiles).map(([name,bytes])=>['/'+name,sha256(bytes)]))};
  fs.writeFileSync(path.join(out,'offline-worker.js'),'const offlineBuild = '+JSON.stringify(offlineBuild)+';\n'+offlineSource);
  fs.writeFileSync(path.join(out,'_headers'),'/*\n'+Object.entries(headers).map(([key,value])=>'  '+key+': '+value).join('\n')+'\n'+Object.entries(cachePolicies).map(([name,value])=>'/'+name+'\n  Cache-Control: '+value+'\n').join(''));
  fs.writeFileSync(path.join(out,'hosting-headers.json'),JSON.stringify(headers,null,2)+'\n');

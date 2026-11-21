@@ -73,6 +73,8 @@ Opening the bench and running local checks leave the Firebase client unloaded. F
 
 In the static bench, choose **Runtime & setup → Save bench for offline use** while connected. After the save completes, reopen the same URL offline to run the browser verifier or open a downloaded replay. In a Firebase-enabled build, Chrome can also diagnose a failure in the reopened tab if its own model is ready. The saved files include the public app, the fixed interpreter and optional public Firebase configuration. Download a replay file to keep your source and example data between tabs.
 
+An update is saved only after every file, including the QuickJS interpreter, matches the current build. If the bench asks you to close all Local Pit Crew tabs, download any replays you need and close those tabs before reopening offline. An incomplete update leaves the previous copy available.
+
 A literal-source citation can ground a model's hypothesis without making the hypothesis correct. Passing examples and browser-generated run records do not establish held-out correctness or model repair accuracy.
 
 The static test suite compares every named program's outcomes against the Node runner, repeats state-sensitive cases, checks UTF-8 hash parity, exercises the complete authored workflow including the trap and correction, rejects arbitrary program selectors and checks the served artifact and headers. Real browser/Firebase testing remains a separate release check.

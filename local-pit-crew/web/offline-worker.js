@@ -4,12 +4,34 @@ const cacheName = prefix + offlineBuild.version;
 const immutable = new Set(offlineBuild.immutable);
 const publicFiles = new Set(offlineBuild.publicFiles);
 
-self.addEventListener('install', event => {
-  event.waitUntil((async () => {
+async function verifyFile(path, response) {
+  if (!response?.ok) throw Error('Offline file could not be fetched.');
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', await response.arrayBuffer()));
+  const digest = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  if (digest !== offlineBuild.digests[path]) throw Error('Offline file differs from the deployed release.');
+}
+
+async function prepareFiles() {
+  const requestFor = path => new Request(path, {cache: 'reload', redirect: 'error'});
+  try {
     const cache = await caches.open(cacheName);
-    await cache.addAll([...immutable, ...publicFiles].map(path =>
-      new Request(path, {cache: 'reload', redirect: 'error'})));
-  })());
+    const assets = [...immutable, ...publicFiles].filter(path => path !== '/index.html');
+    await cache.addAll(assets.map(requestFor));
+    const page = await fetch(requestFor('/index.html'));
+    await Promise.all([
+      verifyFile('/index.html', page.clone()),
+      ...assets.map(async path => verifyFile(path, await cache.match(path, {ignoreVary: true}))),
+    ]);
+    // A saved page means the verifier and every other file passed validation.
+    await cache.put('/index.html', page);
+  } catch (error) {
+    await caches.delete(cacheName);
+    throw error;
+  }
+}
+
+self.addEventListener('install', event => {
+  event.waitUntil(prepareFiles());
 });
 
 self.addEventListener('activate', event => {
