@@ -5,6 +5,8 @@ import controller from '../src/controller.cjs';
 import codec from '../src/public-check-codec.cjs';
 import comparison from '../src/public-check-changes.cjs';
 import recordedTagRun from '../../examples/tag-review/recorded-replays.json' with {type:'json'};
+import checkoutDraft from '../../examples/checkout/gemini-audit.replay.json' with {type:'json'};
+import checkoutReviewed from '../../examples/checkout/reviewed-audit.replay.json' with {type:'json'};
 const exact=(x,keys)=>x&&typeof x==='object'&&!Array.isArray(x)&&Object.keys(x).length===keys.length&&keys.every(k=>Object.hasOwn(x,k));
 const paginationExample={
  schema:contracts.TASK_SCHEMA,title:'Keep valid page cursors',exportName:'pageQuery',
@@ -72,7 +74,7 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
    }
    if(method==='POST'&&pathname==='/api/function/compare-replays'){
     const error=(status,message)=>({status,body:{error:message}});
-    const example=exact(body,['example'])&&['pagination','pagination-boundary','recorded-tags'].includes(body.example);
+    const example=exact(body,['example'])&&['pagination','pagination-boundary','recorded-tags','checkout-audit'].includes(body.example);
     const boundaryDemo=example&&body.example==='pagination-boundary';
     const recordedTags=example&&body.example==='recorded-tags';
     const repeat=exact(body,['repeat']);
@@ -87,6 +89,8 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
       files={baselineFiles:saved,candidateFiles:saved};
      }else if(recordedTags){
       files=replays.prepareReplayComparison(JSON.stringify(recordedTagRun.baseline),JSON.stringify(recordedTagRun.corrected));
+     }else if(example&&body.example==='checkout-audit'){
+      files=replays.prepareReplayComparison(JSON.stringify(checkoutDraft),JSON.stringify(checkoutReviewed));
      }else files=example?{
       baselineFiles:contracts.createFunctionTask({...paginationExample,source:boundaryDemo?'exports.pageQuery = cursor => cursor == null ? {} : {cursor};':'exports.pageQuery = cursor => cursor ? {cursor} : {};'}).files,
       candidateFiles:contracts.createFunctionTask({...paginationExample,source:boundaryDemo?'exports.pageQuery = cursor => cursor === 0 || cursor ? {cursor} : {};':'exports.pageQuery = cursor => cursor === undefined ? {} : {cursor};'}).files,

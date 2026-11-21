@@ -416,6 +416,32 @@ test('the recorded Firebase run opens with zero inference and rechecks the exact
   assert.equal(summary.modelCalls,0);
  }finally{await f.close();}
 });
+test('the checkout audit reproduces the archived result from both exact versions',async()=>{
+ const f=await setup();
+ try{
+  assert.equal(f.el('try-checkout-audit').disabled,false);
+  await f.el('try-checkout-audit').click();
+  assert.equal(f.el('checkout-audit-context').hidden,false);
+  assert.equal(f.activeElement,f.el('compare-replay-status'));
+  assert.match(f.el('compare-replay-status').textContent,/7\/8 Gemini draft → 8\/8 reviewed fix/);
+  const [repaired]=f.el('comparison-evidence').children;
+  assert.equal(repaired.open,true);
+  assert.deepEqual(repaired.children.map(element=>element.textContent),[
+   'Repaired · Reject unsafe integer','Input arguments','[[{"available":true,"currency":"USD","id":"too-high","priceCents":9007199254740992}],"USD"]',
+   'Expected return','null','Baseline · Input preserved','"too-high"','Candidate · Input preserved','null'
+  ]);
+  assert.deepEqual(f.calls.filter(call=>call.body),[
+   {path:'/api/function/compare-replays',body:{example:'checkout-audit'}}
+  ]);
+  await f.el('download-comparison-summary').click();
+  const summary=JSON.parse(await f.downloads[0].blob.text());
+  assert.deepEqual(summary.repaired,['case-06']);
+  assert.deepEqual(summary.regressed,[]);
+  assert.equal(summary.modelCalls,0);
+  await f.el('compare-replay-example').click();
+  assert.equal(f.el('checkout-audit-context').hidden,true);
+ }finally{await f.close();}
+});
 test('boundary probes expose a new disagreement while the original four checks still pass',async()=>{
  const f=await setup({hash:'#probe-boundaries'});
  try{

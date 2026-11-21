@@ -602,6 +602,7 @@ module.exports = { uniqueTags };`;
    el('try-hybrid-example').hidden=!plannerCapability?.available;
    el('try-shipping-example').disabled=el('try-function-example').disabled;
    el('try-missed-test').disabled=el('try-function-example').disabled;
+   el('try-checkout-audit').disabled=el('try-function-example').disabled;
    el('recheck-recorded-hybrid').disabled=!hosted||el('try-function-example').disabled;
    el('active-run').hidden=!s;
    el('entry-status').textContent=functionCapability?.available?(functionCapability.admissionKind==='browser-worker-quickjs'?'Checks run in this tab. Model advice is optional.':'Function checks are available. Model advice is optional.'):'Function checks are unavailable here. You can still explore the practice drills.';
@@ -1514,6 +1515,7 @@ module.exports = { uniqueTags };`;
   }
   function clearComparison(){
    comparisonSummary=null;
+   el('checkout-audit-context').hidden=true;
    comparisonFailureReplay=null;
    comparedRequest=null;
    probePanel.hidden=true;
@@ -1567,6 +1569,7 @@ module.exports = { uniqueTags };`;
    compareButton.disabled=comparisonBusy||!token||!comparisonInputs.every(input=>input.files?.[0]);
    repeatButton.disabled=comparisonBusy||!token||!comparisonInputs[0].files?.[0];
    compareExample.disabled=comparisonBusy||!token;
+   el('try-checkout-audit').disabled=!!(busy||inspection||cloudBusy)||!token||!functionCapability?.available;
    probeButton.disabled=comparisonBusy||!token||!comparedRequest;
   }
   function appendVersionObservations(item,baseline,candidate,expectation){
@@ -1614,10 +1617,11 @@ module.exports = { uniqueTags };`;
    clearComparison();
    updateComparisonControls();
   });
-  const comparisonExamples={example:'pagination','boundary-example':'pagination-boundary','recorded-tags':'recorded-tags'};
+  const comparisonExamples={example:'pagination','boundary-example':'pagination-boundary','recorded-tags':'recorded-tags','checkout-audit':'checkout-audit'};
   async function runComparison(mode){
    if(!hosted||busy||inspection||cloudBusy||comparisonBusy||!token)return;
    const example=comparisonExamples[mode],repeat=mode==='repeat',probe=mode==='probe';
+   const checkoutAudit=example==='checkout-audit';
    const reviewedComparison=comparedRequest;
    const files=comparisonInputs.map(input=>input.files?.[0]);
    if(probe?!reviewedComparison:!example&&(!files[0]||(!repeat&&!files[1])))return;
@@ -1632,6 +1636,7 @@ module.exports = { uniqueTags };`;
     probeResults.replaceChildren();
     clearProbeEditor();
    }else clearComparison();
+   if(checkoutAudit)el('checkout-audit-context').hidden=false;
    const feedback=probe?probeStatus:compareStatus;
    feedback.textContent=probe?'Running the new inputs in separate local workers…':
     repeat?'Running the same saved examples twice in separate workers…':'Validating the files and running fresh checks in separate workers…';
@@ -1701,13 +1706,16 @@ module.exports = { uniqueTags };`;
     const sameScore=beforePassed===afterPassed&&(repaired.length||regressed.length);
     const changedFailures=result.observations.filter(({baseline,candidate})=>!baseline.ok&&!candidate.ok).map(({id})=>id);
     const summary=sameScore?'Same score, different failures. ':changedFailures.length&&beforePassed===afterPassed?'Same score, changed results. ':'';
-    compareStatus.textContent=summary+beforePassed+'/'+total+' baseline → '+afterPassed+'/'+total+' candidate. Same contract, fresh local checks.';
+    compareStatus.textContent=checkoutAudit
+     ?beforePassed+'/'+total+' Gemini draft → '+afterPassed+'/'+total+' reviewed fix. Same contract, fresh local checks.'
+     :summary+beforePassed+'/'+total+' baseline → '+afterPassed+'/'+total+' candidate. Same contract, fresh local checks.';
     const labels=ids=>ids.map(id=>result.checkLabels?.[id]??id).join(', ')||'none';
     el('compare-replay-changes').append(node('li','Repaired: '+labels(repaired),'comparison-repaired'),
      node('li','Regressed: '+labels(regressed),regressed.length?'comparison-regressed':''));
     if(changedFailures.length)el('compare-replay-changes').append(node('li','Still failing, result changed: '+labels(changedFailures)));
     for(const {id,args,expected,expectation,baseline,candidate} of result.observations){
      const detail=node('details');
+     if(checkoutAudit&&result.observations.length===1)detail.open=true;
      const change=baseline.ok?'Regressed':candidate.ok?'Repaired':'Still failing, result changed';
      detail.append(node('summary',change+' · '+(result.checkLabels[id]??id)),
       node('p','Input arguments'),node('pre',args),node('p',expectation?'Expected error code':'Expected return'),node('pre',expected));
@@ -1733,6 +1741,7 @@ module.exports = { uniqueTags };`;
   compareButton.addEventListener('click',()=>runComparison('compare'));
   repeatButton.addEventListener('click',()=>runComparison('repeat'));
   compareExample.addEventListener('click',()=>runComparison('example'));
+  el('try-checkout-audit').addEventListener('click',()=>runComparison('checkout-audit'));
   el('recheck-recorded-hybrid').addEventListener('click',()=>runComparison('recorded-tags'));
   probeButton.addEventListener('click',()=>runComparison('probe'));
   let replayRead=0;
@@ -2017,6 +2026,7 @@ module.exports = { uniqueTags };`;
    functionCapability=data.capabilities?.functionContract??null;
    comparePanel.hidden=!hosted||!functionCapability?.available;
    compareExample.hidden=comparePanel.hidden;
+   el('try-checkout-audit').hidden=comparePanel.hidden;
    updateComparisonControls();
    el('function-capability').textContent=functionCapability?.admissionKind==='browser-worker-quickjs'?(functionCapability.available?'Try your function in this tab. No companion installation or coding model is needed.':'This browser cannot run function checks. Workers and WebAssembly are required.'):functionCapability?.available?'Qualified function runner ready. No coding model is required for pasted patches.':'Requires the qualified local companion: npm run start:verified -- --manual --docker-socket /path/to/docker.sock';
    el('live-capability').textContent=liveCapability?.available?'Configured local preview is available. Browser/model, network and correctness still require verification.':'Configured local mode unavailable: '+(liveCapability?.missing?.join(', ')??'approved adapters and resources not configured')+'.';
@@ -2027,6 +2037,7 @@ module.exports = { uniqueTags };`;
     if(global.location?.hash==='#missed-test')return runWalkthrough(shippingWalkthrough,{startWithDraft:true});
     if(global.location?.hash==='#same-score')return runComparison('example');
     if(global.location?.hash==='#probe-boundaries')return runComparison('boundary-example');
+    if(global.location?.hash==='#checkout-audit')return runComparison('checkout-audit');
    }
    if(!hosted&&((liveCapability?.available&&liveCapability.plannerRequired!==false)||plannerCapability?.available)){
     loadFirebaseClients().then(()=>{

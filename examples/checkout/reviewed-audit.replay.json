@@ -1,0 +1,19 @@
+{
+  "schema": "local-pit-crew/function-replay/v2",
+  "context": {
+    "title": "Choose a shipping quote",
+    "instructions": "Return the id of the first quote with the lowest valid priceCents in the requested currency, or null. A valid quote is a non-null object with a nonempty string id, available exactly true, currency exactly equal to the requested string, and a nonnegative safe integer priceCents. Ignore other rows. Preserve both input arguments and the order of the quotes. On price ties keep the earlier input. The first argument is an array; the second argument is a currency string."
+  },
+  "files": [
+    {
+      "path": "src/function.js",
+      "sha256": "e6edef3817d86cf9a40b3daf999a87c2b91026f485f5c515797fbabfcb68d1c9",
+      "content": "exports.shippingQuote = (quotes, currency) => { let best = null; for (const q of quotes) { if (q && typeof q.id === 'string' && q.id !== '' && q.available === true && q.currency === currency && Number.isSafeInteger(q.priceCents) && q.priceCents >= 0) { if (!best || q.priceCents < best.priceCents) { best = q; } } } return best ? best.id : null; };"
+    },
+    {
+      "path": "contract.json",
+      "sha256": "e2db5df0a3effa7e63b5cc7cc542f45c71250f65f21da86b05dafca987a6bd5c",
+      "content": "{\"schema\":\"local-pit-crew/function-contract/v1\",\"exportName\":\"shippingQuote\",\"cases\":[{\"id\":\"case-01\",\"label\":\"Ignore null and primitives\",\"args\":[[null,false,{\"available\":true,\"currency\":\"USD\",\"id\":\"valid\",\"priceCents\":100}],\"USD\"],\"expected\":\"valid\"},{\"id\":\"case-02\",\"label\":\"Reject negative price\",\"args\":[[{\"available\":true,\"currency\":\"USD\",\"id\":\"bad\",\"priceCents\":-1},{\"available\":true,\"currency\":\"USD\",\"id\":\"valid\",\"priceCents\":20}],\"USD\"],\"expected\":\"valid\"},{\"id\":\"case-03\",\"label\":\"Reject fractional price\",\"args\":[[{\"available\":true,\"currency\":\"USD\",\"id\":\"bad\",\"priceCents\":1.7},{\"available\":true,\"currency\":\"USD\",\"id\":\"valid\",\"priceCents\":20}],\"USD\"],\"expected\":\"valid\"},{\"id\":\"case-04\",\"label\":\"Reject coerced numeric text\",\"args\":[[{\"available\":true,\"currency\":\"USD\",\"id\":\"bad\",\"priceCents\":\"1\"},{\"available\":true,\"currency\":\"USD\",\"id\":\"valid\",\"priceCents\":20}],\"USD\"],\"expected\":\"valid\"},{\"id\":\"case-05\",\"label\":\"Check availability strictly\",\"args\":[[{\"available\":\"yes\",\"currency\":\"USD\",\"id\":\"bad\",\"priceCents\":1},{\"available\":true,\"currency\":\"USD\",\"id\":\"valid\",\"priceCents\":20}],\"USD\"],\"expected\":\"valid\"},{\"id\":\"case-06\",\"label\":\"Reject unsafe integer\",\"args\":[[{\"available\":true,\"currency\":\"USD\",\"id\":\"too-high\",\"priceCents\":9007199254740992}],\"USD\"],\"expected\":null},{\"id\":\"case-07\",\"label\":\"Reject an empty id\",\"args\":[[{\"available\":true,\"currency\":\"USD\",\"id\":\"\",\"priceCents\":0},{\"available\":true,\"currency\":\"USD\",\"id\":\"valid\",\"priceCents\":30}],\"USD\"],\"expected\":\"valid\"},{\"id\":\"case-08\",\"label\":\"Preserve order across mixed currencies\",\"args\":[[{\"available\":true,\"currency\":\"EUR\",\"id\":\"foreign\",\"priceCents\":21},{\"available\":true,\"currency\":\"USD\",\"id\":\"usd\",\"priceCents\":5},{\"available\":true,\"currency\":\"CAD\",\"id\":\"other\",\"priceCents\":1}],\"USD\"],\"expected\":\"usd\"}]}"
+    }
+  ]
+}

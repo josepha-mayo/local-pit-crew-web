@@ -157,7 +157,7 @@ test('static preview serves the compiled app with CSP and has no task mutation e
  assert.match(asset.headers.get('content-type'),/javascript/);
  const wasmName=Object.keys(manifest.files).find(name=>name.endsWith('.wasm'));
  const workerName=Object.keys(manifest.files).find(name=>name.startsWith('function-worker-'));
- for(const [hash,supported,expected] of [['#checkout-repair',true,1],['#missed-test',true,1],['#same-score',true,1],['#hybrid-review',true,1],['#recorded-hybrid',true,0],['#probe-boundaries',true,1],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
+ for(const [hash,supported,expected] of [['#checkout-repair',true,1],['#missed-test',true,1],['#same-score',true,1],['#hybrid-review',true,1],['#recorded-hybrid',true,0],['#probe-boundaries',true,1],['#checkout-audit',true,1],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
   const requests=[],workers=[],intent=new Map();
   class Worker{
    constructor(url,options){this.url=url;this.type=options.type;workers.push(this);}

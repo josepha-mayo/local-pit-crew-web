@@ -21,6 +21,14 @@ npm run replay:function -- examples/checkout/gemini-draft.replay.json --compare-
 
 The command runs the recorded draft and the reviewed correction against the same five synthetic examples. The draft passes 4/5 and the correction passes 5/5. The comparison reports `case-05` as repaired and makes zero model calls.
 
+[Run the full eight-case checkout audit](https://local-pit-crew.web.app/#checkout-audit). Eight synthetic examples were set aside before the recorded Gemini request. Its draft passed 7/8. The unsafe-integer case informed the one-line correction from `Number.isInteger` to `Number.isSafeInteger`. The reviewed fix passes 8/8 on the same examples. The audit performs a fresh local run of both versions and opens the repaired case.
+
+```sh
+npm run replay:function -- examples/checkout/gemini-audit.replay.json --against examples/checkout/reviewed-audit.replay.json
+```
+
+The two replay files preserve the recorded source bytes and the identical eight-case contract. The CLI reports `case-06` as repaired, with zero regressions and zero model calls.
+
 A repair bench for small JavaScript functions: define what should happen, inspect what actually happened, and check a replacement against the same fixed examples. It makes wrong return values, changed inputs and regressions visible before you call a repair finished. Utility functions, data transforms and validators can be checked directly in the browser.
 
 Gemini Nano through Firebase AI Logic supplies an optional source-linked repair hypothesis. You can request a cloud-proposed replacement, or ask a separate cloud reviewer to challenge a diagnosis. Both cloud actions require reviewing the exact outgoing prompt and explicitly sending it. Model output stays separate from runtime facts; replacements still need diff review, Apply and independent checks. The browser also accepts pasted replacements, and the companion can use a local coding model. Mechanical read/apply/check transitions stay deterministic.
