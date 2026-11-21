@@ -113,6 +113,40 @@ Both versions run the baseline's fixed contract. The `--source` mode runs only t
 
 Comparison requires different source. When comparing two replays, both packets must pass validation and contain byte-identical contracts. Each version runs in its own worker. The JSON shows which fixed check IDs improved or regressed, even when the passing totals match. The `changedFailures` list reports cases that failed in both versions but changed their return, execution outcome, or arguments after the call. It contains check IDs only. The exit code follows the candidate result when both runs are available. An invalid comparison or unavailable run returns `2` with no comparison verdict. With `--junit`, a successful comparison writes the candidate's fresh checks.
 
+### Check the current function in CI
+
+Open **Run these examples in CI** and select **Download test contract** on the failed or corrected run. The download contains the export name, example labels, input arguments, and expected returns. Review those values before committing. The failed and corrected runs export the same contract when verified against the same examples.
+
+With the pinned QuickJS runner installed, run the contract against the current file.
+
+```sh
+npm run replay:function -- --contract function.contract.json --source src/my-function.js
+```
+
+Use the same standalone CommonJS function in a GitHub Actions workflow. Set `contract` and `source` to the paths in your checkout. This example pins the verifier and uses read-only repository permissions. A failed example or unavailable verification fails the job. To enforce the check before merging, require the job on the target branch.
+
+```yaml
+name: Check reviewed examples
+on: [pull_request, push]
+permissions:
+  contents: read
+jobs:
+  fixed-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: josepha-mayo/local-pit-crew-web@670761925efcbda0b626dc79866aa8d7980fdea7
+        with:
+          contract: tests/function.contract.json
+          source: src/my-function.js
+```
+
+Review contract changes as test changes. Logs identify the fixed case IDs and hashes. The CLI also supports `--junit replay-results.xml` and repeats through `--runs 2` to `--runs 5`.
+
+### Repeat checks in fresh workers
+
 For a replay that may depend on the clock or randomness, choose **Run the same replay twice** after selecting the baseline file in the browser. In CI, pass `--runs 2` through `--runs 5` to check the same source in fresh workers. The report gives each run’s passing total and the IDs whose verdict or failing observation changed. A fixed example must pass in every completed run for the repeated CLI check to pass. The result describes the runs actually observed. The summary and JUnit output omit source, input values, and observed returns.
 
 ```sh

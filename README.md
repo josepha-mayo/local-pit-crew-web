@@ -49,6 +49,8 @@ A pass can still miss a bug. **Challenge with another example** starts a separat
 
 **Download replay case** keeps that source, its requirements and fixed examples together in a separate JSON file. Reopen it in the browser with **Reopen a saved replay case → Load replay into form**, then Open and run fresh checks. Loading preserves your active run and imports no old verdict. Alternatively, after installing the pinned runner dependency, `npm run replay:function -- PATH.replay.json` checks the file hashes and reruns the case in a bounded QuickJS Node worker with zero model calls. [Replay instructions and limits](docs/own-function.md).
 
+Inside **Run these examples in CI**, **Download test contract** saves the verified example definitions and expected returns. Run the downloaded contract against the function in your checkout, or add the [GitHub Actions check](docs/own-function.md#check-the-current-function-in-ci). The checkout example’s contract rejects the recorded draft on `case-05` and accepts the correction.
+
 To carry those regression checks into CI, add `--junit replay-results.xml` to the replay command. It writes a new JUnit report with fixed check IDs and source/contract hashes, excluding private code and example values. An unavailable verifier is reported as an error; it never becomes a fabricated pass or candidate failure. Existing report files are preserved.
 
 Keep the downloaded examples and check your current standalone function file against them with `npm run replay:function -- CASE.replay.json --source src/my-function.js`. The runner verifies the original replay hashes, keeps its contract, and reports the hash of the current file it actually checked.
