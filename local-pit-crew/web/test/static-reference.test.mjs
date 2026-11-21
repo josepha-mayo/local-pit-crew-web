@@ -121,7 +121,7 @@ test('offline release includes the fixed verifier and only explicitly public app
  assert.match(offline.version,/^[a-f0-9]{16}$/);
  assert.deepEqual(offline.immutable,Object.keys(manifest.cachePolicies).sort().map(name=>'/'+name));
  assert.equal(offline.immutable.filter(name=>name.endsWith('.wasm')).length,1);
- assert.deepEqual(offline.publicFiles,['/index.html','/checkout-preview.jpg',...(manifest.firebaseConfigured?['/firebase-config.json','/firebase-planner.mjs']:[])]);
+ assert.deepEqual(offline.publicFiles,['/index.html',...(manifest.firebaseConfigured?['/firebase-config.json','/firebase-planner.mjs']:[])]);
  const html=await readFile(new URL('index.html',base),'utf8');
  assert.ok(html.includes('<meta name="local-pit-crew-offline-build" content="'+offline.version+'">'));
  assert.deepEqual(offline.digests,Object.fromEntries([...offline.immutable,...offline.publicFiles]

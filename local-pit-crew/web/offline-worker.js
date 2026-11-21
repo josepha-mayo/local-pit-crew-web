@@ -12,7 +12,12 @@ async function verifyFile(path, response) {
 }
 
 async function prepareFiles() {
-  const requestFor = path => new Request(path, {cache: 'reload', redirect: 'error'});
+  // Fingerprinted assets can reuse the HTTP cache. The release digests below
+  // still validate the complete copy before an offline page becomes available.
+  const requestFor = path => new Request(path, {
+    cache: immutable.has(path) ? 'force-cache' : 'reload',
+    redirect: 'error',
+  });
   try {
     const cache = await caches.open(cacheName);
     const assets = [...immutable, ...publicFiles].filter(path => path !== '/index.html');

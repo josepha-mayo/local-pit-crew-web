@@ -98,7 +98,7 @@ async function main(argv){
  const cachePolicies=Object.fromEntries(fs.readdirSync(out).filter(name=>fs.statSync(path.join(out,name)).isFile()&&staticCachePolicy(name)!=='no-store').map(name=>[name,staticCachePolicy(name)]));
  const offlineSource=readText(path.join(web,'offline-worker.js'));
  const immutable=Object.keys(cachePolicies).sort();
- const publicFiles=['index.html','checkout-preview.jpg',...(config?['firebase-config.json','firebase-planner.mjs']:[])];
+ const publicFiles=['index.html',...(config?['firebase-config.json','firebase-planner.mjs']:[])];
  const cachedFiles=Object.fromEntries([...immutable,...publicFiles].map(name=>[name,fs.readFileSync(path.join(out,name))]));
  const release=crypto.createHash('sha256').update(offlineSource).update(JSON.stringify(headers));
  for(const [name,bytes] of Object.entries(cachedFiles))release.update(name).update(bytes);
