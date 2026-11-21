@@ -144,7 +144,7 @@ With the pinned QuickJS runner installed, run the contract against the current f
 npm run replay:function -- --contract function.contract.json --source src/my-function.js
 ```
 
-Use the same standalone CommonJS function in a GitHub Actions workflow. Set `contract` and `source` to the paths in your checkout. This example pins the verifier and uses read-only repository permissions. A failed example or unavailable verification fails the job. To enforce the check before merging, require the job on the target branch.
+Choose **Set up GitHub Actions** next to the contract download to generate a workflow for the path to your standalone CommonJS function. Save the contract at the repository root and the workflow under `.github/workflows/`. You can also write the workflow by hand, as below, and choose a different contract path. The workflows pin the verifier and use read-only repository permissions. A failed example or unavailable verification fails the job. To enforce the check before merging, require the job on the target branch.
 
 ```yaml
 name: Check reviewed examples

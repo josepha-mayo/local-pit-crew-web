@@ -30,6 +30,8 @@ async function setup({holdCheck=null,admissionKind='test-wasm-only',holdReplay=n
   constructor(){this.value='';this.children=[];this.listeners=new Map();this.attributes=new Map();this.disabled=true;}
   get options(){return this.children;}
   setAttribute(name,value){this.attributes.set(name,value);}focus(){activeElement=this;}
+  removeAttribute(name){this.attributes.delete(name);}
+  showModal(){this.open=true;}
   addEventListener(name,fn){this.listeners.set(name,fn);}append(...items){this.children.push(...items);}
   replaceChildren(...items){this.children=items;}click(){if(this.download){downloads.push({fileName:this.download,blob:objectUrls.get(this.href)});return;}return this.listeners.get('click')?.();}
  }
@@ -283,6 +285,26 @@ test('checkout walkthrough replays a draft and independently exposes the unsafe-
   await f.el('replay-download-contract').click();
   assert.equal(f.downloads[1].fileName,'function.contract.json');
   assert.equal(await f.downloads[1].blob.text(),contractBytes);
+  await f.el('replay-workflow').click();
+  assert.equal(f.el('workflow-dialog').open,true);
+  const workflowSource=f.el('workflow-source');
+  assert.equal(workflowSource.value,'examples/checkout/shipping-quote.js');
+  const submit=()=>f.el('workflow-form').listeners.get('submit')({preventDefault(){}});
+  workflowSource.value='../outside.js';
+  submit();
+  assert.equal(workflowSource.attributes.get('aria-invalid'),'true');
+  assert.equal(f.downloads.length,2);
+  workflowSource.value='src/my function.cjs';
+  workflowSource.listeners.get('input')();
+  submit();
+  assert.equal(f.downloads[2].fileName,'check-reviewed-examples.yml');
+  const workflow=await f.downloads[2].blob.text();
+  assert.match(workflow,/on: \[pull_request, push\]/);
+  assert.match(workflow,/contents: read/);
+  assert.match(workflow,/persist-credentials: false/);
+  assert.match(workflow,/local-pit-crew-web@[a-f0-9]{40}/);
+  assert.match(workflow,/contract: function\.contract\.json\n\s+source: "src\/my function\.cjs"/);
+  assert(!workflow.includes(packagedFix));
   assert.equal(f.el('next-action').textContent,'Finish checked repair');
   await f.el('view-record').click();assert.equal(JSON.parse(f.el('record-json').textContent).counts.modelCallsTotal,0);
   await f.el('try-function-example').click();

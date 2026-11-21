@@ -421,10 +421,13 @@ module.exports = { uniqueTags };`;
    const element=document.createElement(tag);if(text!==undefined)element.textContent=text;if(className)element.className=className;return element;
   }
   const contractFileName='function.contract.json';
+  const workflowDialog=el('workflow-dialog'),workflowSource=el('workflow-source'),workflowStatus=el('workflow-status');
+  let workflowRun=null;
   function renderReplayCommand(prefix,replay,blocked){
    const command=replay?'npm run replay:function -- --contract '+contractFileName+' --source src/my-function.js':'';
    el(prefix+'-ci-command').textContent=command;
    el(prefix+'-download-contract').disabled=blocked||!replay;
+   el(prefix+'-workflow').disabled=blocked||!replay;
    el(prefix+'-ci-copy').hidden=!command||typeof global.navigator?.clipboard?.writeText!=='function';
    el(prefix+'-ci-copy-status').textContent='';
    if(!replay)el(prefix+'-ci-help').open=false;
@@ -439,6 +442,59 @@ module.exports = { uniqueTags };`;
    catch{status='Could not copy. Select the command above to copy it.';}
    finally{button.disabled=false;}
    if(current===owner)el(prefix+'-ci-copy-status').textContent=status;
+  });
+  for(const prefix of ['replay','failure-replay'])el(prefix+'-workflow').addEventListener('click',()=>{
+   if(el(prefix+'-workflow').disabled||pageLeaving)return;
+   workflowRun=current;
+   workflowSource.value=guidedRun?.sessionId===current?.sessionId&&guidedRun.walkthrough===shippingWalkthrough
+    ?'examples/checkout/shipping-quote.js':'';
+   workflowStatus.textContent='';
+   workflowSource.removeAttribute('aria-invalid');
+   workflowDialog.showModal();
+   workflowSource.focus();
+  });
+  workflowDialog.addEventListener('close',()=>{workflowRun=null;});
+  workflowSource.addEventListener('input',()=>{
+   workflowSource.removeAttribute('aria-invalid');
+   workflowStatus.textContent='';
+  });
+  el('workflow-form').addEventListener('submit',event=>{
+   event.preventDefault();
+   if(!workflowRun||workflowRun!==current||busy||inspection||cloudBusy||pageLeaving){
+    workflowStatus.textContent='The checked run changed. Reopen GitHub Actions setup for the current contract.';
+    return;
+   }
+   const source=workflowSource.value.trim();
+   const parts=source.split('/');
+   if(source.length>180||!/[.](?:js|cjs)$/.test(source)||
+    parts.some(part=>!part||part==='.'||part==='..'||!/^[A-Za-z0-9_.-][A-Za-z0-9_. -]*$/.test(part)||part.endsWith(' '))){
+    workflowSource.setAttribute('aria-invalid','true');
+    workflowStatus.textContent='Enter a path like src/my-function.js using letters, numbers, spaces, dots, hyphens and underscores.';
+    workflowSource.focus();
+    return;
+   }
+   const workflow=[
+    'name: Check reviewed examples',
+    'on: [pull_request, push]',
+    'permissions:',
+    '  contents: read',
+    'jobs:',
+    '  fixed-examples:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803',
+    '        with:',
+    '          persist-credentials: false',
+    '      - uses: josepha-mayo/local-pit-crew-web@b1db853ca73f6b970f168ecfdc07bd0511435e55',
+    '        with:',
+    '          contract: '+contractFileName,
+    '          source: '+JSON.stringify(source),
+    '',
+   ].join('\n');
+   try{
+    downloadLocalFile(workflow,'application/yaml;charset=utf-8','check-reviewed-examples.yml');
+    workflowStatus.textContent='Workflow download requested. Save it in .github/workflows/.';
+   }catch{workflowStatus.textContent='The workflow could not be downloaded. Try again.';}
   });
   let repeatSession=null;
   function renderRepeatExample(state,checked,blocked){
