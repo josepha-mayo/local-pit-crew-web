@@ -53,9 +53,9 @@ async function main(argv){
   return attempt.compiled;
  }
  function cancel(){attempt?.controller.abort();attempt=undefined;}
- if(['#checkout-repair','#missed-test','#same-score','#hybrid-review','#probe-boundaries'].includes(location.hash))prepare(true);
+ if(['#checkout-repair','#missed-test','#same-score','#hybrid-review','#recorded-hybrid','#probe-boundaries'].includes(location.hash))prepare(true);
  const warm=event=>{
-  if(event.target.closest?.('#try-missed-test, #try-shipping-example, #try-function-example, #try-hybrid-example'))prepare(true);
+  if(event.target.closest?.('#try-missed-test, #try-shipping-example, #try-function-example, #try-hybrid-example, #recheck-recorded-hybrid'))prepare(true);
  };
  document.addEventListener('pointerover',warm,{passive:true});
  document.addEventListener('focusin',warm);

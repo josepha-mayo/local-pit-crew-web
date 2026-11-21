@@ -39,7 +39,7 @@ export function createBrowserFunctionVerifier(environment=globalThis,createWorke
     }
     try{
      worker=createWorker();
-     timer=schedule(()=>owner.stop('browser-setup-unavailable'),15000);
+     timer=schedule(()=>owner.stop('browser-setup-unavailable'),30_000);
      signal?.addEventListener('abort',abort,{once:true});
      worker.onerror=()=>owner.stop(ready?'runtime-unavailable':'browser-setup-unavailable');
      worker.onmessage=({data})=>{

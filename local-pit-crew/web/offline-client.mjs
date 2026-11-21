@@ -10,7 +10,7 @@ function waitUntilCached(worker, mayWait) {
       if (worker.state === 'activated' || (mayWait && worker.state === 'installed')) complete();
       if (worker.state === 'redundant') complete(Error('Offline download failed. Reconnect and try again.'));
     }
-    const timeout = setTimeout(() => complete(Error('Offline download timed out. Try again when connected.')), 30_000);
+    const timeout = setTimeout(() => complete(Error('Offline download timed out. Try again when connected.')), 60_000);
     worker.addEventListener('statechange', check);
     check();
   });

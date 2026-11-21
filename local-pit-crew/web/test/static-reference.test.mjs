@@ -157,7 +157,7 @@ test('static preview serves the compiled app with CSP and has no task mutation e
  assert.match(asset.headers.get('content-type'),/javascript/);
  const wasmName=Object.keys(manifest.files).find(name=>name.endsWith('.wasm'));
  const workerName=Object.keys(manifest.files).find(name=>name.startsWith('function-worker-'));
- for(const [hash,supported,expected] of [['#checkout-repair',true,2],['#missed-test',true,2],['#same-score',true,2],['#hybrid-review',true,2],['#probe-boundaries',true,2],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
+ for(const [hash,supported,expected] of [['#checkout-repair',true,2],['#missed-test',true,2],['#same-score',true,2],['#hybrid-review',true,2],['#recorded-hybrid',true,2],['#probe-boundaries',true,2],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
   const requests=[],intent=new Map();
   const context=vm.createContext({location:{hash},Worker:supported?class Worker{}:undefined,
    document:{addEventListener(name,listener){intent.set(name,listener);}},

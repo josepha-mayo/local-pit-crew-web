@@ -116,7 +116,8 @@ export function createBrowserFunctionWorkbench({reference,verifier}){
       const id=crypto.randomUUID(),suiteId=contracts.FUNCTION_SUITE,workspaceHash=controller.workspaceHash(version);
       const outcome=await verifier.runPublicChecks({id,suiteId,workspaceHash,files:version},{signal:lifetime.signal});
       const checked=codec.parsePublicCheckOutcome(outcome,{ticketId:id,suiteId,workspaceHash},version);
-      if(lifetime.signal.aborted||checked.status!=='candidate-verdict')return error(503,'A run could not be verified. No comparison is available.');
+      if(lifetime.signal.aborted||checked.status!=='candidate-verdict')return error(503,checked.reason==='browser-setup-unavailable'?
+       'The browser verifier did not finish loading. Try the comparison again.':'A run could not be verified. No comparison is available.');
       results.push(checked);
      }
      if(probe){

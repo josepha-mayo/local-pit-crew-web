@@ -26,7 +26,7 @@ function fixture(interpreterPreload){
 test('browser verifier captures exact files before preparation and independently grades observed data without claiming Docker qualification',async()=>{
  const f=fixture(),t=f.ticket(),pending=f.runtime.runPublicChecks(t);
  assert.equal(f.runtime.capabilityFor(t.suiteId).qualified,false);
- assert.deepEqual([...f.timers.values()].map(t=>t.delay),[15000]);
+ assert.deepEqual([...f.timers.values()].map(t=>t.delay),[30_000]);
  t.files[contracts.FUNCTION_ENTRY]='module.exports={fn:()=>999};';
  f.workers[0].send({status:'ready'});
  assert.equal(f.workers[0].input.files[contracts.FUNCTION_ENTRY],task().files[contracts.FUNCTION_ENTRY]);
