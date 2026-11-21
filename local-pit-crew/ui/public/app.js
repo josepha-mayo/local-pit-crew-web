@@ -426,6 +426,7 @@ module.exports = { uniqueTags };`;
   }
   const contractFileName='function.contract.json';
   const workflowDialog=el('workflow-dialog'),workflowSource=el('workflow-source'),workflowStatus=el('workflow-status');
+  const workflowPin=el('workflow-pin');
   let workflowRun=null;
   function renderReplayCommand(prefix,replay,blocked){
    const command=replay?'npm run replay:function -- --contract '+contractFileName+' --source src/my-function.js':'';
@@ -449,7 +450,10 @@ module.exports = { uniqueTags };`;
   });
   for(const prefix of ['replay','failure-replay'])el(prefix+'-workflow').addEventListener('click',()=>{
    if(el(prefix+'-workflow').disabled||pageLeaving)return;
-   workflowRun=current;
+   const replay=prefix==='replay'?checkedReplayForDownload(current):failureReplayForDownload(current);
+   if(!replay)return;
+   workflowRun={owner:current,contractSha256:replay.packet.files[1].sha256};
+   workflowPin.checked=true;
    workflowSource.value=guidedRun?.sessionId===current?.sessionId&&guidedRun.walkthrough===shippingWalkthrough
     ?'examples/checkout/shipping-quote.js':'';
    workflowStatus.textContent='';
@@ -464,7 +468,7 @@ module.exports = { uniqueTags };`;
   });
   el('workflow-form').addEventListener('submit',event=>{
    event.preventDefault();
-   if(!workflowRun||workflowRun!==current||busy||inspection||cloudBusy||pageLeaving){
+   if(!workflowRun||workflowRun.owner!==current||busy||inspection||cloudBusy||pageLeaving){
     workflowStatus.textContent='The checked run changed. Reopen GitHub Actions setup for the current contract.';
     return;
    }
@@ -477,7 +481,7 @@ module.exports = { uniqueTags };`;
     workflowSource.focus();
     return;
    }
-   const workflow=[
+   const lines=[
     'name: Check reviewed examples',
     'on: [pull_request, push]',
     'permissions:',
@@ -489,12 +493,13 @@ module.exports = { uniqueTags };`;
     '      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803',
     '        with:',
     '          persist-credentials: false',
-    '      - uses: josepha-mayo/local-pit-crew-web@b1db853ca73f6b970f168ecfdc07bd0511435e55',
+    '      - uses: josepha-mayo/local-pit-crew-web@2a151de6d666d65dbd52eceafcab5e8b3135bd7e',
     '        with:',
     '          contract: '+contractFileName,
     '          source: '+JSON.stringify(source),
-    '',
-   ].join('\n');
+   ];
+   if(workflowPin.checked)lines.push('          contract-sha256: '+workflowRun.contractSha256);
+   const workflow=lines.join('\n')+'\n';
    try{
     downloadLocalFile(workflow,'application/yaml;charset=utf-8','check-reviewed-examples.yml');
     workflowStatus.textContent='Workflow download requested. Save it in .github/workflows/.';

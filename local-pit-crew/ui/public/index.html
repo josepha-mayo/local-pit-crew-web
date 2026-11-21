@@ -154,6 +154,8 @@
     <label for="workflow-source">Path to your standalone CommonJS function</label>
     <input id="workflow-source" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="180" placeholder="src/my-function.js" aria-describedby="workflow-source-help" required>
     <p class="muted" id="workflow-source-help">Use a repository-relative .js or .cjs path with forward slashes.</p>
+    <label for="workflow-pin"><input id="workflow-pin" type="checkbox" aria-describedby="workflow-pin-help" checked> Pin the reviewed contract</label>
+    <p class="muted" id="workflow-pin-help">CI stops if the downloaded contract changes. After reviewing new examples, download a new contract and workflow.</p>
     <button id="download-workflow" type="submit">Download GitHub Actions workflow</button>
     <p id="workflow-status" role="status"></p>
   </form>

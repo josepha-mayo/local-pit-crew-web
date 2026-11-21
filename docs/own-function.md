@@ -146,6 +146,8 @@ npm run replay:function -- --contract function.contract.json --source src/my-fun
 
 Choose **Set up GitHub Actions** next to the contract download to generate a workflow for the path to your standalone CommonJS function. Save the contract at the repository root and the workflow under `.github/workflows/`. You can also write the workflow by hand, as below, and choose a different contract path. The workflows pin the verifier and use read-only repository permissions. A failed example or unavailable verification fails the job. To enforce the check before merging, require the job on the target branch.
 
+**Pin the reviewed contract** is on by default. The generated workflow checks the SHA-256 of the exact downloaded file before running the function. For example, the recorded checkout draft would pass four checks if someone removed the unsafe-integer case. With the pin, that edited contract stops the workflow before the draft runs. Keep the downloaded bytes, including line endings. When you intentionally change the examples, review them and download a fresh contract and workflow together. Turn the option off for repositories that update their test contracts independently.
+
 ```yaml
 name: Check reviewed examples
 on: [pull_request, push]
@@ -158,13 +160,13 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - uses: josepha-mayo/local-pit-crew-web@b1db853ca73f6b970f168ecfdc07bd0511435e55
+      - uses: josepha-mayo/local-pit-crew-web@2a151de6d666d65dbd52eceafcab5e8b3135bd7e
         with:
           contract: tests/function.contract.json
           source: src/my-function.js
 ```
 
-Review contract changes as test changes. Logs identify the fixed case IDs and hashes. The CLI also supports `--junit replay-results.xml` and repeats through `--runs 2` to `--runs 5`.
+For a hand-written workflow, set the optional `contract-sha256` input to the reviewed file’s lowercase SHA-256. Pass the same value through `--contract-sha256` when running the CLI directly. Logs identify the fixed case IDs and hashes after a run. The CLI also supports `--junit replay-results.xml` and repeats through `--runs 2` to `--runs 5`.
 
 ### Repeat checks in fresh workers
 

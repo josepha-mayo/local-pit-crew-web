@@ -304,7 +304,12 @@ test('checkout walkthrough replays a draft and independently exposes the unsafe-
   assert.match(workflow,/persist-credentials: false/);
   assert.match(workflow,/local-pit-crew-web@[a-f0-9]{40}/);
   assert.match(workflow,/contract: function\.contract\.json\n\s+source: "src\/my function\.cjs"/);
+  assert.equal(f.el('workflow-pin').checked,true);
+  assert.ok(workflow.includes('contract-sha256: '+createHash('sha256').update(contractBytes).digest('hex')));
   assert(!workflow.includes(packagedFix));
+  f.el('workflow-pin').checked=false;
+  submit();
+  assert.doesNotMatch(await f.downloads[3].blob.text(),/contract-sha256/);
   assert.equal(f.el('next-action').textContent,'Finish checked repair');
   await f.el('view-record').click();assert.equal(JSON.parse(f.el('record-json').textContent).counts.modelCallsTotal,0);
   await f.el('try-function-example').click();
