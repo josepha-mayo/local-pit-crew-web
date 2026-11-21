@@ -5,10 +5,20 @@ import {createBrowserFunctionVerifier} from '../function-verifier.mjs';
 import contracts from '../../runner/function-contract.cjs';
 import controller from '../../src/controller.cjs';
 const task=()=>contracts.createFunctionTask({schema:contracts.TASK_SCHEMA,title:'Authored worker test',instructions:'Return zero.',exportName:'fn',source:'module.exports={fn:()=>0};',cases:[{label:'zero',args:[],expected:0}]});
-function fixture(cancelInterpreterPreload){
+function fixture(interpreterPreload){
  const workers=[],timers=new Map();let serial=0;
  const env={Worker:class{},WebAssembly:{},setTimeout(fn,delay){const id=++serial;timers.set(id,{fn,delay});return id;},clearTimeout(id){timers.delete(id);}};
- const runtime=createBrowserFunctionVerifier(env,()=>{const w={terminate(){this.terminated=true;},postMessage(data){this.input=structuredClone(data);},send(data){this.onmessage({data});}};workers.push(w);return w;},cancelInterpreterPreload);
+ const runtime=createBrowserFunctionVerifier(env,()=>{
+  const worker={
+   terminate(){this.terminated=true;},
+   postMessage(data){
+    if(Object.hasOwn(data,'wasmModule'))this.prepared=structuredClone(data);
+    else this.input=structuredClone(data);
+   },
+   send(data){this.onmessage({data});}
+  };
+  workers.push(worker);return worker;
+ },interpreterPreload);
  const ticket=()=>{const t=task();return{id:'authored-ticket',suiteId:t.id,workspaceHash:controller.workspaceHash(t.files),files:{...t.files}};};
  const result=()=>({status:'observed',observations:[{id:'case-01',status:'returned',output:'0',argsAfter:'[]'}]});
  return{runtime,workers,timers,ticket,result};
@@ -50,7 +60,8 @@ test('unsupported browsers, stale workspace hashes and resource failures never f
 });
 test('a setup deadline releases a worker before sending source and ignores its late readiness',async()=>{
  const preload=new AbortController();
- const f=fixture(()=>preload.abort()),pending=f.runtime.runPublicChecks(f.ticket()),worker=f.workers[0];
+ const f=fixture({prepare:()=>new Promise(resolve=>preload.signal.addEventListener('abort',()=>resolve(null))),
+  cancel:()=>preload.abort()}),pending=f.runtime.runPublicChecks(f.ticket()),worker=f.workers[0];
  assert.equal(preload.signal.aborted,false);
  [...f.timers.values()][0].fn();
  assert.equal((await pending).reason,'browser-setup-unavailable');
@@ -58,6 +69,23 @@ test('a setup deadline releases a worker before sending source and ignores its l
  assert.equal(worker.terminated,true);
  worker.send({status:'ready'});
  assert.equal(worker.input,undefined);
+ assert.equal(worker.prepared,undefined);
+});
+test('fresh workers receive the same precompiled module without source or examples until ready',async()=>{
+ const module=await WebAssembly.compile(Uint8Array.of(0,97,115,109,1,0,0,0));
+ const f=fixture({prepare:()=>Promise.resolve(module),cancel(){}});
+ for(let i=0;i<2;i++){
+  const pending=f.runtime.runPublicChecks(f.ticket()),worker=f.workers[i];
+  await Promise.resolve();
+  assert.deepEqual(Object.keys(worker.prepared),['wasmModule']);
+  assert(worker.prepared.wasmModule instanceof WebAssembly.Module);
+  assert.equal(worker.input,undefined);
+  worker.send({status:'ready'});
+  assert.ok(worker.input.files);
+  worker.send(f.result());
+  assert.equal((await pending).checks[0].ok,true);
+  assert.equal(worker.terminated,true);
+ }
 });
 test('uncertain worker termination cannot publish an observed pass or leave its caller waiting',async()=>{
  const f=fixture(),pending=f.runtime.runPublicChecks(f.ticket());

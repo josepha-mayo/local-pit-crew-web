@@ -35,18 +35,34 @@ async function main(argv){
   throw Error('Expected one fingerprinted browser interpreter and worker');
  // These direct links run browser checks as soon as the app mounts.
  // Start their requests before the stylesheet can block the inline script.
- const preloadInterpreter=`const cancelInterpreterPreload=(()=>{
- if(!['#checkout-repair','#missed-test','#same-score','#hybrid-review','#probe-boundaries'].includes(location.hash))return;
+ const preloadInterpreter=`const interpreterPreload=(()=>{
  if(typeof Worker!=='function'||typeof WebAssembly!=='object'||typeof AbortController!=='function'||typeof fetch!=='function')return;
- const controller=new AbortController();
- for(const url of ${JSON.stringify([...workerAssets,...interpreters].map(name=>'/'+name))}){
-  fetch(url,{signal:controller.signal,priority:'low'})
-   .then(response=>response.ok?response.arrayBuffer():undefined).catch(()=>{});
+ let attempt;
+ function prepare(warmWorker=false){
+  if(!attempt){
+   const controller=new AbortController(),signal=controller.signal;
+   const compiled=typeof WebAssembly.compileStreaming==='function'
+    ?WebAssembly.compileStreaming(fetch(${JSON.stringify('/'+interpreters[0])},{signal,priority:'low'})).catch(()=>null)
+    :Promise.resolve(null);
+   attempt={controller,compiled};
+  }
+  if(warmWorker&&!attempt.worker){
+   attempt.worker=fetch(${JSON.stringify('/'+workerAssets[0])},{signal:attempt.controller.signal,priority:'low'})
+    .then(response=>response.ok?response.arrayBuffer():undefined).catch(()=>{});
+  }
+  return attempt.compiled;
  }
- return ()=>controller.abort();
+ function cancel(){attempt?.controller.abort();attempt=undefined;}
+ if(['#checkout-repair','#missed-test','#same-score','#hybrid-review','#probe-boundaries'].includes(location.hash))prepare(true);
+ const warm=event=>{
+  if(event.target.closest?.('#try-missed-test, #try-shipping-example, #try-function-example, #try-hybrid-example'))prepare(true);
+ };
+ document.addEventListener('pointerover',warm,{passive:true});
+ document.addEventListener('focusin',warm);
+ return {prepare,cancel};
 })();`;
- const bootstrap=`import("/${entry}").then(({startBrowserReferenceApp})=>startBrowserReferenceApp({cancelInterpreterPreload})).catch(()=>{
- cancelInterpreterPreload?.();
+ const bootstrap=`import("/${entry}").then(({startBrowserReferenceApp})=>startBrowserReferenceApp({interpreterPreload})).catch(()=>{
+ interpreterPreload?.cancel();
  const status=document.getElementById('entry-status');
  status.textContent='The repair bench could not load. Reload to fetch the current build.';
  status.className='status error';

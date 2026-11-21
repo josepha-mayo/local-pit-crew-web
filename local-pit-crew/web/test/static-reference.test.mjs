@@ -158,16 +158,28 @@ test('static preview serves the compiled app with CSP and has no task mutation e
  const wasmName=Object.keys(manifest.files).find(name=>name.endsWith('.wasm'));
  const workerName=Object.keys(manifest.files).find(name=>name.startsWith('function-worker-'));
  for(const [hash,supported,expected] of [['#checkout-repair',true,2],['#missed-test',true,2],['#same-score',true,2],['#hybrid-review',true,2],['#probe-boundaries',true,2],['',true,0],['#function-intake',true,0],['#checkout-repair',false,0]]){
-  const requests=[];
-  const context=vm.createContext({location:{hash},Worker:supported?class Worker{}:undefined,WebAssembly:{},AbortController,
+  const requests=[],intent=new Map();
+  const context=vm.createContext({location:{hash},Worker:supported?class Worker{}:undefined,
+   document:{addEventListener(name,listener){intent.set(name,listener);}},
+   WebAssembly:{compileStreaming:response=>response.then(()=>null)},AbortController,
    fetch:(url,{signal})=>{requests.push({url,signal});return Promise.resolve({ok:false});}});
   vm.runInContext(preload,context,{timeout:1000});
   assert.equal(requests.length,expected,hash);
-  if(expected){
-   assert.deepEqual(requests.map(({url})=>url),['/'+workerName,'/'+wasmName]);
+  if(supported){
+   intent.get('pointerover')({target:{closest:()=>null}});
+   assert.equal(requests.length,expected);
+   if(!hash){
+    for(const type of ['focusin','pointerover'])intent.get(type)({target:{closest:()=>({id:'try-missed-test'})}});
+    assert.equal(requests.length,2);
+   }
+   if(!requests.length)continue;
+   assert.deepEqual(requests.map(({url})=>url),['/'+wasmName,'/'+workerName]);
    assert.ok(requests.every(({signal})=>!signal.aborted));
-   vm.runInContext('cancelInterpreterPreload()',context,{timeout:1000});
+   vm.runInContext('interpreterPreload.cancel()',context,{timeout:1000});
    assert.ok(requests.every(({signal})=>signal.aborted));
+   vm.runInContext('interpreterPreload.prepare()',context,{timeout:1000});
+   assert.equal(requests.at(-1).url,'/'+wasmName);
+   assert.equal(requests.at(-1).signal.aborted,false);
   }
  }
  const wasm=await fetch(origin+'/'+wasmName);assert.equal(wasm.headers.get('content-type'),'application/wasm');assert.equal(wasm.headers.get('cache-control'),IMMUTABLE_CACHE);
