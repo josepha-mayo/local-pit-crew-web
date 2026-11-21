@@ -431,6 +431,13 @@ module.exports = { uniqueTags };`;
   function node(tag,text,className){
    const element=document.createElement(tag);if(text!==undefined)element.textContent=text;if(className)element.className=className;return element;
   }
+  function evidenceBlock(label,value,className){
+   const content=node('pre',value,className);
+   content.tabIndex=0;
+   content.setAttribute('role','group');
+   content.setAttribute('aria-label',label);
+   return content;
+  }
   const contractFileName='function.contract.json';
   const workflowDialog=el('workflow-dialog'),workflowSource=el('workflow-source'),workflowStatus=el('workflow-status');
   const workflowPin=el('workflow-pin');
@@ -570,20 +577,20 @@ module.exports = { uniqueTags };`;
    let prefix=0,suffix=0;
    while(prefix<sharedLimit&&original[prefix]===replacement[prefix])prefix++;
    while(suffix<sharedLimit-prefix&&original[original.length-1-suffix]===replacement[replacement.length-1-suffix])suffix++;
-   const renderSource=(source,characters,className)=>{
+   const renderSource=(source,characters,className,label)=>{
     const end=characters.length-suffix;
-    if(end===prefix)return node('pre',source,className);
-    const block=node('pre',undefined,className);
+    if(end===prefix)return evidenceBlock(label,source,className);
+    const block=evidenceBlock(label,undefined,className);
     block.append(node('span',characters.slice(0,prefix).join('')),node('mark',characters.slice(prefix,end).join(''),'source-change'),node('span',characters.slice(end).join('')));
     return block;
    };
-   return [renderSource(before,original,'before'),renderSource(after,replacement,'after')];
+   return [renderSource(before,original,'before','Source before patch'),renderSource(after,replacement,'after','Source after patch')];
   }
   function observedPair(className,beforeLabel,before,afterLabel,after,changed){
    const pair=node('div',undefined,'counterexample-pair '+className+(changed?' changed':''));
    for(const [label,value] of [[beforeLabel,before],[afterLabel,after]]){
     const item=node('div');
-    item.append(node('div',label,'code-label'),node('pre',value));
+    item.append(node('div',label,'code-label'),evidenceBlock(label,value));
     pair.append(item);
    }
    return pair;
@@ -764,7 +771,7 @@ module.exports = { uniqueTags };`;
    el('evidence').replaceChildren();
    for(const evidence of s?.evidence??[]){
     const currentRead=s.manifest.some(m=>m.path===evidence.path&&m.sha256===evidence.sha256),block=node('div');
-    block.append(node('h3',evidence.path),node('p',currentRead?'Current source read.':'Earlier source read. The current file has changed.','muted'),node('pre',evidence.content));el('evidence').append(block);
+    block.append(node('h3',evidence.path),node('p',currentRead?'Current source read.':'Earlier source read. The current file has changed.','muted'),evidenceBlock(evidence.path,evidence.content));el('evidence').append(block);
    }
    const changes=publicCheckChangesRecord(state),comparison=el('check-changes');comparison.replaceChildren();comparison.hidden=!changes;
    if(changes){
@@ -821,7 +828,7 @@ module.exports = { uniqueTags };`;
       const earlier=earlierPassingCall(state,check.id);
       if(earlier)detail.append(node('p',earlier,'repeat-call-evidence'));
      }
-     if(diagnostic.argumentsAfter===null)detail.append(node('div','Input arguments','code-label'),node('pre',diagnostic.args));
+     if(diagnostic.argumentsAfter===null)detail.append(node('div','Input arguments','code-label'),evidenceBlock('Input arguments',diagnostic.args));
      else{
       const inputs=observedPair('counterexample-inputs','Input before the call',diagnostic.args,'Input after the call',diagnostic.argumentsAfter,true);
       const change=diagnostic.changedInput;
@@ -841,7 +848,7 @@ module.exports = { uniqueTags };`;
      }
      block.append(detail);
     }
-    if(!check.ok&&check.message)block.append(node('pre',check.message));el('checks').append(block);
+    if(!check.ok&&check.message)block.append(evidenceBlock('Check failure',check.message));el('checks').append(block);
    }
    el('events').replaceChildren();
    if(!state?.events?.length)el('events').append(node('li','No reference session has started.','muted'));
@@ -1597,12 +1604,6 @@ module.exports = { uniqueTags };`;
    el('try-checkout-audit').disabled=!!(busy||inspection||cloudBusy)||!token||!functionCapability?.available;
    probeButton.disabled=comparisonBusy||!token||!comparedRequest;
   }
-  function comparisonValue(label,value){
-   const content=node('pre',value);
-   content.tabIndex=0;
-   content.setAttribute('aria-label',label);
-   return content;
-  }
   function appendVersionObservations(item,baseline,candidate,expectation){
    for(const [name,observation] of [['Baseline',baseline],['Candidate',candidate]]){
     let outcome='The return could not be represented as JSON.';
@@ -1610,9 +1611,9 @@ module.exports = { uniqueTags };`;
     else if(observation.status==='threw'){
      outcome=expectation?'Threw '+(observation.returnMatches?'the expected code.':'without the expected code.'):'The function threw.';
     }
-    item.append(node('p',name+(observation.inputPreserved?' · Input preserved':' · Input preservation failed')),comparisonValue(name+' result',outcome));
+    item.append(node('p',name+(observation.inputPreserved?' · Input preserved':' · Input preservation failed')),evidenceBlock(name+' result',outcome));
     if(!observation.inputPreserved)item.append(node('p',name+' arguments after the call'),
-     comparisonValue(name+' arguments after the call',observation.argumentsAfter??'The arguments could not be represented as JSON.'));
+     evidenceBlock(name+' arguments after the call',observation.argumentsAfter??'The arguments could not be represented as JSON.'));
    }
   }
   el('load-probe-example').addEventListener('click',async()=>{
@@ -1706,7 +1707,7 @@ module.exports = { uniqueTags };`;
      for(const {label,args,baseline,candidate} of differences){
       const item=node('details');
       item.open=differences.length===1;
-      item.append(node('summary',label),node('p','Input arguments'),comparisonValue('Input arguments',args));
+      item.append(node('summary',label),node('p','Input arguments'),evidenceBlock('Input arguments',args));
       appendVersionObservations(item,baseline,candidate);
       if(replay){
        const draft=node('button','Use this input for a test','secondary');
@@ -1758,8 +1759,8 @@ module.exports = { uniqueTags };`;
      if(checkoutAudit&&result.observations.length===1)detail.open=true;
      const change=baseline.ok?'Regressed':candidate.ok?'Repaired':'Still failing, result changed';
      detail.append(node('summary',change+' · '+(result.checkLabels[id]??id)),
-      node('p','Input arguments'),comparisonValue('Input arguments',args),
-      node('p',expectation?'Expected error code':'Expected return'),comparisonValue(expectation?'Expected error code':'Expected return',expected));
+      node('p','Input arguments'),evidenceBlock('Input arguments',args),
+      node('p',expectation?'Expected error code':'Expected return'),evidenceBlock(expectation?'Expected error code':'Expected return',expected));
      appendVersionObservations(detail,baseline,candidate,expectation);
      comparisonEvidence.append(detail);
     }

@@ -207,7 +207,8 @@ test('static preview serves the compiled app with CSP and has no task mutation e
 });
 test('served UI mounts after DOM readiness and uses the real browser-memory workflow',async()=>{
  class Element{
-  constructor(){this.children=[];this.listeners=new Map();this.disabled=true;this.value='';}
+  constructor(){this.children=[];this.listeners=new Map();this.attributes=new Map();this.disabled=true;this.value='';}
+  setAttribute(name,value){this.attributes.set(name,value);}
   addEventListener(name,fn){this.listeners.set(name,fn);}append(...items){this.children.push(...items);}
   replaceChildren(...items){this.children=items;}click(){return this.listeners.get('click')?.();}
  }

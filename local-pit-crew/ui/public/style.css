@@ -53,6 +53,8 @@ summary{min-height:44px;padding:10px 0;font-size:13px;line-height:1.6}
 .run-guidance button[aria-disabled="true"]{opacity:.44;cursor:not-allowed}
 #apply,.counterexample-detail summary{scroll-margin-block-start:7rem}
 pre{font-size:12px}
+pre[tabindex]:focus-visible{outline:3px solid #bd5a28;outline-offset:2px}
+@media(forced-colors:active){pre[tabindex]:focus-visible{outline-color:Highlight}}
 .check{grid-template-columns:42px minmax(0,1fr);font-size:12px}
 .check pre{font-size:12px}
 .result{font-size:11px}

@@ -374,6 +374,10 @@ test('the missed-test link runs the recorded draft and one action reveals the un
   assert.equal(f.el('pass-count').textContent,'4/5');
   assert.equal(f.el('failure-preview-name').textContent,'Reject unsafe integer');
   assert.equal(f.el('finish').disabled,true);
+  const failure=f.el('checks').children[0].children.find(child=>child.className==='counterexample-detail');
+  const input=failure.children.find(child=>child.attributes.get('aria-label')==='Input arguments');
+  assert.equal(input.tabIndex,0);
+  assert.equal(input.attributes.get('role'),'group');
   const failed=JSON.parse(f.el('failure-replay-json').textContent);
   assert.equal(failed.files[0].content,recorded.source);
   assert.equal(f.el('load-function-example-patch').textContent,'Fill reviewed safe-integer fix');
