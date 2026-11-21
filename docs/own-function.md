@@ -158,7 +158,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - uses: josepha-mayo/local-pit-crew-web@670761925efcbda0b626dc79866aa8d7980fdea7
+      - uses: josepha-mayo/local-pit-crew-web@b1db853ca73f6b970f168ecfdc07bd0511435e55
         with:
           contract: tests/function.contract.json
           source: src/my-function.js
